@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>等量公理互動實驗室 v3.3</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* 確保算式不換行 */
+        .equation-text {
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icon Components ---
+        const Scale = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
+            </svg>
+        );
+
+        const ArrowRight = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+            </svg>
+        );
+
+        const RotateCcw = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+            </svg>
+        );
+
+        const UndoIcon = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
+            </svg>
+        );
+
+        const Lightbulb = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5 0-2.2-1.8-4-4-4s-4 1.8-4 4c0 1.5.5 2.5 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" />
+            </svg>
+        );
+
+        const HelpCircle = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" />
+            </svg>
+        );
+
+        const Trophy = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+            </svg>
+        );
+
+        const Calculator = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" />
+            </svg>
+        );
+
+        const BookOpen = ({ className, size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+            </svg>
+        );
+
+        // --- Main Component ---
+        const EquationSolver = () => {
+            // 遊戲狀態 (ax + b = cx + d)
+            const [level, setLevel] = useState(1);
+            const [equation, setEquation] = useState({ la: 1, lb: 0, ra: 0, rb: 0 });
+            const [problemText, setProblemText] = useState({ story: "", explanation: "" });
+
+            // 歷史紀錄 (用於顯示) 與 狀態堆疊 (用於復原)
+            const [history, setHistory] = useState([]);
+            const [undoStack, setUndoStack] = useState([]);
+
+            const [solved, setSolved] = useState(false);
+            const [userFeedback, setUserFeedback] = useState("");
+            const [shake, setShake] = useState(false);
+
+            // 用戶輸入狀態
+            const [selectedOp, setSelectedOp] = useState(null); // '+', '-', '*', '/'
+            const [inputVal, setInputVal] = useState('');
+            const [isVariableTerm, setIsVariableTerm] = useState(false); // true 表示操作 "x項", false 表示 "數字"
+
+            // 初始化題目
+            useEffect(() => {
+                generateProblem();
+            }, [level]);
+
+            // 產生應用題文案
+            const generateStory = (type, params) => {
+                const { x, a, b, c, d } = params;
+                const items = ["蘋果", "糖果", "原子筆", "貼紙", "彈珠"];
+                const item = items[Math.floor(Math.random() * items.length)];
+
+                if (type === 1) { // x + b = d
+                    if (b > 0) {
+                        return { story: `小明有一些${item}(x)，又買了 ${b} 個，現在總共有 ${d} 個。`, explanation: `列式：x + ${b} = ${d}` };
+                    } else {
+                        return { story: `小明有一些${item}(x)，送給朋友 ${Math.abs(b)} 個後，還剩下 ${d} 個。`, explanation: `列式：x - ${Math.abs(b)} = ${d}` };
+                    }
+                } else if (type === 2) { // ax = d
+                    return { story: `一盒${item}有 x 個，老師買了 ${a} 盒，總共有 ${d} 個${item}。`, explanation: `列式：${a}x = ${d}` };
+                } else if (type === 3) { // ax + b = d
+                    if (b > 0) {
+                        return { story: `計程車起跳價 ${b} 元，之後每公里 ${a} 元。小華搭了 x 公里，總共付了 ${d} 元。`, explanation: `列式：${a}x + ${b} = ${d}` };
+                    } else {
+                        return { story: `商店促銷，每包餅乾 ${a} 元 (買x包)，折價 ${Math.abs(b)} 元後，實付 ${d} 元。`, explanation: `列式：${a}x - ${Math.abs(b)} = ${d}` };
+                    }
+                } else if (type === 4) { // ax + b = cx + d
+                    return { story: `甲箱有 ${a} 包${item}和 ${b} 個散裝，乙箱有 ${c} 包${item}和 ${d} 個散裝。兩箱總數一樣多。`, explanation: `列式：${a}x + ${b} = ${c}x + ${d}` };
+                }
+                return { story: "", explanation: "" };
+            };
+
+            const generateProblem = () => {
+                setHistory([]);
+                setUndoStack([]);
+                setSolved(false);
+                setUserFeedback("請觀察題目與算式，思考如何將 x 與數字分開。");
+                setInputVal('');
+                setSelectedOp(null);
+                setIsVariableTerm(false);
+
+                let la = 1, lb = 0, ra = 0, rb = 0;
+                let x = Math.floor(Math.random() * 9) + 2;
+                let storyData = { story: "", explanation: "" };
+
+                // 產生基本參數
+                if (level === 1) {
+                    la = 1;
+                    lb = Math.floor(Math.random() * 19) - 9;
+                    if (lb === 0) lb = 5;
+                    ra = 0;
+                } else if (level === 2) {
+                    la = Math.floor(Math.random() * 8) + 2;
+                    lb = 0;
+                    ra = 0;
+                } else if (level === 3) {
+                    la = Math.floor(Math.random() * 5) + 2;
+                    lb = Math.floor(Math.random() * 19) - 9;
+                    if (lb === 0) lb = 3;
+                    ra = 0;
+                } else {
+                    // Level 4: ax + b = cx + d
+                    // 保證正整數解且係數為正
+                    let diffA = Math.floor(Math.random() * 3) + 1;
+                    ra = Math.floor(Math.random() * 3) + 1;
+                    la = ra + diffA;
+                    let rhsDiff = diffA * x;
+                    lb = Math.floor(Math.random() * 10) + 1; // 1~10 正數
+                    rb = lb + rhsDiff;
+                }
+
+                // 修正 1: 確保算式結果 rb 不為負數 (國小範圍不出現負數結果)
+                if (level === 1 || level === 3) {
+                    // 計算結果
+                    rb = la * x + lb;
+
+                    // 如果結果小於 0，強制將常數項轉為正數 (改成加法題)
+                    if (rb < 0) {
+                        lb = Math.abs(lb);
+                        rb = la * x + lb;
+                    }
+                } else if (level === 2) {
+                    rb = la * x;
+                }
+                // Level 4 的 rb 已經在上方計算且保證為正數
+
+                // 產生 Story
+                if (level === 1) storyData = generateStory(1, { x, a: la, b: lb, c: ra, d: rb });
+                else if (level === 2) storyData = generateStory(2, { x, a: la, b: lb, c: ra, d: rb });
+                else if (level === 3) storyData = generateStory(3, { x, a: la, b: lb, c: ra, d: rb });
+                else storyData = generateStory(4, { x, a: la, b: lb, c: ra, d: rb });
+
+                setEquation({ la, lb, ra, rb });
+                setProblemText(storyData);
+            };
+
+            const formatSide = (a, b) => {
+                let parts = [];
+                if (a !== 0) {
+                    if (a === 1) parts.push("x");
+                    else if (a === -1) parts.push("-x");
+                    else parts.push(`${a}x`);
+                }
+                if (b !== 0) {
+                    if (b > 0) {
+                        if (parts.length > 0) parts.push(`+ ${b}`);
+                        else parts.push(`${b}`);
+                    } else {
+                        if (parts.length > 0) parts.push(`- ${Math.abs(b)}`);
+                        else parts.push(`${b}`);
+                    }
+                }
+                if (a === 0 && b === 0) return "0";
+                return parts.join(" ");
+            };
+
+            const formatEquationFull = (eq) => {
+                return {
+                    left: formatSide(eq.la, eq.lb),
+                    right: formatSide(eq.ra, eq.rb)
+                };
+            };
+
+            // 執行 Undo
+            const handleUndo = () => {
+                if (undoStack.length === 0) {
+                    triggerShake("已經是最初狀態，無法復原囉！");
+                    return;
+                }
+                const prev = undoStack[undoStack.length - 1];
+
+                // 還原狀態
+                setEquation(prev.equation);
+                setSolved(false); // 復原後一定未完成 (除非復原到完成狀態，但邏輯上復原通常是想修正)
+
+                // 移除最後一筆堆疊
+                setUndoStack(undoStack.slice(0, -1));
+
+                // 移除顯示的歷史紀錄
+                setHistory(history.slice(0, -1));
+
+                setUserFeedback("已復原到上一步。");
+            };
+
+            // 執行 提示 (Hint)
+            const handleHint = () => {
+                const { la, lb, ra, rb } = equation;
+
+                // 1. 檢查兩邊是否都有 x (針對 Level 4)
+                if (la !== 0 && ra !== 0) {
+                    // 建議消掉係數較小的 x
+                    const minCoeff = Math.min(Math.abs(la), Math.abs(ra));
+                    const target = (Math.abs(la) === minCoeff) ? "左邊" : "右邊";
+                    setUserFeedback(`💡 提示：兩邊都有 x，建議使用「減法」消掉${target}的 ${minCoeff}x。`);
+                    return;
+                }
+
+                // 2. 檢查兩邊是否都有常數 (通常這一步會在消 x 之後，或是一開始)
+                // 我們的目標格式通常是 ax = b 或 x = b
+                // 如果目前是 ax + b = c
+                if (la !== 0 && lb !== 0 && rb !== 0) {
+                    // 建議消掉跟 x 同邊的常數
+                    const op = lb > 0 ? "減" : "加";
+                    setUserFeedback(`💡 提示：x 的旁邊還有常數 ${lb}，試著用「${op}法」把它抵銷掉？`);
+                    return;
+                }
+
+                // 3. 如果是 ax = b 的形式
+                if (la !== 0 && lb === 0) {
+                    if (la === 1) {
+                        setUserFeedback("💡 提示：x 係數已經是 1 了，看看另一邊是多少？");
+                    } else {
+                        setUserFeedback(`💡 提示：現在是 ${la} 個 x，要變回 1 個 x，可以「除以 ${la}」喔！`);
+                    }
+                    return;
+                }
+
+                // 預設提示
+                setUserFeedback("💡 提示：觀察看看，你的目標是讓 x 單獨留在等號一邊。");
+            };
+
+            // 執行運算
+            const handleOperation = () => {
+                if (!selectedOp || !inputVal) {
+                    triggerShake("請先選擇運算符號並輸入數字！");
+                    return;
+                }
+
+                const val = parseFloat(inputVal);
+                if (isNaN(val) || val === 0) {
+                    triggerShake("請輸入有效的非零數字。");
+                    return;
+                }
+
+                // 準備記錄 Undo
+                const currentEqState = { equation: { ...equation } };
+
+                let newEq = { ...equation };
+                let actionDesc = "";
+
+                if (isVariableTerm) {
+                    // 操作未知數項
+                    if (selectedOp === '+') {
+                        newEq.la += val;
+                        newEq.ra += val;
+                        actionDesc = `兩邊同時加 ${val}x`;
+                    } else if (selectedOp === '-') {
+                        newEq.la -= val;
+                        newEq.ra -= val;
+                        actionDesc = `兩邊同時減 ${val}x`;
+                    } else if (selectedOp === '*') {
+                        // 乘法：產生 x^2，阻止並提示
+                        triggerShake("這樣 x 會變成平方 (x²)，這太複雜囉！我們先學線性的。");
+                        return;
+                    } else if (selectedOp === '/') {
+                        // 除法：產生 1/x，阻止並提示
+                        triggerShake("這樣 x 會跑到分母 (1/x)，這以後才會學到喔！");
+                        return;
+                    }
+                } else {
+                    // 操作常數
+                    switch (selectedOp) {
+                        case '+':
+                            newEq.lb += val;
+                            newEq.rb += val;
+                            actionDesc = `兩邊同時加 ${val}`;
+                            break;
+                        case '-':
+                            newEq.lb -= val;
+                            newEq.rb -= val;
+                            actionDesc = `兩邊同時減 ${val}`;
+                            break;
+                        case '*':
+                            newEq.la *= val;
+                            newEq.lb *= val;
+                            newEq.ra *= val;
+                            newEq.rb *= val;
+                            actionDesc = `兩邊同時乘以 ${val}`;
+                            break;
+                        case '/':
+                            if (newEq.la % val !== 0 || newEq.lb % val !== 0 ||
+                                newEq.ra % val !== 0 || newEq.rb % val !== 0) {
+                                // 修正 2: 使用 triggerShake 觸發搖晃動畫
+                                triggerShake("這樣除起來會有餘數或小數，試試看別的方法？");
+                                return;
+                            }
+                            newEq.la /= val;
+                            newEq.lb /= val;
+                            newEq.ra /= val;
+                            newEq.rb /= val;
+                            actionDesc = `兩邊同時除以 ${val}`;
+                            break;
+                    }
+                }
+
+                // 成功執行後，更新 Undo Stack
+                setUndoStack([...undoStack, currentEqState]);
+
+                // 更新歷史紀錄與狀態
+                setHistory([...history, {
+                    prev: formatEquationFull(equation),
+                    action: actionDesc,
+                    next: formatEquationFull(newEq)
+                }]);
+                setEquation(newEq);
+
+                checkProgress(newEq, equation);
+                setInputVal('');
+            };
+
+            const checkProgress = (curr, prev) => {
+                const leftSolved = (curr.la === 1 && curr.lb === 0 && curr.ra === 0);
+                const rightSolved = (curr.ra === 1 && curr.rb === 0 && curr.la === 0);
+
+                if (leftSolved || rightSolved) {
+                    setSolved(true);
+                    setUserFeedback("🎉 太棒了！你成功解出了 x 的值！");
+                    return;
+                }
+
+                // 簡單的反饋邏輯
+                if (level === 4 && curr.la !== 0 && curr.ra !== 0) {
+                    if (Math.abs(curr.la) > Math.abs(prev.la) && Math.abs(curr.ra) > Math.abs(prev.ra)) {
+                        setUserFeedback("🤔 x 的係數好像變大了，試著「減掉」某一邊的 x？");
+                        return;
+                    }
+                }
+
+                setUserFeedback("✅ 計算完成，請繼續下一步！");
+            };
+
+            const triggerShake = (msg) => {
+                setUserFeedback(`⚠️ ${msg}`);
+                setShake(true);
+                setTimeout(() => setShake(false), 500);
+            };
+
+            const currentDisplay = formatEquationFull(equation);
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-20">
+                    <div className="p-4 md:p-6">
+                        {/* Header */}
+                        <header className="max-w-5xl mx-auto mb-6 text-center">
+                            <h1 className="text-2xl md:text-4xl font-black text-indigo-600 mb-2 flex items-center justify-center gap-2">
+                                <Scale className="w-8 h-8 md:w-10 md:h-10" />
+                                等量公理實驗室 v3.3
+                            </h1>
+                        </header>
+
+                        {/* Main Content Grid */}
+                        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                            {/* Left Panel: Game Controls & Visuals */}
+                            <div className="lg:col-span-2 space-y-5">
+
+                                <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-2 justify-between items-center">
+                                    <div className="flex flex-wrap gap-2">
+                                        {[1, 2, 3, 4].map((lvl) => (
+                                            <button
+                                                key={lvl}
+                                                onClick={() => setLevel(lvl)}
+                                                className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-bold transition-all ${level === lvl
+                                                        ? 'bg-indigo-600 text-white shadow-md transform scale-105'
+                                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                                    }`}
+                                            >
+                                                {lvl === 1 ? '基礎(一步)' : lvl === 2 ? '進階(係數)' : lvl === 3 ? '挑戰(混合)' : '大師(雙邊)'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={generateProblem}
+                                        className="p-2 text-slate-400 hover:text-indigo-600 transition-colors bg-slate-50 rounded-full"
+                                        title="重新出題"
+                                    >
+                                        <RotateCcw size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl shadow-sm relative">
+                                    <div className="flex items-start gap-3">
+                                        <div className="bg-amber-100 p-2 rounded-lg text-amber-600 mt-1">
+                                            <BookOpen size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-amber-800 mb-1">應用題情境</h3>
+                                            <p className="text-amber-900 text-sm md:text-base leading-relaxed mb-2">
+                                                {problemText.story}
+                                            </p>
+                                            <details className="text-xs md:text-sm text-amber-700 cursor-pointer group">
+                                                <summary className="font-bold hover:text-amber-600 select-none list-none flex items-center gap-1">
+                                                    <span className="bg-amber-200/50 px-2 py-0.5 rounded text-amber-800">查看列式解說</span>
+                                                </summary>
+                                                <div className="mt-2 p-3 bg-white/60 rounded-lg border border-amber-100 text-slate-700">
+                                                    {problemText.explanation}
+                                                </div>
+                                            </details>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-lg border-2 border-indigo-50 relative overflow-hidden">
+                                    <div className={`transition-all duration-300 ${shake ? 'animate-shake' : ''}`}>
+                                        <div className="flex justify-center items-center gap-2 md:gap-6 mb-4 overflow-x-auto pb-2">
+                                            <div className="flex-1 flex justify-end min-w-0">
+                                                <div className="equation-text bg-indigo-50 border-2 border-indigo-100 text-indigo-800 font-mono text-3xl md:text-5xl font-bold py-4 px-6 rounded-xl shadow-inner text-right">
+                                                    {currentDisplay.left}
+                                                </div>
+                                            </div>
+                                            <div className="flex-shrink-0 flex flex-col items-center">
+                                                <div className="text-4xl md:text-6xl font-black text-slate-300 mx-2">=</div>
+                                            </div>
+                                            <div className="flex-1 flex justify-start min-w-0">
+                                                <div className="equation-text bg-emerald-50 border-2 border-emerald-100 text-emerald-800 font-mono text-3xl md:text-5xl font-bold py-4 px-6 rounded-xl shadow-inner text-left">
+                                                    {currentDisplay.right}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-center -mt-2 opacity-30">
+                                            <div className="w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-b-[20px] border-b-slate-400"></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 flex items-center gap-2">
+                                        <div className={`flex-1 p-3 rounded-lg text-center font-medium text-lg flex items-center justify-center gap-2 transition-colors duration-300 ${solved ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100 text-slate-600'
+                                            }`}>
+                                            {solved ? <Trophy className="text-yellow-600" /> : <HelpCircle size={20} />}
+                                            <span className="text-sm md:text-base">{userFeedback}</span>
+                                        </div>
+                                        {!solved && (
+                                            <button
+                                                onClick={handleHint}
+                                                className="bg-yellow-100 text-yellow-600 p-3 rounded-xl hover:bg-yellow-200 transition-colors shadow-sm"
+                                                title="不知如何下手？點我看提示"
+                                            >
+                                                <Lightbulb size={24} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {!solved && (
+                                    <div className="bg-white p-5 rounded-2xl shadow-md border border-slate-200 relative">
+                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                                            <h3 className="text-slate-500 font-bold flex items-center gap-2">
+                                                <Calculator size={18} />
+                                                操作面板
+                                            </h3>
+
+                                            <div className="flex items-center gap-2 self-end md:self-auto">
+                                                <div className="flex bg-slate-100 p-1 rounded-lg">
+                                                    <button
+                                                        onClick={() => setIsVariableTerm(false)}
+                                                        className={`px-3 py-1 text-sm font-bold rounded-md transition-all flex items-center gap-1 ${!isVariableTerm ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                                    >
+                                                        <span>#</span> 數字
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsVariableTerm(true)}
+                                                        className={`px-3 py-1 text-sm font-bold rounded-md transition-all flex items-center gap-1 ${isVariableTerm ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                                    >
+                                                        <span>x</span> 變數項
+                                                    </button>
+                                                </div>
+
+                                                {/* Undo Button - Moved here to prevent overlap */}
+                                                <button
+                                                    onClick={handleUndo}
+                                                    disabled={undoStack.length === 0}
+                                                    className={`p-2 rounded-lg transition-all flex items-center gap-1 text-xs font-bold border ${undoStack.length === 0
+                                                            ? 'text-slate-300 border-slate-100 cursor-not-allowed'
+                                                            : 'text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-indigo-600 hover:border-indigo-200'
+                                                        }`}
+                                                >
+                                                    <UndoIcon size={16} /> 復原
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+                                            <div className="flex gap-2 justify-center md:justify-start">
+                                                {['+', '-', '*', '/'].map(op => (
+                                                    <button
+                                                        key={op}
+                                                        onClick={() => setSelectedOp(op)}
+                                                        className={`w-12 h-12 rounded-xl text-2xl font-bold flex items-center justify-center transition-all border-2 ${selectedOp === op
+                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg scale-110'
+                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
+                                                            }`}
+                                                    >
+                                                        {op === '*' ? '×' : op === '/' ? '÷' : op}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Input Area - Adjusted width and layout */}
+                                            <div className="relative flex items-center justify-center md:justify-start">
+                                                <input
+                                                    type="number"
+                                                    value={inputVal}
+                                                    onChange={(e) => setInputVal(e.target.value)}
+                                                    placeholder={isVariableTerm ? "係數" : "數字"}
+                                                    className="w-32 h-12 px-4 rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-xl font-mono text-center"
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleOperation()}
+                                                />
+                                                {/* Distinct X display next to input */}
+                                                {isVariableTerm && (
+                                                    <div className="ml-2 text-4xl font-serif italic font-bold text-indigo-600 animate-pulse">x</div>
+                                                )}
+                                            </div>
+
+                                            {/* Execute Button - Grows to fill space */}
+                                            <button
+                                                onClick={handleOperation}
+                                                className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                執行 <ArrowRight size={18} />
+                                            </button>
+                                        </div>
+                                        {isVariableTerm && (
+                                            <div className="text-xs text-indigo-500 mt-2 font-medium">
+                                                💡 小提醒：在國小階段，我們通常只對變數項(x)做加減法喔！(試試看乘除會發生什麼事？)
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {solved && (
+                                    <div className="flex justify-center">
+                                        <button
+                                            onClick={generateProblem}
+                                            className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all text-xl flex items-center gap-2 animate-bounce"
+                                        >
+                                            <RotateCcw /> 下一題挑戰
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right Panel: History Log */}
+                            <div className="lg:col-span-1">
+                                <div className="bg-slate-800 text-slate-200 p-6 rounded-2xl shadow-lg h-full max-h-[600px] overflow-y-auto custom-scrollbar">
+                                    <h3 className="font-bold text-slate-400 mb-4 uppercase tracking-wider text-sm border-b border-slate-700 pb-2">
+                                        計算過程紀錄
+                                    </h3>
+
+                                    {history.length === 0 ? (
+                                        <div className="text-slate-500 text-center py-10 italic">
+                                            還沒有步驟...<br />
+                                            {level === 4 ? "試著先把 x 移到同一邊！" : "試著操作看看！"}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {history.map((step, idx) => (
+                                                <div key={idx} className="bg-slate-700/50 p-3 rounded-lg border border-slate-600 text-sm">
+                                                    <div className="flex justify-between text-slate-400 text-xs mb-1">
+                                                        <span>步驟 {idx + 1}</span>
+                                                        <span className="text-indigo-300 font-bold">{step.action}</span>
+                                                    </div>
+                                                    <div className="font-mono text-center opacity-50 mb-1 whitespace-nowrap overflow-x-auto">
+                                                        {step.prev.left} = {step.prev.right}
+                                                    </div>
+                                                    <div className="flex justify-center text-slate-500 my-1">
+                                                        ↓
+                                                    </div>
+                                                    <div className="font-mono text-center text-lg text-emerald-400 font-bold whitespace-nowrap overflow-x-auto">
+                                                        {step.next.left} = {step.next.right}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {solved && (
+                                        <div className="mt-4 bg-emerald-900/50 border border-emerald-500/50 p-4 rounded-lg text-center animate-pulse">
+                                            <div className="text-emerald-400 font-bold text-xl mb-1">
+                                                x = {equation.ra === 0 ? equation.rb : equation.lb}
+                                            </div>
+                                            <div className="text-emerald-200 text-xs">完美解答</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer: Usage & Axioms Card */}
+                    <footer className="max-w-5xl mx-auto px-4 mt-8 pb-10">
+                        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200">
+                            <h2 className="text-2xl font-bold text-slate-700 mb-6 text-center">
+                                📚 等量公理教學指南
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {[
+                                    { title: "等量加法公理", op: "+", desc: "等號兩邊同時加上同一個數，等式依然成立。", ex: "若 a = b，則 a + c = b + c" },
+                                    { title: "等量減法公理", op: "-", desc: "等號兩邊同時減去同一個數，等式依然成立。", ex: "若 a = b，則 a - c = b - c" },
+                                    { title: "等量乘法公理", op: "×", desc: "等號兩邊同時乘以同一個數，等式依然成立。", ex: "若 a = b，則 a × c = b × c" },
+                                    { title: "等量除法公理", op: "÷", desc: "等號兩邊同時除以同一個不為 0 的數，等式成立。", ex: "若 a = b，則 a ÷ c = b ÷ c" }
+                                ].map((rule, idx) => (
+                                    <div key={idx} className="bg-slate-50 p-5 rounded-xl border border-slate-100 hover:shadow-md transition-shadow">
+                                        <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-3">
+                                            {rule.op}
+                                        </div>
+                                        <h3 className="font-bold text-slate-800 mb-2">{rule.title}</h3>
+                                        <p className="text-slate-500 text-sm mb-3 leading-relaxed">
+                                            {rule.desc}
+                                        </p>
+                                        <div className="text-xs bg-white p-2 rounded border border-slate-200 font-mono text-slate-600">
+                                            {rule.ex}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-slate-100">
+                                <h3 className="font-bold text-slate-700 mb-3">使用說明</h3>
+                                <ul className="list-disc list-inside text-slate-600 space-y-2 text-sm md:text-base">
+                                    <li><strong>目標：</strong>讓 x 單獨留在等號的一邊 (例如 x = 5)。</li>
+                                    <li><strong>模式切換：</strong>
+                                        <ul className="pl-6 mt-1 list-[square] text-slate-500">
+                                            <li><span className="font-bold text-indigo-600"># 數字模式</span>：對兩邊的「常數」做運算 (例如：兩邊同時減 5)。</li>
+                                            <li><span className="font-bold text-indigo-600">x 變數模式</span>：對兩邊的「未知數」做運算 (例如：兩邊同時減 2x)。</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>提示與復原：</strong>做錯了可以按右上角的 <UndoIcon className="inline w-4 h-4" /> 復原；卡關時可以按 <Lightbulb className="inline w-4 h-4 text-yellow-500" /> 燈泡看提示。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<EquationSolver />);
+    </script>
+</body>
+
+</html>
