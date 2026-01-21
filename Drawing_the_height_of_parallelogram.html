@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平行四邊形高度探險家 | 國小數學互動教學</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f9ff;
+            /* sky-50 */
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Custom scrollbar hiding if needed */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // --- Icons (Replaces lucide-react imports) ---
+        const IconBase = ({ children, size = 24, className = "", ...props }) => (
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width={size}
+                height={size}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={className}
+                {...props}
+            >
+                {children}
+            </svg>
+        );
+
+        const RotateCw = (props) => <IconBase {...props}><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 12" /><path d="M21 3v9h-9" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const ArrowRight = (props) => <IconBase {...props}><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></IconBase>;
+        const MousePointer2 = (props) => <IconBase {...props}><path d="m12 12 1.3 6.7 1.8-4.4 5.3 1.9L22 13l-5.4-1.8 4.3-1.8L12 12z" /></IconBase>;
+        const Undo2 = (props) => <IconBase {...props}><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" /></IconBase>;
+        const Lock = (props) => <IconBase {...props}><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></IconBase>;
+        const Unlock = (props) => <IconBase {...props}><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></IconBase>;
+        const Pencil = (props) => <IconBase {...props}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></IconBase>;
+        const XCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></IconBase>;
+        const AlertCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></IconBase>;
+        const RefreshCw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 12" /><path d="M21 3v9h-9" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 12" /><path d="M3 21v-9h9" /></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconBase>;
+        const HelpCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></IconBase>;
+
+        // --- Math Helpers ---
+
+        const getDistance = (p1, p2) => Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+
+        const projectPointToLine = (p, v1, v2) => {
+            const dx = v2.x - v1.x;
+            const dy = v2.y - v1.y;
+            const lengthSq = dx * dx + dy * dy;
+            if (lengthSq === 0) return { x: v1.x, y: v1.y, t: 0 };
+            const t = ((p.x - v1.x) * dx + (p.y - v1.y) * dy) / lengthSq;
+            return {
+                x: v1.x + t * dx,
+                y: v1.y + t * dy,
+                t: t
+            };
+        };
+
+        const getAngleDegrees = (v1, v2) => {
+            return Math.atan2(v2.y - v1.y, v2.x - v1.x) * (180 / Math.PI);
+        };
+
+        const rotatePoint = (p, center, angleDeg) => {
+            const rad = (angleDeg * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            const dx = p.x - center.x;
+            const dy = p.y - center.y;
+            return {
+                x: center.x + dx * cos - dy * sin,
+                y: center.y + dx * sin + dy * cos
+            };
+        };
+
+        const getCentroid = (vertices) => {
+            const x = vertices.reduce((sum, v) => sum + v.x, 0) / vertices.length;
+            const y = vertices.reduce((sum, v) => sum + v.y, 0) / vertices.length;
+            return { x, y };
+        };
+
+        // --- Random Level Generator ---
+
+        const generateRandomLevel = (levelId) => {
+            const cx = 300;
+            const cy = 200;
+
+            const width = 150 + Math.random() * 100;
+            const height = 100 + Math.random() * 80;
+            const shear = (Math.random() - 0.5) * 150;
+
+            const p0 = { x: -width / 2, y: height / 2 };
+            const p1 = { x: width / 2, y: height / 2 };
+            const p2 = { x: width / 2 + shear, y: -height / 2 };
+            const p3 = { x: -width / 2 + shear, y: -height / 2 };
+
+            let vertices = [p0, p1, p2, p3];
+
+            let rotation = 0;
+            if (levelId === 1) {
+                rotation = (Math.random() - 0.5) * 10;
+            } else {
+                rotation = Math.random() * 360;
+            }
+
+            vertices = vertices.map(v => rotatePoint(v, { x: 0, y: 0 }, rotation));
+            vertices = vertices.map(v => ({ x: v.x + cx, y: v.y + cy }));
+
+            const baseIndex = Math.floor(Math.random() * 4);
+
+            const bStart = vertices[baseIndex];
+            const bEnd = vertices[(baseIndex + 1) % 4];
+            const oppP = vertices[(baseIndex + 3) % 4];
+
+            const proj = projectPointToLine(oppP, bStart, bEnd);
+            const isExternal = proj.t < 0 || proj.t > 1;
+
+            let title = `第 ${levelId} 關`;
+            let desc = "找出底邊對應的高。";
+
+            if (levelId === 1) desc = "這是基礎練習，請找出對應底邊的高。";
+            else if (isExternal) desc = "注意！這是鈍角平行四邊形，高可能會在底邊的延長線上喔！";
+            else desc = "圖形角度改變了，請旋轉三角板找出垂直距離。";
+
+            return {
+                id: levelId,
+                title,
+                description: desc,
+                vertices,
+                baseIndex,
+                isExternalHeight: isExternal
+            };
+        };
+
+        // --- Sub-Component: Smart Right Angle Marker ---
+        const RightAngleMarker = ({ p, lineOtherEnd, baseAngle, center }) => {
+            const s = 12;
+
+            const rad = (baseAngle * Math.PI) / 180;
+            const baseVec = { x: Math.cos(rad), y: Math.sin(rad) };
+            const perpVec = { x: -Math.sin(rad), y: Math.cos(rad) };
+
+            const heightVec = { x: lineOtherEnd.x - p.x, y: lineOtherEnd.y - p.y };
+            const centerVec = { x: center.x - p.x, y: center.y - p.y };
+
+            const dotH = heightVec.x * perpVec.x + heightVec.y * perpVec.y;
+            const signY = dotH >= 0 ? 1 : -1;
+
+            const dotC = centerVec.x * baseVec.x + centerVec.y * baseVec.y;
+            const signX = dotC >= 0 ? 1 : -1;
+
+            return (
+                <g transform={`translate(${p.x}, ${p.y}) rotate(${baseAngle})`}>
+                    <path
+                        d={`M ${s * signX} 0 L ${s * signX} ${s * signY} L 0 ${s * signY}`}
+                        fill="rgba(16, 185, 129, 0.0)"
+                        stroke="#10b981"
+                        strokeWidth="2"
+                    />
+                </g>
+            );
+        };
+
+        // --- Main Component ---
+
+        function ParallelogramGame() {
+            const [levelCount, setLevelCount] = useState(1);
+            const [currentLevel, setCurrentLevel] = useState(null);
+
+            const [phase, setPhase] = useState('moving'); // 'moving' | 'locked' | 'result'
+
+            const [rulerPos, setRulerPos] = useState({ x: 300, y: 200 });
+            const [rulerAngle, setRulerAngle] = useState(0);
+
+            const [isRotating, setIsRotating] = useState(false);
+            const [rotationOffset, setRotationOffset] = useState(0);
+
+            const [userLine, setUserLine] = useState(null);
+            const [resultData, setResultData] = useState(null);
+
+            const svgRef = useRef(null);
+
+            useEffect(() => {
+                setCurrentLevel(generateRandomLevel(1));
+            }, []);
+
+            const resetLevel = useCallback((nextLevelId) => {
+                setPhase('moving');
+                setRulerPos({ x: 300, y: 300 });
+                setRulerAngle(0);
+                setUserLine(null);
+                setResultData(null);
+                setCurrentLevel(generateRandomLevel(nextLevelId));
+            }, []);
+
+            // --- Global Drag Handler for Smooth Rotation ---
+            useEffect(() => {
+                if (!isRotating) return;
+
+                const handleGlobalMove = (e) => {
+                    e.preventDefault();
+
+                    if (!svgRef.current) return;
+                    const CTM = svgRef.current.getScreenCTM();
+                    if (!CTM) return;
+
+                    let clientX, clientY;
+                    if (e.touches && e.touches.length > 0) {
+                        clientX = e.touches[0].clientX;
+                        clientY = e.touches[0].clientY;
+                    } else {
+                        clientX = e.clientX;
+                        clientY = e.clientY;
+                    }
+
+                    // Convert screen coordinates to SVG coordinates
+                    const mouseX = (clientX - CTM.e) / CTM.a;
+                    const mouseY = (clientY - CTM.f) / CTM.d;
+
+                    // Calculate angle relative to ruler center
+                    const dx = mouseX - rulerPos.x;
+                    const dy = mouseY - rulerPos.y;
+                    const currentMouseAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+                    // Update ruler angle maintaining the initial offset
+                    setRulerAngle(currentMouseAngle - rotationOffset);
+                };
+
+                const handleGlobalUp = () => {
+                    setIsRotating(false);
+                };
+
+                window.addEventListener('mousemove', handleGlobalMove);
+                window.addEventListener('mouseup', handleGlobalUp);
+                window.addEventListener('touchmove', handleGlobalMove, { passive: false });
+                window.addEventListener('touchend', handleGlobalUp);
+
+                return () => {
+                    window.removeEventListener('mousemove', handleGlobalMove);
+                    window.removeEventListener('mouseup', handleGlobalUp);
+                    window.removeEventListener('touchmove', handleGlobalMove);
+                    window.removeEventListener('touchend', handleGlobalUp);
+                };
+            }, [isRotating, rulerPos, rotationOffset]);
+
+
+            if (!currentLevel) return <div className="flex items-center justify-center h-screen text-sky-600 font-bold">正在準備幾何工具...</div>;
+
+            const centroid = getCentroid(currentLevel.vertices);
+
+            const baseStart = currentLevel.vertices[currentLevel.baseIndex];
+            const baseEnd = currentLevel.vertices[(currentLevel.baseIndex + 1) % 4];
+            const baseAngle = getAngleDegrees(baseStart, baseEnd);
+
+            const oppIndex1 = (currentLevel.baseIndex + 2) % 4;
+            const oppIndex2 = (currentLevel.baseIndex + 3) % 4;
+            const oppP1 = currentLevel.vertices[oppIndex1];
+            const oppP2 = currentLevel.vertices[oppIndex2];
+
+            // --- Interaction Handlers ---
+
+            const handleSvgMouseMove = (e) => {
+                if (phase !== 'moving') return;
+
+                if (!svgRef.current) return;
+                const CTM = svgRef.current.getScreenCTM();
+                if (!CTM) return;
+
+                // Check if touch or mouse
+                let clientX, clientY;
+                if (e.nativeEvent && e.nativeEvent.touches && e.nativeEvent.touches.length > 0) {
+                    // SVG Touch events often need preventDefault to stop scrolling, but we handle that in CSS/Global
+                    clientX = e.nativeEvent.touches[0].clientX;
+                    clientY = e.nativeEvent.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                const mouseX = (clientX - CTM.e) / CTM.a;
+                const mouseY = (clientY - CTM.f) / CTM.d;
+
+                setRulerPos({ x: mouseX, y: mouseY });
+            };
+
+            const handleRotateStart = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                if (!svgRef.current) return;
+                const CTM = svgRef.current.getScreenCTM();
+                if (!CTM) return;
+
+                let clientX, clientY;
+                if (e.nativeEvent && e.nativeEvent.touches && e.nativeEvent.touches.length > 0) {
+                    clientX = e.nativeEvent.touches[0].clientX;
+                    clientY = e.nativeEvent.touches[0].clientY;
+                } else if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                const mouseX = (clientX - CTM.e) / CTM.a;
+                const mouseY = (clientY - CTM.f) / CTM.d;
+
+                const dx = mouseX - rulerPos.x;
+                const dy = mouseY - rulerPos.y;
+                const mouseAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+                setRotationOffset(mouseAngle - rulerAngle);
+                setIsRotating(true);
+            };
+
+            const handleCanvasClick = (e) => {
+                if (phase === 'moving') {
+                    setPhase('locked');
+                }
+            };
+
+            const handleDrawClick = (e) => {
+                e.stopPropagation();
+
+                const projOnBase = projectPointToLine(rulerPos, baseStart, baseEnd);
+                const projOnOpp = projectPointToLine(rulerPos, oppP1, oppP2);
+
+                const distToBase = getDistance(rulerPos, { x: projOnBase.x, y: projOnBase.y });
+                const distToOpp = getDistance(rulerPos, { x: projOnOpp.x, y: projOnOpp.y });
+
+                const drawnLine = { start: { x: projOnBase.x, y: projOnBase.y }, end: { x: projOnOpp.x, y: projOnOpp.y } };
+                setUserLine(drawnLine);
+
+                const normalizedRuler = (rulerAngle % 360 + 360) % 180;
+                const normalizedBase = (baseAngle % 360 + 360) % 180;
+                const angleDiff = Math.abs(normalizedRuler - normalizedBase);
+
+                const isAngleCorrect = angleDiff < 1.5 || Math.abs(angleDiff - 180) < 1.5;
+                const isPosCorrect = distToBase < 30 || distToOpp < 30;
+
+                if (!isAngleCorrect) {
+                    setResultData({ success: false, type: 'angle', msg: '角度不對！請確認三角板直角邊是否與底邊完全垂直。' });
+                } else if (!isPosCorrect) {
+                    setResultData({ success: false, type: 'position', msg: '位置偏了！請將三角板直角頂點貼合在邊線上。' });
+                } else {
+                    setResultData({ success: true, type: 'ok', msg: '完全正確！這就是平行四邊形的高。' });
+                }
+
+                setPhase('result');
+            };
+
+            const handleUnlock = (e) => {
+                e.stopPropagation();
+                setPhase('moving');
+            };
+
+            // --- Rendering ---
+
+            const polyPoints = currentLevel.vertices.map(p => `${p.x},${p.y}`).join(' ');
+            const bDx = baseEnd.x - baseStart.x;
+            const bDy = baseEnd.y - baseStart.y;
+            const extStart = { x: baseStart.x - bDx * 10, y: baseStart.y - bDy * 10 };
+            const extEnd = { x: baseEnd.x + bDx * 10, y: baseEnd.y + bDy * 10 };
+
+            // Calculate Opposite Extension Line
+            const oDx = oppP2.x - oppP1.x;
+            const oDy = oppP2.y - oppP1.y;
+            const oppExtStart = { x: oppP1.x - oDx * 10, y: oppP1.y - oDy * 10 };
+            const oppExtEnd = { x: oppP2.x + oDx * 10, y: oppP2.y + oDy * 10 };
+
+            return (
+                <div className={`flex flex-col items-center min-h-screen font-sans p-4 select-none ${isRotating ? 'cursor-grabbing' : ''}`}>
+
+                    {/* Header */}
+                    <div className="w-full max-w-4xl bg-white rounded-2xl shadow-sm p-4 mb-4 border-l-8 border-sky-500 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <h1 className="text-xl font-bold text-gray-800">平行四邊形高度探險家</h1>
+                                <span className="bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-sm font-bold shadow-sm">第 {levelCount} 關</span>
+                            </div>
+                            <p className="text-gray-600 text-sm">{currentLevel.description}</p>
+                        </div>
+                        <button
+                            onClick={() => resetLevel(levelCount)}
+                            className="flex items-center gap-1 text-gray-400 hover:text-gray-600 text-sm bg-gray-50 px-3 py-1 rounded-lg border border-gray-200"
+                            title="更換題目"
+                        >
+                            <RefreshCw size={14} /> 重置題目
+                        </button>
+                    </div>
+
+                    {/* Game Canvas */}
+                    <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200 group">
+
+                        {/* Status Indicator */}
+                        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none w-full flex justify-center px-4">
+                            <div className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-md transition-all duration-300 flex items-center gap-2 border whitespace-nowrap
+                        ${phase === 'moving' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                    phase === 'locked' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                                        resultData?.success ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                {phase === 'moving' && <><MousePointer2 size={16} /> 步驟1：移動到位置後點擊鎖定</>}
+                                {phase === 'locked' && <><Lock size={16} /> 步驟2：調整角度與位置</>}
+                                {phase === 'result' && resultData?.success && <><Check size={16} /> 挑戰成功！</>}
+                                {phase === 'result' && !resultData?.success && <><AlertCircle size={16} /> 再試一次</>}
+                            </div>
+                        </div>
+
+                        <svg
+                            ref={svgRef}
+                            viewBox="0 0 600 400"
+                            className={`w-full h-[400px] md:h-[500px] bg-slate-50 ${phase === 'moving' ? 'cursor-none' : ''}`}
+                            onMouseMove={handleSvgMouseMove}
+                            onTouchMove={handleSvgMouseMove}
+                            onClick={handleCanvasClick}
+                            style={{ touchAction: 'none' }}
+                        >
+                            <defs>
+                                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" strokeWidth="1" />
+                                </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#grid)" />
+
+                            {/* Base Extension Line */}
+                            <line x1={extStart.x} y1={extStart.y} x2={extEnd.x} y2={extEnd.y} stroke="#cbd5e1" strokeWidth="2" strokeDasharray="8 8" />
+
+                            {/* Opposite Extension Line */}
+                            <line x1={oppExtStart.x} y1={oppExtStart.y} x2={oppExtEnd.x} y2={oppExtEnd.y} stroke="#cbd5e1" strokeWidth="2" strokeDasharray="8 8" />
+
+                            <polygon points={polyPoints} fill="rgba(14, 165, 233, 0.1)" stroke="#0ea5e9" strokeWidth="3" strokeLinejoin="round" />
+                            <line x1={baseStart.x} y1={baseStart.y} x2={baseEnd.x} y2={baseEnd.y} stroke="#ef4444" strokeWidth="5" strokeLinecap="round" />
+                            <text
+                                x={(baseStart.x + baseEnd.x) / 2}
+                                y={(baseStart.y + baseEnd.y) / 2}
+                                dx={15} dy={15}
+                                textAnchor="middle"
+                                fill="#ef4444"
+                                fontWeight="bold"
+                                fontSize="16"
+                                style={{ textShadow: "2px 2px 0 #fff" }}
+                            >
+                                底邊
+                            </text>
+
+                            {userLine && (
+                                <g>
+                                    <line
+                                        x1={userLine.start.x} y1={userLine.start.y}
+                                        x2={userLine.end.x} y2={userLine.end.y}
+                                        stroke={resultData?.success ? "#10b981" : "#f87171"}
+                                        strokeWidth="4"
+                                        strokeDasharray={resultData?.success ? "none" : "5 5"}
+                                    />
+
+                                    {phase === 'result' && !resultData?.success && resultData?.type === 'angle' && (
+                                        <path d={`M -30 0 A 30 30 0 0 1 0 -30`} stroke="#ef4444" strokeWidth="3" fill="none" transform={`translate(${rulerPos.x}, ${rulerPos.y}) rotate(${rulerAngle})`} />
+                                    )}
+                                    {phase === 'result' && !resultData?.success && resultData?.type === 'position' && (
+                                        <circle cx={userLine.start.x} cy={userLine.start.y} r="20" stroke="#ef4444" strokeWidth="2" fill="none" strokeDasharray="4 2" />
+                                    )}
+
+                                    {/* SUCCESS: Smart Dual Right Angle Markers */}
+                                    {resultData?.success && (
+                                        <g>
+                                            <RightAngleMarker p={userLine.start} lineOtherEnd={userLine.end} baseAngle={baseAngle} center={centroid} />
+                                            <RightAngleMarker p={userLine.end} lineOtherEnd={userLine.start} baseAngle={baseAngle} center={centroid} />
+                                        </g>
+                                    )}
+                                </g>
+                            )}
+
+                            {phase !== 'result' && (
+                                <g transform={`translate(${rulerPos.x}, ${rulerPos.y}) rotate(${rulerAngle})`}>
+                                    <path
+                                        d="M 0 0 L 0 -180 L 120 0 Z"
+                                        fill="rgba(255, 255, 255, 0.9)"
+                                        stroke="#475569"
+                                        strokeWidth="2"
+                                        className="drop-shadow-xl"
+                                    />
+                                    {[20, 40, 60, 80, 100, 120, 140, 160].map(y => (
+                                        <line key={y} x1="0" y1={-y} x2={y % 40 === 0 ? 15 : 8} y2={-y} stroke="#475569" strokeWidth="1" />
+                                    ))}
+                                    <circle cx="0" cy="0" r="4" fill="#ef4444" />
+
+                                    {phase === 'locked' && (
+                                        <g>
+                                            <g
+                                                transform="translate(85, -85)"
+                                                onMouseDown={handleRotateStart}
+                                                onTouchStart={handleRotateStart}
+                                                className="cursor-grab active:cursor-grabbing group/handle"
+                                            >
+                                                {/* Outer touch target - transparent but larger */}
+                                                <circle r="25" fill="transparent" />
+
+                                                {/* Visible Handle - No Scale Transform to prevent jitter */}
+                                                <circle
+                                                    r="20"
+                                                    fill="white"
+                                                    stroke={isRotating ? "#0284c7" : "#0ea5e9"}
+                                                    strokeWidth="3"
+                                                    className="transition-colors duration-200 group-hover/handle:stroke-sky-600 group-hover/handle:fill-sky-50"
+                                                />
+                                                <g transform="translate(-12, -12)">
+                                                    <RotateCw size={24} className={`text-sky-500 transition-colors duration-200 group-hover/handle:text-sky-700 ${isRotating ? 'text-sky-700' : ''}`} />
+                                                </g>
+                                            </g>
+                                            <line x1="60" y1="-60" x2="85" y2="-85" stroke="#0ea5e9" strokeWidth="1" strokeDasharray="3 3" />
+                                        </g>
+                                    )}
+                                </g>
+                            )}
+
+                            {/* UI Controls via foreignObject for robust positioning in RWD */}
+                            {phase === 'locked' && (
+                                <foreignObject x={rulerPos.x - 180} y={rulerPos.y - 60} width="160" height="60" style={{ overflow: 'visible', pointerEvents: 'none' }}>
+                                    <button
+                                        onClick={handleDrawClick}
+                                        onTouchEnd={handleDrawClick}
+                                        className="flex items-center gap-2 bg-sky-600 text-white px-5 py-2.5 rounded-full shadow-lg hover:bg-sky-700 transition-colors animate-bounce font-bold pointer-events-auto"
+                                    >
+                                        <Pencil size={18} /> 畫高
+                                    </button>
+                                </foreignObject>
+                            )}
+
+                            {phase === 'locked' && !isRotating && (
+                                <foreignObject x={rulerPos.x - 70} y={rulerPos.y + 20} width="60" height="60" style={{ overflow: 'visible', pointerEvents: 'none' }}>
+                                    <button
+                                        onClick={handleUnlock}
+                                        onTouchEnd={handleUnlock}
+                                        className="p-3 bg-white text-gray-500 rounded-full shadow-md hover:text-gray-700 hover:bg-gray-50 transition-colors border border-gray-200 pointer-events-auto"
+                                        title="解鎖移動"
+                                    >
+                                        <Unlock size={22} />
+                                    </button>
+                                </foreignObject>
+                            )}
+
+                        </svg>
+
+                        {/* Result Overlay */}
+                        {phase === 'result' && (
+                            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur shadow-2xl border border-gray-100 p-5 rounded-2xl flex items-center gap-5 min-w-[320px] animate-in slide-in-from-bottom-5">
+                                <div className={`p-3 rounded-full shrink-0 ${resultData?.success ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                    {resultData?.success ? <Check size={28} strokeWidth={3} /> : <XCircle size={28} strokeWidth={3} />}
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className={`text-lg font-bold mb-1 ${resultData?.success ? 'text-green-700' : 'text-red-700'}`}>
+                                        {resultData?.success ? '太棒了！' : '再檢查一下'}
+                                    </h3>
+                                    <p className="text-sm text-gray-600 leading-tight">{resultData?.msg}</p>
+                                </div>
+
+                                {resultData?.success ? (
+                                    <button
+                                        onClick={() => {
+                                            setLevelCount(c => c + 1);
+                                            resetLevel(levelCount + 1);
+                                        }}
+                                        className="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+                                    >
+                                        下一題 <ArrowRight size={18} />
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            setPhase('locked');
+                                            setUserLine(null);
+                                            setResultData(null);
+                                        }}
+                                        className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-bold flex items-center gap-2 transition-colors"
+                                    >
+                                        修正 <Undo2 size={18} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* --- Footer: Educational Content --- */}
+                    <div className="w-full max-w-4xl mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {/* Definition Card */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <div className="flex items-center gap-2 mb-4 border-b pb-2 border-gray-100">
+                                <BookOpen className="text-sky-500" size={24} />
+                                <h2 className="text-lg font-bold text-gray-800">數學小教室：什麼是「高」？</h2>
+                            </div>
+                            <div className="space-y-3 text-gray-600 leading-relaxed">
+                                <p>
+                                    在平行四邊形中，<span className="font-bold text-sky-600">高</span>是指：
+                                </p>
+                                <div className="bg-sky-50 p-3 rounded-lg border border-sky-100 text-sky-800 font-medium text-center">
+                                    「兩條平行線（底邊與對邊）之間的<br />垂直距離」
+                                </div>
+                                <ul className="list-disc list-inside space-y-1 text-sm pl-2">
+                                    <li>高必須和底邊互相<span className="font-bold text-red-500">垂直（90度）</span>。</li>
+                                    <li>無論平行四邊形怎麼轉，高永遠夾在兩條平行線中間。</li>
+                                    <li>鈍角平行四邊形的高，常常會畫在底邊的<span className="font-bold">延長線</span>上喔！</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* Instructions Card */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <div className="flex items-center gap-2 mb-4 border-b pb-2 border-gray-100">
+                                <HelpCircle className="text-amber-500" size={24} />
+                                <h2 className="text-lg font-bold text-gray-800">操作說明步驟</h2>
+                            </div>
+                            <div className="space-y-4">
+
+                                <div className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">1</div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-800">移動並鎖定</h3>
+                                        <p className="text-sm text-gray-600">移動滑鼠將三角板帶到你想要畫高的位置，點擊左鍵<span className="font-bold text-blue-600">鎖定</span>。</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold shrink-0">2</div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-800">使用旋轉把手（關鍵！）</h3>
+                                        <p className="text-sm text-gray-600">
+                                            鎖定後，按住三角板上的 <span className="inline-flex items-center justify-center bg-white border border-sky-300 rounded-full w-5 h-5"><RotateCw size={12} className="text-sky-500" /></span> <span className="font-bold text-sky-600">藍色圓形旋轉鈕</span> 不放，
+                                            繞著三角板中心<span className="font-bold">畫圓拖曳</span>（像轉方向盤一樣），直到直角邊與紅線完全重疊。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold shrink-0">3</div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-800">畫出高</h3>
+                                        <p className="text-sm text-gray-600">確認對齊後，點擊出現的「畫高」按鈕即可完成！</p>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div className="mt-8 text-center text-sm text-gray-400">
+                        專為國小五年級設計 • 幾何概念強化教材
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ParallelogramGame />);
+    </script>
+</body>
+
+</html>
