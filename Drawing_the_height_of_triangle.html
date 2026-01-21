@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三角形高度探險家 | 國小數學互動教學</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f9ff;
+        }
+
+        canvas {
+            touch-action: none;
+            /* 防止手機上拖曳畫布時滾動頁面 */
+            cursor: crosshair;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .btn {
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body class="flex flex-col min-h-screen text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-lg flex-shrink-0">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold"><i class="fas fa-ruler-triangle mr-2"></i>三角形高度探險家</h1>
+            <div class="text-sm bg-blue-700 px-3 py-1 rounded-full">五年級數學</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 flex flex-col items-center">
+
+        <div class="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+
+            <!-- Sidebar / Controls -->
+            <div
+                class="w-full md:w-1/3 p-6 bg-slate-50 border-r border-slate-200 flex flex-col gap-4 order-2 md:order-1">
+
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2">
+                    <h3 class="font-bold text-yellow-800 mb-1">任務說明：</h3>
+                    <p class="text-sm text-yellow-700 leading-relaxed">
+                        請找出題目指定的 <strong class="text-red-600">頂點</strong> 與 <strong
+                            class="text-blue-600">底邊</strong>。<br>
+                        從頂點畫出一條垂直線連到底邊（或延長線）。<br>
+                        <span class="text-xs text-gray-500 mt-1 block">*注意：有時候題目只會提示其中一個喔！</span>
+                    </p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-600">目前題型：</span>
+                        <span id="triangleTypeBadge"
+                            class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-md font-bold">銳角三角形</span>
+                    </div>
+
+                    <button onclick="window.game.generateTriangle('acute')"
+                        class="btn w-full bg-white border-2 border-green-500 text-green-600 hover:bg-green-50 py-2 rounded-lg font-bold">
+                        試試銳角三角形
+                    </button>
+                    <button onclick="window.game.generateTriangle('right')"
+                        class="btn w-full bg-white border-2 border-purple-500 text-purple-600 hover:bg-purple-50 py-2 rounded-lg font-bold">
+                        試試直角三角形
+                    </button>
+                    <button onclick="window.game.generateTriangle('obtuse')"
+                        class="btn w-full bg-white border-2 border-orange-500 text-orange-600 hover:bg-orange-50 py-2 rounded-lg font-bold">
+                        挑戰鈍角三角形
+                    </button>
+                    <button onclick="window.game.rotateBase()"
+                        class="btn w-full bg-slate-200 text-slate-700 hover:bg-slate-300 py-2 rounded-lg font-bold">
+                        <i class="fas fa-sync-alt mr-2"></i>旋轉底邊 (換個邊當底)
+                    </button>
+                </div>
+
+                <div class="mt-auto pt-4">
+                    <div id="feedbackArea" class="hidden p-3 rounded-lg text-center font-bold mb-3 animate-bounce">
+                    </div>
+                    <button onclick="window.game.checkAnswer()" id="checkBtn"
+                        class="btn w-full bg-blue-600 text-white hover:bg-blue-700 py-3 rounded-xl font-bold shadow-md text-lg">
+                        檢查答案
+                    </button>
+                    <button onclick="window.game.resetLevel()"
+                        class="btn w-full mt-2 text-slate-400 hover:text-slate-600 text-sm">
+                        重設本題
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="w-full md:w-2/3 bg-white relative order-1 md:order-2">
+                <canvas id="gameCanvas" class="w-full h-[350px] md:h-[500px] block"></canvas>
+
+                <!-- Overlay Tools -->
+                <div class="absolute top-4 right-4 flex gap-2 pointer-events-none">
+                    <div class="bg-white/90 backdrop-blur px-3 py-1 rounded shadow text-xs font-mono text-slate-500">
+                        格線輔助已開啟
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Educational Note -->
+        <div class="max-w-4xl w-full mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <div class="text-blue-600 font-bold mb-2"><i class="fas fa-info-circle mr-1"></i> 隨機提示</div>
+                <p class="text-sm text-slate-600">有時候題目只會告訴你底在哪裡，你要自己找出對面的頂點來畫高喔！</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <div class="text-red-600 font-bold mb-2"><i class="fas fa-arrow-down mr-1"></i> 嚴格標準</div>
+                <p class="text-sm text-slate-600">高的角度必須非常精準，誤差不能超過 3 度，請仔細對齊！</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <div class="text-orange-600 font-bold mb-2"><i class="fas fa-exclamation-triangle mr-1"></i> 任何方向</div>
+                <p class="text-sm text-slate-600">底不一定在下面！轉個頭看看，找出跟底垂直的那條線。</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        /**
+         * 幾何工具與遊戲邏輯
+         */
+        class GeometryGame {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.width = 0;
+                this.height = 0;
+
+                // State
+                this.points = []; // [P0, P1, P2] 
+                this.vertexIndex = 0; // 0, 1, or 2. 指定哪一個點是 Vertex，另外兩點為 Base
+                this.triangleType = 'acute';
+                this.isDrawing = false;
+                this.userLine = null;
+                this.showSolution = false;
+                this.feedback = null;
+                this.hintMode = 'both'; // 'both', 'base', 'vertex'
+
+                // Constants
+                this.vertexRadius = 12;
+                this.snapDistance = 30;
+
+                // Bind events
+                window.addEventListener('resize', () => this.resize());
+
+                this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+                this.canvas.addEventListener('mousemove', (e) => this.drawMove(e));
+                window.addEventListener('mouseup', () => this.stopDrawing());
+
+                this.canvas.addEventListener('touchstart', (e) => this.startDrawing(e));
+                this.canvas.addEventListener('touchmove', (e) => this.drawMove(e));
+                window.addEventListener('touchend', () => this.stopDrawing());
+
+                this.canvas.addEventListener('touchstart', function (e) {
+                    if (e.cancelable) e.preventDefault();
+                }, { passive: false });
+            }
+
+            resize() {
+                const rect = this.canvas.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    this.canvas.width = rect.width;
+                    this.canvas.height = rect.height;
+                    this.width = rect.width;
+                    this.height = rect.height;
+
+                    // 若有點資料則重繪，否則生成
+                    if (this.points.length === 0) {
+                        this.generateTriangle('acute');
+                    } else {
+                        // 這裡選擇重新生成以避免座標跑掉，也符合使用者想隨機的需求
+                        this.generateTriangle(this.triangleType);
+                    }
+                }
+            }
+
+            // --- Helpers ---
+
+            getPos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                let clientX = e.clientX;
+                let clientY = e.clientY;
+
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else if (e.changedTouches && e.changedTouches.length > 0) {
+                    clientX = e.changedTouches[0].clientX;
+                    clientY = e.changedTouches[0].clientY;
+                }
+
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+
+            distance(p1, p2) {
+                return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+            }
+
+            getProjection(p, a, b) {
+                const atob = { x: b.x - a.x, y: b.y - a.y };
+                const atop = { x: p.x - a.x, y: p.y - a.y };
+                const len2 = atob.x * atob.x + atob.y * atob.y;
+                if (len2 === 0) return a;
+                const dot = atop.x * atob.x + atop.y * atob.y;
+                const t = dot / len2;
+
+                return {
+                    x: a.x + atob.x * t,
+                    y: a.y + atob.y * t,
+                    t: t
+                };
+            }
+
+            // 取得目前的指定頂點
+            getVertex() {
+                return this.points[this.vertexIndex];
+            }
+
+            // 取得目前的指定底邊 [Start, End]
+            getBasePoints() {
+                const i1 = (this.vertexIndex + 1) % 3;
+                const i2 = (this.vertexIndex + 2) % 3;
+                return [this.points[i1], this.points[i2]];
+            }
+
+            // --- Game Logic ---
+
+            generateTriangle(type) {
+                this.triangleType = type;
+                this.userLine = null;
+                this.showSolution = false;
+                this.feedback = null;
+                this.updateUI();
+
+                if (this.width <= 0 || this.height <= 0) return;
+
+                const w = this.width;
+                const h = this.height;
+
+                // 為了生成漂亮的三角形，我們先以標準「底在下」的方式生成座標，
+                // 然後再透過隨機指派 vertexIndex 來改變題目要求的方向。
+
+                const padding = Math.min(50, w * 0.15);
+                const baseMinY = h * 0.55;
+                const baseMaxY = h - padding - 20;
+                const vertMinY = padding + 20;
+                const vertMaxY = h * 0.4;
+                const minSafeX = padding;
+                const maxSafeX = w - padding;
+
+                // 1. 生成視覺上的底部兩點 B_vis, C_vis
+                let bx = minSafeX + Math.random() * (maxSafeX - minSafeX - 80);
+                let by = baseMinY + Math.random() * (baseMaxY - baseMinY);
+                let cx = bx + 60 + Math.random() * (w * 0.4);
+                if (cx > maxSafeX) cx = maxSafeX;
+                let cy = by + (Math.random() * 40 - 20); // 允許底邊微歪
+
+                // 限制 Y
+                if (cy > baseMaxY) cy = baseMaxY;
+                if (cy < baseMinY) cy = baseMinY;
+
+                let B = { x: bx, y: by };
+                let C = { x: cx, y: cy };
+                let A = { x: 0, y: 0 };
+
+                // 2. 生成視覺上的頂點 A
+                if (type === 'acute') {
+                    A.x = B.x + (C.x - B.x) * (0.2 + Math.random() * 0.6);
+                    A.y = vertMinY + Math.random() * (vertMaxY - vertMinY);
+                }
+                else if (type === 'right') {
+                    // 直角：假設 B 是直角，A 在 B 上方
+                    const dx = C.x - B.x;
+                    const dy = C.y - B.y;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    let nx = -dy; let ny = dx;
+                    if (ny > 0) { nx = -nx; ny = -ny; }
+                    if (len > 0) { nx /= len; ny /= len; }
+
+                    const hLen = (B.y - vertMinY) * (0.5 + Math.random() * 0.4);
+                    A.x = B.x + nx * hLen;
+                    A.y = B.y + ny * hLen;
+                }
+                else if (type === 'obtuse') {
+                    // 鈍角：A 偏左
+                    const shift = 40 + Math.random() * 60;
+                    A.x = B.x - shift;
+                    A.y = vertMinY + Math.random() * (vertMaxY - vertMinY);
+                }
+
+                // 3. 修正出界
+                let shiftX = 0; let shiftY = 0;
+                if (A.x < minSafeX) shiftX = minSafeX - A.x;
+                if (A.x > maxSafeX) shiftX = maxSafeX - A.x;
+                if (A.y < padding) shiftY = padding - A.y;
+
+                A.x += shiftX; B.x += shiftX; C.x += shiftX;
+                A.y += shiftY; B.y += shiftY; C.y += shiftY;
+
+                if (C.x > w - padding) {
+                    const diff = C.x - (w - padding);
+                    A.x -= diff; B.x -= diff; C.x -= diff;
+                }
+                if (A.x < padding) {
+                    // Fallback
+                    B = { x: w * 0.3, y: h * 0.8 };
+                    C = { x: w * 0.7, y: h * 0.8 };
+                    A = { x: w * 0.5, y: h * 0.3 };
+                }
+
+                // 儲存點：預設順序 0:A(top), 1:B(left), 2:C(right)
+                this.points = [A, B, C];
+
+                // **核心修改 1：隨機決定誰是題目的「頂點」**
+                // 這樣底邊就會隨機變成另外兩點的連線 (可能是斜的)
+                this.vertexIndex = Math.floor(Math.random() * 3);
+
+                // **核心修改 2：隨機決定提示模式**
+                // 0: Both, 1: Only Base, 2: Only Vertex
+                const modeRoll = Math.random();
+                if (modeRoll < 0.33) this.hintMode = 'base';
+                else if (modeRoll < 0.66) this.hintMode = 'vertex';
+                else this.hintMode = 'both';
+
+                this.draw();
+            }
+
+            rotateBase() {
+                if (this.points.length < 3) return;
+                // 不重新生成形狀，只改變指定的頂點 (輪替)
+                this.vertexIndex = (this.vertexIndex + 1) % 3;
+
+                // 旋轉後也隨機換一下提示模式，增加趣味
+                const modeRoll = Math.random();
+                if (modeRoll < 0.33) this.hintMode = 'base';
+                else if (modeRoll < 0.66) this.hintMode = 'vertex';
+                else this.hintMode = 'both';
+
+                this.userLine = null;
+                this.showSolution = false;
+                this.feedback = null;
+                this.updateUI();
+                this.draw();
+            }
+
+            startDrawing(e) {
+                if (this.showSolution) return;
+
+                const pos = this.getPos(e);
+                const V = this.getVertex(); // 使用目前的指定頂點
+                if (!V) return;
+
+                // 判定範圍
+                if (this.distance(pos, V) < this.vertexRadius * 3.5) {
+                    this.isDrawing = true;
+                    this.userLine = { start: { x: V.x, y: V.y }, end: { x: pos.x, y: pos.y } };
+                    this.draw();
+                }
+            }
+
+            drawMove(e) {
+                if (!this.isDrawing) return;
+
+                const pos = this.getPos(e);
+                const [B, C] = this.getBasePoints(); // 取得目前的底邊
+                const proj = this.getProjection(pos, B, C);
+
+                const distToLine = this.distance(pos, proj);
+
+                if (distToLine < this.snapDistance) {
+                    this.userLine.end = { x: proj.x, y: proj.y };
+                } else {
+                    this.userLine.end = { x: pos.x, y: pos.y };
+                }
+
+                this.draw();
+            }
+
+            stopDrawing() {
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+                    this.draw();
+                }
+            }
+
+            resetLevel() {
+                this.userLine = null;
+                this.showSolution = false;
+                this.feedback = null;
+                this.updateUI();
+                this.draw();
+            }
+
+            checkAnswer() {
+                if (!this.userLine) {
+                    this.showFeedback('warning', '請先畫線！從紅色頂點拖曳到底邊。');
+                    return;
+                }
+
+                const V = this.getVertex();
+                const [B, C] = this.getBasePoints();
+
+                // 1. Check start point
+                const distStart = this.distance(this.userLine.start, V);
+                if (distStart > 5) {
+                    this.showFeedback('error', '起始點錯誤，必須從指定的頂點出發！');
+                    return;
+                }
+
+                // 2. Check angle
+                const vBase = { x: C.x - B.x, y: C.y - B.y };
+                const vUser = { x: this.userLine.end.x - this.userLine.start.x, y: this.userLine.end.y - this.userLine.start.y };
+
+                const magBase = Math.sqrt(vBase.x * vBase.x + vBase.y * vBase.y);
+                const magUser = Math.sqrt(vUser.x * vUser.x + vUser.y * vUser.y);
+
+                if (magUser < 10) {
+                    this.showFeedback('warning', '線太短囉！');
+                    return;
+                }
+
+                const dot = vBase.x * vUser.x + vBase.y * vUser.y;
+                const cosTheta = dot / (magBase * magUser);
+                const angleDev = Math.abs(Math.acos(cosTheta) * 180 / Math.PI - 90);
+
+                // 3. Check overshoot
+                const proj = this.getProjection(this.userLine.end, B, C);
+                const distToLine = this.distance(this.userLine.end, proj);
+
+                // 法向量判斷異側
+                const dx = C.x - B.x;
+                const dy = C.y - B.y;
+                const nx = -dy;
+                const ny = dx;
+
+                const valV = nx * (V.x - B.x) + ny * (V.y - B.y);
+                const valE = nx * (this.userLine.end.x - B.x) + ny * (this.userLine.end.y - B.y);
+
+                if (distToLine > 15) {
+                    if (valV * valE < 0) {
+                        this.showFeedback('error', '畫超過囉！您畫的線超出了底邊或底邊的延長線。');
+                    } else {
+                        this.showFeedback('error', '線沒有碰到底邊或底邊的延長線喔！（試著畫長一點）');
+                    }
+                    return;
+                }
+
+                // **更嚴格的 3 度判定 & 分級回饋**
+                this.showSolution = true;
+
+                if (angleDev <= 1) {
+                    this.showFeedback('success', '太棒了！這是完美的直角！(誤差 < 1°)');
+                } else if (angleDev <= 3) {
+                    this.showFeedback('success', '接近直角！已符合要求。(誤差 < 3°)');
+                } else {
+                    this.showFeedback('error', `有點歪喔，必須是90度直角。(目前誤差約 ${Math.round(angleDev)}°)`);
+                }
+                this.draw();
+            }
+
+            draw() {
+                if (this.width === 0) return;
+
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+
+                if (this.points.length === 0) return;
+
+                const V = this.getVertex();
+                const [BaseStart, BaseEnd] = this.getBasePoints();
+
+                // 1. Draw Extension Line (Always needed for logic, but draw faintly)
+                // 這裡的延長線是「數學上的輔助線」，永遠畫出來幫助學生對齊
+                const projV = this.getProjection(V, BaseStart, BaseEnd);
+                this.ctx.beginPath();
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.strokeStyle = '#cbd5e1'; // very light gray
+                this.ctx.lineWidth = 2;
+
+                const dx = BaseEnd.x - BaseStart.x;
+                const dy = BaseEnd.y - BaseStart.y;
+                this.ctx.moveTo(BaseStart.x - dx * 10, BaseStart.y - dy * 10);
+                this.ctx.lineTo(BaseEnd.x + dx * 10, BaseEnd.y + dy * 10);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+
+                // 2. Draw Triangle Fill & Edges
+                this.ctx.beginPath();
+                this.ctx.fillStyle = 'rgba(219, 234, 254, 0.3)';
+                this.ctx.moveTo(this.points[0].x, this.points[0].y);
+                this.ctx.lineTo(this.points[1].x, this.points[1].y);
+                this.ctx.lineTo(this.points[2].x, this.points[2].y);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#94a3b8'; // Default edge color
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                // 3. Highlight Base (根據 hintMode)
+                const showBase = (this.hintMode === 'both' || this.hintMode === 'base' || this.showSolution);
+                if (showBase) {
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = '#2563eb'; // Blue
+                    this.ctx.lineWidth = 6;
+                    this.ctx.moveTo(BaseStart.x, BaseStart.y);
+                    this.ctx.lineTo(BaseEnd.x, BaseEnd.y);
+                    this.ctx.stroke();
+
+                    this.ctx.fillStyle = '#1e40af';
+                    this.ctx.font = 'bold 16px sans-serif';
+                    // Label position: midpoint + slight offset perpendicular
+                    // Perpendicular vector
+                    let px = -(BaseEnd.y - BaseStart.y);
+                    let py = (BaseEnd.x - BaseStart.x);
+                    const pl = Math.sqrt(px * px + py * py);
+                    px /= pl; py /= pl;
+                    // Check direction away from vertex
+                    const cvx = (BaseStart.x + BaseEnd.x) / 2 - V.x;
+                    const cvy = (BaseStart.y + BaseEnd.y) / 2 - V.y;
+                    if (px * cvx + py * cvy < 0) { px = -px; py = -py; } // Ensure label is outside
+
+                    this.ctx.fillText("底", (BaseStart.x + BaseEnd.x) / 2 + px * 25 - 10, (BaseStart.y + BaseEnd.y) / 2 + py * 25 + 5);
+                }
+
+                // 4. 直角三角形標記
+                if (this.triangleType === 'right') {
+                    this.drawTriangleCornerRightAngle();
+                }
+
+                // 5. Solution (Correct Height)
+                if (this.showSolution) {
+                    this.drawRightAngleMarker(V, projV, BaseStart, '#16a34a');
+                }
+
+                // 6. User Line
+                if (this.userLine) {
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = this.showSolution ? '#facc15' : '#ef4444';
+                    if (this.feedback && this.feedback.type === 'success') this.ctx.strokeStyle = '#16a34a';
+                    this.ctx.lineWidth = 4;
+                    this.ctx.moveTo(this.userLine.start.x, this.userLine.start.y);
+                    this.ctx.lineTo(this.userLine.end.x, this.userLine.end.y);
+                    this.ctx.stroke();
+                }
+
+                // 7. Vertices (Highlight Vertex based on hintMode)
+                // Draw all vertices gray first
+                this.points.forEach((p, idx) => {
+                    // 如果這個點是指定的 Vertex 且需要顯示 (both, vertex, or solved)
+                    const isTarget = (idx === this.vertexIndex);
+                    const showTarget = isTarget && (this.hintMode === 'both' || this.hintMode === 'vertex' || this.showSolution);
+
+                    if (isTarget) {
+                        if (showTarget) {
+                            this.drawVertex(p, '頂點', '#dc2626', true); // Red
+                            this.ctx.fillStyle = '#dc2626';
+                            this.ctx.font = 'bold 16px sans-serif';
+                            // Label offset away from center
+                            const center = {
+                                x: (this.points[0].x + this.points[1].x + this.points[2].x) / 3,
+                                y: (this.points[0].y + this.points[1].y + this.points[2].y) / 3
+                            };
+                            let dx = p.x - center.x;
+                            let dy = p.y - center.y;
+                            const dl = Math.sqrt(dx * dx + dy * dy);
+                            dx /= dl; dy /= dl;
+                            this.ctx.fillText("頂點", p.x + dx * 25 - 15, p.y + dy * 25 + 5);
+                        } else {
+                            // Target vertex but hidden hint -> draw as normal gray
+                            this.drawVertex(p, '', '#64748b');
+                        }
+                    } else {
+                        // Non-target vertex
+                        this.drawVertex(p, '', '#64748b');
+                    }
+                });
+            }
+
+            drawVertex(p, label, color, isPulse = false) {
+                this.ctx.beginPath();
+                this.ctx.fillStyle = color;
+                this.ctx.arc(p.x, p.y, this.vertexRadius, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                if (isPulse && !this.userLine && !this.showSolution) {
+                    const time = Date.now() / 300;
+                    const radius = this.vertexRadius + 6 + Math.sin(time) * 3;
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = color;
+                    this.ctx.globalAlpha = 0.5;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
+
+            drawRightAngleMarker(start, end, baseStart, color) {
+                this.ctx.beginPath();
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 3;
+                this.ctx.moveTo(start.x, start.y);
+                this.ctx.lineTo(end.x, end.y);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+
+                const size = 15;
+                let hx = start.x - end.x;
+                let hy = start.y - end.y;
+                const hLen = Math.sqrt(hx * hx + hy * hy);
+                if (hLen === 0) return;
+                hx /= hLen; hy /= hLen;
+
+                // Base direction
+                // 這裡要計算與 "Start->End" 垂直的方向
+                // 其實就是 Base 的方向
+                let bx = -hy;
+                let by = hx;
+
+                // 修正 square 的方向，要朝向 BaseStart 還是 BaseEnd?
+                // 其實只要是 Base 線的方向即可，但要確保畫在三角形內部或合理側
+                // 簡單作法：都畫。或者選一邊。
+                // 這裡選 +bx, +by
+
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 2;
+                this.ctx.moveTo(end.x + hx * size, end.y + hy * size);
+                this.ctx.lineTo(end.x + hx * size + bx * size, end.y + hy * size + by * size);
+                this.ctx.lineTo(end.x + bx * size, end.y + by * size);
+                this.ctx.stroke();
+            }
+
+            drawTriangleCornerRightAngle() {
+                const [A, B, C] = this.points;
+                const vec = (p1, p2) => ({ x: p2.x - p1.x, y: p2.y - p1.y });
+                const dot = (v1, v2) => v1.x * v2.x + v1.y * v2.y;
+
+                const checkCorner = (p, pLeft, pRight) => {
+                    const v1 = vec(p, pLeft);
+                    const v2 = vec(p, pRight);
+                    if (Math.abs(dot(v1, v2)) < 800) {
+                        const size = 15;
+                        const len1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+                        const len2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+                        const u1 = { x: v1.x / len1, y: v1.y / len1 };
+                        const u2 = { x: v2.x / len2, y: v2.y / len2 };
+
+                        this.ctx.beginPath();
+                        this.ctx.strokeStyle = '#64748b';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.moveTo(p.x + u1.x * size, p.y + u1.y * size);
+                        this.ctx.lineTo(p.x + u1.x * size + u2.x * size, p.y + u1.y * size + u2.y * size);
+                        this.ctx.lineTo(p.x + u2.x * size, p.y + u2.y * size);
+                        this.ctx.stroke();
+                    }
+                };
+                checkCorner(A, B, C);
+                checkCorner(B, A, C);
+                checkCorner(C, A, B);
+            }
+
+            updateUI() {
+                const badge = document.getElementById('triangleTypeBadge');
+                const textMap = { 'acute': '銳角三角形', 'right': '直角三角形', 'obtuse': '鈍角三角形' };
+                if (badge) badge.textContent = textMap[this.triangleType];
+
+                const fbArea = document.getElementById('feedbackArea');
+                if (fbArea) {
+                    fbArea.classList.add('hidden');
+                    fbArea.className = 'hidden p-3 rounded-lg text-center font-bold mb-3 animate-bounce';
+                }
+            }
+
+            showFeedback(type, msg) {
+                this.feedback = { type, msg };
+                const fbArea = document.getElementById('feedbackArea');
+                if (fbArea) {
+                    fbArea.textContent = msg;
+                    fbArea.classList.remove('hidden');
+
+                    if (type === 'success') {
+                        fbArea.classList.add('bg-green-100', 'text-green-700');
+                    } else if (type === 'warning') {
+                        fbArea.classList.add('bg-yellow-100', 'text-yellow-700');
+                        fbArea.classList.remove('animate-bounce');
+                    } else {
+                        fbArea.classList.add('bg-red-100', 'text-red-700');
+                    }
+                }
+            }
+        }
+
+        window.game = new GeometryGame('gameCanvas');
+
+        window.addEventListener('load', () => {
+            window.game.resize();
+        });
+
+        setTimeout(() => {
+            window.game.resize();
+        }, 500);
+
+    </script>
+</body>
+
+</html>
