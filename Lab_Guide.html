@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平台介紹與使用指南 | 國小數學互動教學實驗室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-700">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import {
+            LayoutGrid, Database, Users, Settings, FileCode,
+            ArrowRight, Download, Upload, MonitorPlay, ShieldCheck,
+            Cpu, Share2, MousePointerClick, BookOpen, Search,
+            List, Filter, ExternalLink
+        } from 'https://esm.sh/lucide-react@0.263.1';
+
+        function GuideApp() {
+            const [activeTab, setActiveTab] = useState('philosophy');
+
+            const sections = [
+                { id: 'philosophy', label: '設計理念', icon: Cpu },
+                { id: 'features', label: '核心功能', icon: MonitorPlay },
+                { id: 'architecture', label: '系統架構', icon: Database },
+                { id: 'workflow', label: '擴充教學 (SOP)', icon: Settings },
+            ];
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row">
+                    {/* Sidebar Navigation */}
+                    <aside className="w-full md:w-72 bg-slate-900 text-slate-300 flex-shrink-0 sticky top-0 h-auto md:h-screen z-50 shadow-2xl">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-8 text-white">
+                                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-lg">
+                                    <LayoutGrid size={24} />
+                                </div>
+                                <div>
+                                    <h1 className="font-bold text-xl leading-tight tracking-tight">數學實驗室</h1>
+                                    <span className="text-blue-400 text-xs font-bold uppercase tracking-wider">Documentation</span>
+                                </div>
+                            </div>
+                            <nav className="space-y-2">
+                                {sections.map(section => (
+                                    <button
+                                        key={section.id}
+                                        onClick={() => setActiveTab(section.id)}
+                                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group ${activeTab === section.id
+                                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 font-bold translate-x-1'
+                                                : 'hover:bg-slate-800 hover:text-white hover:translate-x-1'
+                                            }`}
+                                    >
+                                        <section.icon size={20} className={activeTab === section.id ? 'text-blue-200' : 'text-slate-500 group-hover:text-slate-300'} />
+                                        {section.label}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                        <div className="absolute bottom-0 w-full p-6 border-t border-slate-800 bg-slate-900">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">V2</div>
+                                <div>
+                                    <div className="text-xs text-slate-400 font-bold">系統版本 2.0</div>
+                                    <div className="text-[10px] text-slate-600">Updated: 2025.06</div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="flex-1 p-6 md:p-12 overflow-y-auto bg-[#f8fafc]">
+                        <div className="max-w-5xl mx-auto">
+
+                            {/* Section: 設計理念 */}
+                            {activeTab === 'philosophy' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="mb-10">
+                                        <h2 className="text-4xl font-black text-slate-800 mb-4 flex items-center gap-4">
+                                            <span className="bg-blue-100 p-3 rounded-2xl text-blue-600"><Cpu size={36} /></span>
+                                            設計理念
+                                        </h2>
+                                        <p className="text-xl text-slate-600 leading-relaxed max-w-3xl">
+                                            本平台採用前瞻性的 <strong className="text-blue-600">「資料驅動 (Data-Driven)」</strong> 與 <strong className="text-blue-600">「靜態分離 (Static Decoupling)」</strong> 架構。我們致力於解決教育現場的技術痛點：網路不穩、設備老舊、以及繁瑣的帳號管理。
+                                        </p>
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <FeatureCard
+                                            icon={Share2} color="emerald"
+                                            title="極致可攜 (Portability)"
+                                            desc="零依賴、零安裝。完全捨棄後端資料庫（如 SQL），整個系統就是一組純靜態檔案。可直接放入隨身碟、Google Drive 或本機硬碟執行。"
+                                        />
+                                        <FeatureCard
+                                            icon={FileCode} color="indigo"
+                                            title="模組化架構 (Modular)"
+                                            desc="教材檔案彼此獨立。單一檔案的損壞或更新不會影響整體系統運作，這使得教材的分享與擴充變得異常靈活。"
+                                        />
+                                        <FeatureCard
+                                            icon={ShieldCheck} color="amber"
+                                            title="低代碼維護 (Low-Code)"
+                                            desc="透過專屬的「圖形化管理後台」，老師無需編寫任何程式碼即可管理教材。系統自動生成標準化的設定檔，降低技術門檻。"
+                                        />
+                                        <FeatureCard
+                                            icon={MousePointerClick} color="rose"
+                                            title="沉浸式體驗 (Immersive)"
+                                            desc="專注於學習本質。去除廣告與無關資訊，提供清爽、直覺的操作介面，並支援各種尺寸的平板與電腦裝置。"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Section: 核心功能 (New!) */}
+                            {activeTab === 'features' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="mb-10">
+                                        <h2 className="text-4xl font-black text-slate-800 mb-4 flex items-center gap-4">
+                                            <span className="bg-purple-100 p-3 rounded-2xl text-purple-600"><MonitorPlay size={36} /></span>
+                                            核心功能亮點
+                                        </h2>
+                                        <p className="text-lg text-slate-600">
+                                            為了應對未來教材數量的增長，V2 版本引入了完整的檢索與管理系統。
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-12">
+                                        {/* 學生端功能 */}
+                                        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">學生端 (index.html)</div>
+                                            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                                <Users className="text-blue-500" /> 智慧學習入口
+                                            </h3>
+
+                                            <div className="grid md:grid-cols-2 gap-8">
+                                                <ul className="space-y-4">
+                                                    <FeatureItem title="即時搜尋引擎" icon={Search}>
+                                                        支援標題、年級與描述的模糊搜尋，毫秒級篩選出所需教材。
+                                                    </FeatureItem>
+                                                    <FeatureItem title="智慧排序邏輯" icon={Filter}>
+                                                        內建「年級（由低到高）」與「筆畫」排序，符合校園教學習慣。
+                                                    </FeatureItem>
+                                                </ul>
+                                                <ul className="space-y-4">
+                                                    <FeatureItem title="雙視圖切換" icon={List}>
+                                                        提供「精美卡片」與「高效率列表」兩種瀏覽模式，滿足不同情境需求。
+                                                    </FeatureItem>
+                                                    <FeatureItem title="多工分頁機制" icon={ExternalLink}>
+                                                        所有教材皆以 <span className="bg-slate-100 px-1 rounded text-xs font-mono">_blank</span> 新分頁開啟，確保學生隨時能回到目錄頁，不中斷學習流。
+                                                    </FeatureItem>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        {/* 教師端功能 */}
+                                        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">教師端 (admin.html)</div>
+                                            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                                <Settings className="text-emerald-500" /> 後台管理中心
+                                            </h3>
+
+                                            <div className="grid md:grid-cols-2 gap-8">
+                                                <ul className="space-y-4">
+                                                    <FeatureItem title="可視化編輯器" icon={FileCode}>
+                                                        直覺的表單介面，輕鬆管理教材的標題、描述、連結與配色。
+                                                    </FeatureItem>
+                                                    <FeatureItem title="圖示瀏覽器整合" icon={LayoutGrid}>
+                                                        內建 <span className="text-emerald-600 font-bold">icon_browser.html</span> 連結，提供數千個圖示供預覽與複製，美化教材卡片。
+                                                    </FeatureItem>
+                                                </ul>
+                                                <ul className="space-y-4">
+                                                    <FeatureItem title="安全配置生成" icon={Download}>
+                                                        一鍵匯出標準化的 <code>data.js</code>，透過檔案覆蓋的方式進行更新，杜絕程式碼錯誤風險。
+                                                    </FeatureItem>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Section: 系統架構 */}
+                            {activeTab === 'architecture' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="mb-10">
+                                        <h2 className="text-4xl font-black text-slate-800 mb-4 flex items-center gap-4">
+                                            <span className="bg-indigo-100 p-3 rounded-2xl text-indigo-600"><Database size={36} /></span>
+                                            系統架構圖解
+                                        </h2>
+                                        <p className="text-lg text-slate-600">
+                                            本系統由三個核心檔案構成，彼此透過標準化的 JSON 資料結構進行串聯。
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {/* 核心架構圖 */}
+                                        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-lg">
+                                            <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+
+                                                {/* DATA */}
+                                                <div className="flex-1 w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-6 text-center relative group hover:border-amber-400 transition-colors">
+                                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">核心資料</div>
+                                                    <FileCode size={48} className="mx-auto text-amber-500 mb-3" />
+                                                    <div className="font-mono font-bold text-lg text-slate-700">data.js</div>
+                                                    <p className="text-xs text-slate-500 mt-2">儲存所有教材清單的 JSON 設定檔</p>
+                                                </div>
+
+                                                {/* Arrows */}
+                                                <div className="flex flex-col gap-2 text-slate-300">
+                                                    <ArrowRight size={32} className="hidden md:block rotate-45 md:rotate-0" />
+                                                    <ArrowRight size={32} className="hidden md:block -rotate-45 md:rotate-0" />
+                                                </div>
+
+                                                {/* Interfaces */}
+                                                <div className="flex flex-col gap-4 w-full md:w-auto flex-1">
+                                                    <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 flex items-center gap-4 relative">
+                                                        <div className="bg-blue-500 text-white p-3 rounded-xl"><MonitorPlay size={24} /></div>
+                                                        <div>
+                                                            <div className="font-mono font-bold text-blue-800">index.html</div>
+                                                            <div className="text-xs text-blue-600">讀取資料 → 呈現給學生</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 flex items-center gap-4 relative">
+                                                        <div className="bg-emerald-500 text-white p-3 rounded-xl"><Settings size={24} /></div>
+                                                        <div>
+                                                            <div className="font-mono font-bold text-emerald-800">admin.html</div>
+                                                            <div className="text-xs text-emerald-600">編輯資料 → 生成新檔案</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-8 bg-slate-100 rounded-2xl p-6 border-2 border-dashed border-slate-300">
+                                            <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                                <BookOpen size={20} /> 獨立教學單元 (HTML 教材庫)
+                                            </h3>
+                                            <div className="flex flex-wrap gap-3">
+                                                <HtmlFileTag name="triangle.html" />
+                                                <HtmlFileTag name="multiplication.html" />
+                                                <HtmlFileTag name="game_03.html" />
+                                                <HtmlFileTag name="..." color="slate" />
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-4 leading-relaxed">
+                                                這些檔案獨立存在於資料夾中。<code>data.js</code> 僅儲存它們的檔名與描述，並不包含實際的程式碼。這種鬆散耦合 (Loose Coupling) 確保了系統的高度穩定性。
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Section: 擴充流程 (SOP) */}
+                            {activeTab === 'workflow' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="mb-10">
+                                        <h2 className="text-4xl font-black text-slate-800 mb-4 flex items-center gap-4">
+                                            <span className="bg-amber-100 p-3 rounded-2xl text-amber-600"><Upload size={36} /></span>
+                                            教材擴充標準流程 (SOP)
+                                        </h2>
+                                        <p className="text-lg text-slate-600">
+                                            無需工程師協助，任何老師只需 3 個步驟即可上架新教材。
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-8 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+
+                                        <StepCard number="1" title="準備與上傳">
+                                            <p className="mb-4">
+                                                將製作好的新 HTML 檔案（例如：<code>fraction_game.html</code>）複製到與 <code>index.html</code> 相同的資料夾中。
+                                            </p>
+                                            <div className="bg-slate-800 text-slate-300 p-4 rounded-xl font-mono text-xs shadow-inner">
+                                                📂 Project_Root/<br />
+                                                ├── index.html<br />
+                                                ├── ...<br />
+                                                <span className="text-green-400 font-bold">└── fraction_game.html (新檔案)</span>
+                                            </div>
+                                        </StepCard>
+
+                                        <StepCard number="2" title="後台設定">
+                                            <p className="mb-2">
+                                                開啟 <code>admin.html</code>，點擊「新增教材」。
+                                            </p>
+                                            <ul className="list-disc list-inside text-slate-500 text-sm space-y-2 pl-2">
+                                                <li>輸入標題與教學目標描述。</li>
+                                                <li>在「檔案連結」欄位精確填入檔名：<code className="bg-amber-100 text-amber-800 px-1 rounded">fraction_game.html</code>。</li>
+                                                <li>點擊「查找圖示」開啟瀏覽器，挑選適合的 Icon。</li>
+                                            </ul>
+                                        </StepCard>
+
+                                        <StepCard number="3" title="發布更新">
+                                            <p className="mb-4">
+                                                點擊後台右上角的 <strong className="text-emerald-600 inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-xs"><Download size={12} /> 下載設定檔</strong>。
+                                            </p>
+                                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                                                <h4 className="font-bold text-yellow-800 text-sm mb-1">關鍵步驟</h4>
+                                                <p className="text-yellow-700 text-xs">
+                                                    系統會下載一個新的 <code>data.js</code>。請務必用這個新檔案 <strong className="underline">覆蓋掉</strong> 資料夾中原本的舊檔案。
+                                                </p>
+                                            </div>
+                                        </StepCard>
+
+                                    </div>
+
+                                    <div className="mt-12 text-center">
+                                        <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-6 py-3 rounded-full font-bold shadow-sm animate-bounce">
+                                            <MonitorPlay size={20} /> 恭喜！重新整理 index.html 即可看到新教材
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        // --- Sub Components for Layout ---
+
+        function FeatureCard({ icon: Icon, color, title, desc }) {
+            const colors = {
+                emerald: 'bg-emerald-100 text-emerald-600',
+                indigo: 'bg-indigo-100 text-indigo-600',
+                amber: 'bg-amber-100 text-amber-600',
+                rose: 'bg-rose-100 text-rose-600',
+            };
+            return (
+                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm feature-card">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${colors[color]}`}>
+                        <Icon size={28} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-3">{title}</h3>
+                    <p className="text-slate-500 leading-relaxed text-sm">{desc}</p>
+                </div>
+            );
+        }
+
+        function FeatureItem({ icon: Icon, title, children }) {
+            return (
+                <li className="flex gap-4">
+                    <div className="mt-1 bg-blue-50 p-2 rounded-lg text-blue-600 h-fit">
+                        <Icon size={18} />
+                    </div>
+                    <div>
+                        <strong className="block text-slate-800 mb-1">{title}</strong>
+                        <span className="text-slate-500 text-sm leading-relaxed">{children}</span>
+                    </div>
+                </li>
+            );
+        }
+
+        function HtmlFileTag({ name, color = "blue" }) {
+            return (
+                <div className={`flex items-center gap-2 bg-${color}-50 text-${color}-700 px-3 py-2 rounded-lg border border-${color}-200 text-sm font-mono shadow-sm`}>
+                    <FileCode size={14} /> {name}
+                </div>
+            );
+        }
+
+        function StepCard({ number, title, children }) {
+            return (
+                <div className="relative z-10 flex gap-6 md:gap-8 items-start">
+                    <div className="flex-shrink-0 w-12 h-12 bg-white border-4 border-slate-200 text-slate-700 rounded-full flex items-center justify-center font-black text-xl shadow-sm z-20">
+                        {number}
+                    </div>
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 flex-1 shadow-sm relative top-2 hover:border-blue-300 transition-colors">
+                        <h3 className="font-bold text-xl text-slate-800 mb-3">{title}</h3>
+                        <div className="text-slate-600 text-sm leading-relaxed">
+                            {children}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<GuideApp />);
+    </script>
+</body>
+
+</html>
