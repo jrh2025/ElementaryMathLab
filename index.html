@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國小數學互動教學實驗室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- 載入資料檔 -->
+    <script src="data.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import * as LucideIcons from 'https://esm.sh/lucide-react@0.263.1';
+
+        function App() {
+            const [tools, setTools] = useState([]);
+
+            useEffect(() => {
+                // 從 data.js 讀取資料
+                if (window.MATH_TOOLS_DATA) {
+                    setTools(window.MATH_TOOLS_DATA);
+                }
+            }, []);
+
+            // 動態取得 Icon 元件
+            const getIconComponent = (iconName) => {
+                const Icon = LucideIcons[iconName] || LucideIcons.LayoutGrid;
+                return Icon;
+            };
+
+            const getColorClasses = (color) => {
+                const colors = {
+                    blue: "bg-blue-50 text-blue-600 border-blue-200 hover:border-blue-400",
+                    sky: "bg-sky-50 text-sky-600 border-sky-200 hover:border-sky-400",
+                    indigo: "bg-indigo-50 text-indigo-600 border-indigo-200 hover:border-indigo-400",
+                    green: "bg-green-50 text-green-600 border-green-200 hover:border-green-400",
+                    orange: "bg-orange-50 text-orange-600 border-orange-200 hover:border-orange-400",
+                    rose: "bg-rose-50 text-rose-600 border-rose-200 hover:border-rose-400",
+                };
+                return colors[color] || colors.blue;
+            };
+
+            const getThemeColor = (color) => {
+                const themes = {
+                    blue: 'bg-blue-500', sky: 'bg-sky-500', indigo: 'bg-indigo-500',
+                    green: 'bg-green-500', orange: 'bg-orange-500', rose: 'bg-rose-500'
+                };
+                return themes[color] || 'bg-blue-500';
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    {/* Header */}
+                    <header className="bg-white shadow-sm sticky top-0 z-50">
+                        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
+                            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg text-white shadow-lg">
+                                <LucideIcons.LayoutGrid size={24} />
+                            </div>
+                            <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-500">
+                                國小數學互動教學實驗室
+                            </h1>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full">
+                        <div className="mb-10 text-center md:text-left">
+                            <h2 className="text-3xl font-bold text-slate-800 mb-3">探索數學的奧秘</h2>
+                            <p className="text-slate-500 text-lg">選擇一個單元，開啟你的互動學習之旅。</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {tools.map((tool) => {
+                                const Icon = getIconComponent(tool.icon);
+                                const colorClass = getColorClasses(tool.color);
+                                const themeBg = getThemeColor(tool.color);
+
+                                return (
+                                    <a
+                                        key={tool.id}
+                                        href={tool.link} // 直接連結到獨立 HTML 檔案
+                                        className={`card-hover block bg-white rounded-3xl p-6 border-2 relative overflow-hidden group ${colorClass}`}
+                                    >
+                                        {/* 背景裝飾 Icon */}
+                                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 pointer-events-none">
+                                            <Icon size={140} />
+                                        </div>
+
+                                        <div className="relative z-10 flex flex-col h-full">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${themeBg}`}>
+                                                    <Icon size={28} />
+                                                </div>
+                                                <span className="text-xs font-black px-3 py-1.5 rounded-full bg-white/60 backdrop-blur-sm border border-slate-100 shadow-sm text-slate-600">
+                                                    {tool.grade}
+                                                </span>
+                                            </div>
+
+                                            <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-current transition-colors">
+                                                {tool.title}
+                                            </h3>
+
+                                            <p className="text-slate-600 text-sm leading-relaxed mb-6 flex-grow font-medium">
+                                                {tool.description}
+                                            </p>
+
+                                            <div className="flex items-center text-sm font-bold mt-auto group-hover:translate-x-2 transition-transform">
+                                                開始練習 <LucideIcons.ArrowRight size={16} className="ml-2" />
+                                            </div>
+                                        </div>
+                                    </a>
+                                );
+                            })}
+                        </div>
+                    </main>
+
+                    <footer className="text-center py-8 text-slate-400 text-sm font-medium">
+                        © 2025 國小數學互動教學實驗室
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
