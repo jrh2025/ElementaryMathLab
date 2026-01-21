@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3位數乘法互動實驗室 | 國小數學互動教學</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts: Noto Sans TC for Traditional Chinese -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Custom Styles for Animations mimicking tailwindcss-animate -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .animate-in {
+            animation-duration: 0.5s;
+            animation-fill-mode: both;
+        }
+
+        .fade-in {
+            animation-name: fadeIn;
+        }
+
+        .zoom-in {
+            animation-name: zoomIn;
+        }
+    </style>
+</head>
+
+<body class="bg-neutral-50 min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import {
+            CheckCircle2,
+            AlertCircle,
+            RefreshCcw,
+            Award,
+            LayoutGrid,
+            Zap,
+            ChevronRight,
+            Settings,
+            TrendingUp
+        } from 'https://esm.sh/lucide-react@0.263.1';
+
+        const App = () => {
+            // Config state
+            const [config, setConfig] = useState({ d1: 1, d2: 1 }); // Digits for num1 and num2
+            const [num1, setNum1] = useState(5);
+            const [num2, setNum2] = useState(3);
+
+            // Game State
+            const [step, setStep] = useState(0);
+            const [subStep, setSubStep] = useState(0); // 0: Padding zeros, 1: Product calculation
+
+            const [inputs, setInputs] = useState({
+                partials: [],
+                total: []
+            });
+
+            const [feedback, setFeedback] = useState(null);
+            const [score, setScore] = useState(0);
+            const [streak, setStreak] = useState(0);
+            const [isAutoLevel, setIsAutoLevel] = useState(true);
+
+            // Constants
+            const GRID_COLS = 7;
+            const LEVELS = [
+                { d1: 1, d2: 1 }, { d1: 2, d2: 1 }, { d1: 1, d2: 2 },
+                { d1: 2, d2: 2 }, { d1: 3, d2: 2 }, { d1: 2, d2: 3 }, { d1: 3, d2: 3 }
+            ];
+
+            // Initialize problem with safe initial state
+            useEffect(() => {
+                generateNewProblem(config.d1, config.d2);
+            }, [config]);
+
+            const generateNewProblem = (d1, d2) => {
+                const min1 = Math.pow(10, d1 - 1);
+                const max1 = Math.pow(10, d1) - 1;
+                const min2 = Math.pow(10, d2 - 1);
+                const max2 = Math.pow(10, d2) - 1;
+
+                setNum1(Math.floor(Math.random() * (max1 - min1 + 1)) + min1);
+                setNum2(Math.floor(Math.random() * (max2 - min2 + 1)) + min2);
+                setStep(0);
+                setSubStep(0);
+                setInputs({
+                    partials: Array(d2).fill(0).map(() => Array(GRID_COLS).fill('')),
+                    total: Array(GRID_COLS).fill('')
+                });
+                setFeedback(null);
+            };
+
+            const checkStep = () => {
+                const d2_str = num2.toString();
+                const multiplierDigitIndex = config.d2 - step;
+                const multiplierDigit = parseInt(d2_str[multiplierDigitIndex]);
+                const powerOfTen = step - 1;
+
+                const currentPartialCorrect = num1 * multiplierDigit * Math.pow(10, powerOfTen);
+                const totalCorrect = num1 * num2;
+
+                let isCorrect = false;
+                let msg = "";
+
+                // 1. Partial Product Logic
+                if (step >= 1 && step <= config.d2) {
+                    const rowIdx = step - 1;
+                    const rowValue = parseInt(inputs.partials[rowIdx]?.join('') || '0') || 0;
+
+                    if (subStep === 0 && step > 1) {
+                        const paddingCorrect = (inputs.partials[rowIdx] || []).slice(GRID_COLS - powerOfTen).every(v => v === '0');
+                        if (paddingCorrect) {
+                            isCorrect = true;
+                            setSubStep(1);
+                            msg = step === 2
+                                ? `補零正確！現在計算 ${num1} × ${multiplierDigit} 並填入左側十位區域。`
+                                : `補零正確！現在計算 ${num1} × ${multiplierDigit} 並填入左側百位區域。`;
+                            setFeedback({ type: 'success', text: msg });
+                            return;
+                        } else {
+                            msg = step === 2
+                                ? "注意位值！乘以十位數時，末尾需補 1 個 0。"
+                                : "注意位值！乘以百位數時，末尾需補 2 個 0（個位與十位）。";
+                        }
+                    }
+                    else {
+                        if (rowValue === currentPartialCorrect) {
+                            isCorrect = true;
+                            if (step === config.d2) {
+                                msg = config.d2 === 1 ? "太棒了！計算完全正確。" : "所有部分乘積完成！準備最後加總。";
+                            } else {
+                                msg = "這一位正確，繼續下一步。";
+                            }
+                            setSubStep(0);
+                        } else {
+                            msg = `運算有誤。提示：${num1} × ${multiplierDigit}${powerOfTen > 0 ? '0'.repeat(powerOfTen) : ''} = ?`;
+                        }
+                    }
+                }
+                // 2. Final Total Logic
+                else if (step === config.d2 + 1) {
+                    const totalVal = parseInt(inputs.total?.join('') || '0') || 0;
+                    if (totalVal === totalCorrect) {
+                        isCorrect = true;
+                        msg = "恭喜！總和對齊且計算正確。";
+                    } else {
+                        msg = "加總不對喔，請再檢查一次進位。";
+                    }
+                }
+
+                if (isCorrect) {
+                    setFeedback({ type: 'success', text: msg });
+                    setTimeout(() => {
+                        if (step === config.d2 && config.d2 === 1) {
+                            handleWin();
+                        } else if (step === config.d2 + 1) {
+                            handleWin();
+                        } else {
+                            setStep(prev => prev + 1);
+                            setFeedback(null);
+                        }
+                    }, 1500);
+                } else {
+                    setFeedback({ type: 'error', text: msg });
+                }
+            };
+
+            const handleWin = () => {
+                setScore(s => s + (config.d1 * config.d2 * 10));
+                const newStreak = streak + 1;
+                setStreak(newStreak);
+                setStep(config.d2 + 2);
+
+                if (isAutoLevel && newStreak >= 2) {
+                    const currentIndex = LEVELS.findIndex(l => l.d1 === config.d1 && l.d2 === config.d2);
+                    if (currentIndex < LEVELS.length - 1) {
+                        setStreak(0);
+                        setConfig(LEVELS[currentIndex + 1]);
+                    }
+                }
+            };
+
+            const handleDigitInput = (section, rowIdx, colIdx, value) => {
+                const newVal = value.slice(-1).replace(/\D/g, '');
+                const newInputs = { ...inputs };
+                if (section === 'partials') {
+                    if (newInputs.partials[rowIdx]) {
+                        newInputs.partials[rowIdx][colIdx] = newVal;
+                    }
+                } else {
+                    if (newInputs.total) {
+                        newInputs.total[colIdx] = newVal;
+                    }
+                }
+                setInputs(newInputs);
+
+                if (newVal !== '' && colIdx > 0) {
+                    const nextId = section === 'partials' ? `p-${rowIdx}-${colIdx - 1}` : `t-${colIdx - 1}`;
+                    document.getElementById(nextId)?.focus();
+                }
+            };
+
+            const getMultiplierDigitHighlight = (digitPos) => {
+                return (step - 1 === digitPos) ? "text-indigo-600 bg-indigo-50 font-black scale-125 rounded-md" : "text-slate-400";
+            };
+
+            return (
+                <div className="min-h-screen bg-neutral-50 flex flex-col items-center p-4 md:p-8 font-sans">
+
+                    {/* Header HUD */}
+                    <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="md:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-indigo-600 rounded-2xl text-white">
+                                    <TrendingUp size={24} />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-black text-slate-800 tracking-tight">3位數乘法互動實驗室</h1>
+                                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                                        Lv: {config.d1}位數 × {config.d2}位數
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                {[1, 2, 3].map(d => (
+                                    <button
+                                        key={`d1-${d}`}
+                                        onClick={() => { setConfig({ ...config, d1: d }); setIsAutoLevel(false); setStreak(0); }}
+                                        className={`w-10 h-10 rounded-xl font-bold text-xs transition-all ${config.d1 === d ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                    >
+                                        被{d}
+                                    </button>
+                                ))}
+                                <div className="w-px bg-slate-200 mx-1"></div>
+                                {[1, 2, 3].map(d => (
+                                    <button
+                                        key={`d2-${d}`}
+                                        onClick={() => { setConfig({ ...config, d2: d }); setIsAutoLevel(false); setStreak(0); }}
+                                        className={`w-10 h-10 rounded-xl font-bold text-xs transition-all ${config.d2 === d ? 'bg-orange-500 text-white shadow-lg' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                    >
+                                        乘{d}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex justify-around items-center">
+                            <div className="text-center">
+                                <span className="block text-[10px] font-black text-slate-300 uppercase tracking-widest">Score</span>
+                                <span className="text-2xl font-mono font-black text-indigo-600">{score}</span>
+                            </div>
+                            <div className="text-center">
+                                <span className="block text-[10px] font-black text-slate-300 uppercase tracking-widest">Streak</span>
+                                <span className="text-2xl font-mono font-black text-orange-500">{streak}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+                        {/* Main Board */}
+                        <div className="lg:col-span-7 bg-white rounded-[2.5rem] shadow-xl p-8 border border-white flex flex-col items-center overflow-x-auto">
+                            <div className="relative font-mono text-5xl text-slate-700 w-full flex flex-col items-end space-y-2 min-w-[320px]">
+
+                                {/* Number 1 Row */}
+                                <div className="flex">
+                                    {num1.toString().padStart(GRID_COLS, ' ').split('').map((char, i) => (
+                                        <div key={`n1-${i}`} className={`w-12 h-16 flex items-center justify-center ${char !== ' ' ? 'text-slate-800' : 'text-transparent'}`}>
+                                            {char}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Number 2 Row */}
+                                <div className="flex items-center">
+                                    <span className="text-3xl text-slate-300 mr-4 font-black">×</span>
+                                    {num2.toString().padStart(GRID_COLS - 1, ' ').split('').map((char, i) => {
+                                        const digitPos = num2.toString().length - 1 - (i - (GRID_COLS - 1 - num2.toString().length));
+                                        return (
+                                            <div key={`n2-${i}`} className={`w-12 h-16 flex items-center justify-center transition-all ${char !== ' ' ? getMultiplierDigitHighlight(digitPos) : 'text-transparent'}`}>
+                                                {char}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="w-full h-1.5 bg-slate-800 rounded-full mb-2"></div>
+
+                                {/* Partial Product Rows */}
+                                {Array(config.d2).fill(0).map((_, rowIdx) => (
+                                    <div key={`row-${rowIdx}`} className={`flex transition-all duration-500 ${step > rowIdx ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+                                        {Array(GRID_COLS).fill(0).map((_, colIdx) => {
+                                            const powerOfTen = rowIdx;
+                                            const isPadding = colIdx >= (GRID_COLS - powerOfTen) && rowIdx > 0;
+                                            const isActive = (step === rowIdx + 1);
+                                            return (
+                                                <div key={`cell-${rowIdx}-${colIdx}`} className={`w-12 h-14 border-b-2 flex items-center justify-center ${isActive ? 'bg-indigo-50/50 border-indigo-400' : 'border-transparent'}`}>
+                                                    <input
+                                                        id={`p-${rowIdx}-${colIdx}`}
+                                                        type="text"
+                                                        value={inputs.partials[rowIdx]?.[colIdx] || ''}
+                                                        onChange={(e) => handleDigitInput('partials', rowIdx, colIdx, e.target.value)}
+                                                        disabled={!isActive || (subStep === 1 && isPadding)}
+                                                        className={`w-full h-full text-center bg-transparent outline-none font-bold 
+                                    ${isPadding ? 'text-orange-500' : 'text-slate-600'} 
+                                    ${!isActive && 'text-slate-400'}`}
+                                                        placeholder={isActive ? "·" : ""}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+
+                                {/* Final Sum Divider (Only if d2 > 1) */}
+                                {config.d2 > 1 && (
+                                    <div className={`w-full h-1.5 bg-slate-800 rounded-full my-2 transition-opacity ${step >= config.d2 + 1 ? 'opacity-100' : 'opacity-0'}`}></div>
+                                )}
+
+                                {/* Final Result Row (Only if d2 > 1) */}
+                                {config.d2 > 1 && (
+                                    <div className={`flex transition-all ${step >= config.d2 + 1 ? 'opacity-100' : 'opacity-0'}`}>
+                                        {Array(GRID_COLS).fill(0).map((_, colIdx) => (
+                                            <div key={`total-${colIdx}`} className={`w-12 h-16 border-b-2 flex items-center justify-center ${step === config.d2 + 1 ? 'bg-green-50 border-green-400' : 'border-transparent'}`}>
+                                                <input
+                                                    id={`t-${colIdx}`}
+                                                    type="text"
+                                                    value={inputs.total?.[colIdx] || ''}
+                                                    onChange={(e) => handleDigitInput('total', 0, colIdx, e.target.value)}
+                                                    disabled={step !== config.d2 + 1}
+                                                    className={`w-full h-full text-center bg-transparent outline-none font-black text-slate-800`}
+                                                    placeholder={step === config.d2 + 1 ? "·" : ""}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Instructions Side */}
+                        <div className="lg:col-span-5 space-y-6">
+                            <div className="bg-white rounded-[2rem] shadow-sm p-8 border border-slate-200">
+                                <h2 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
+                                    <ChevronRight className="text-indigo-600" />
+                                    計算導引
+                                </h2>
+
+                                <div className="min-h-[220px] flex flex-col justify-between">
+                                    {step === 0 && (
+                                        <div className="animate-in fade-in">
+                                            <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                                                這是一題 <span className="font-bold text-indigo-600">{config.d1}位數</span> 乘以 <span className="font-bold text-orange-500">{config.d2}位數</span>。
+                                                {config.d2 === 1 ?
+                                                    "乘數只有一位，計算完第一層即得出結果。" :
+                                                    "乘數有多位，我們需要分層計算後再加總。"}
+                                            </p>
+                                            <button onClick={() => setStep(1)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all">
+                                                進入運算模式
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {step >= 1 && step <= config.d2 && (
+                                        <div className="space-y-4 animate-in fade-in">
+                                            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 text-sm">
+                                                <span className="font-black text-indigo-700 block mb-1 underline">步驟 {step}：部分乘積</span>
+                                                {step > 1 && subStep === 0 ? (
+                                                    <span className="text-orange-600 font-bold">
+                                                        關鍵動作：
+                                                        {step === 2
+                                                            ? "請在個位格補 0，對齊十位位值。"
+                                                            : "請在個位格及十位格補 0，對齊百位位值。"}
+                                                    </span>
+                                                ) : (
+                                                    <>請計算 {num1} × {num2.toString()[config.d2 - step] || '?'} 的結果並填入。</>
+                                                )}
+                                            </div>
+                                            <button onClick={checkStep} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black">檢查答案</button>
+                                        </div>
+                                    )}
+
+                                    {config.d2 > 1 && step === config.d2 + 1 && (
+                                        <div className="space-y-4 animate-in fade-in">
+                                            <div className="p-4 bg-green-50 rounded-2xl border border-green-100 text-sm">
+                                                <span className="font-black text-green-700 block mb-1">最後步驟：加總</span>
+                                                將對齊好的結果垂直相加，算出最終答案。
+                                            </div>
+                                            <button onClick={checkStep} className="w-full py-4 bg-green-600 text-white rounded-2xl font-black">檢查總和</button>
+                                        </div>
+                                    )}
+
+                                    {step >= config.d2 + (config.d2 === 1 ? 1 : 2) && (
+                                        <div className="text-center py-6 animate-in zoom-in">
+                                            <div className="text-6xl mb-4">🏆</div>
+                                            <h3 className="text-xl font-black">挑戰成功！</h3>
+                                            <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-widest">
+                                                {isAutoLevel ? `連勝中 (${streak}/2)` : "自由練習模式"}
+                                            </p>
+                                            <button onClick={() => generateNewProblem(config.d1, config.d2)} className="mt-6 w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-2">
+                                                下一題 <RefreshCcw size={18} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {feedback && (
+                                        <div className={`mt-4 p-4 rounded-xl flex gap-3 ${feedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                                            {feedback.type === 'success' ? <CheckCircle2 size={18} className="shrink-0" /> : <AlertCircle size={18} className="shrink-0" />}
+                                            <p className="text-xs font-bold leading-tight">{feedback.text}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-3xl border border-slate-200 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+                                    <Settings size={14} /> 自動晉級挑戰
+                                </div>
+                                <button
+                                    onClick={() => { setIsAutoLevel(!isAutoLevel); setStreak(0); }}
+                                    className={`w-12 h-6 rounded-full relative transition-colors ${isAutoLevel ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isAutoLevel ? 'left-7' : 'left-1'}`} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
