@@ -36,7 +36,7 @@ window.MATH_TOOLS_DATA = [
     "grade": "六年級",
     "description": "等量公理是解方程式（求未知數 x ）的核心觀念。它的基本原則是：「為了保持天平平衡，你對左邊做什麼，就要對右邊做同樣的事。」",
     "link": "Equivalence_axiom.html",
-    "icon": "Algebra",
+    "icon": "Scale",
     "color": "green"
   }
 ];
