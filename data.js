@@ -38,5 +38,14 @@ window.MATH_TOOLS_DATA = [
     "link": "Equivalence_axiom.html",
     "icon": "Scale",
     "color": "green"
+  },
+  {
+    "id": "tool_1769053238814",
+    "title": "19x19 乘法大師",
+    "grade": "四年級",
+    "description": "19x19 乘法--速算核心概念\n對於 12 × 13 這樣的算式：\n(1) 頭加尾：12 + 3 = 15\n(2) 補個零：150\n(3) 尾乘尾：2 × 3 = 6\n(4) 相加：150 + 6 = 156",
+    "link": "19multiplication.html",
+    "icon": "Crown",
+    "color": "indigo"
   }
 ];
