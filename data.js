@@ -47,5 +47,14 @@ window.MATH_TOOLS_DATA = [
     "link": "19multiplication.html",
     "icon": "Crown",
     "color": "indigo"
+  },
+  {
+    "id": "tool_1769255663000",
+    "title": "直式加法小學堂",
+    "grade": "二年級",
+    "description": "協助對進位機制感到困擾的學生，透過視覺化引導建立正確的直式運算邏輯。",
+    "link": "Direct_addition.html",
+    "icon": "Plus",
+    "color": "rose"
   }
 ];
