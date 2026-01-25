@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直式減法小學堂</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+            touch-action: manipulation;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .animate-shake {
+            animation: shake 0.3s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin 3s linear infinite;
+        }
+
+        @keyframes floatUpFade {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.8);
+            }
+        }
+
+        .animate-float-out {
+            animation: floatUpFade 1s forwards ease-out;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes slideRightArc {
+            0% {
+                stroke-dasharray: 100;
+                stroke-dashoffset: 100;
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            100% {
+                stroke-dasharray: 100;
+                stroke-dashoffset: 0;
+                opacity: 1;
+            }
+        }
+
+        .animate-draw-line {
+            animation: slideRightArc 0.6s ease-out forwards;
+        }
+
+        @keyframes bounce-slow {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .animate-bounce-slow {
+            animation: bounce-slow 2s infinite;
+        }
+
+        /* Strike-through animation */
+        .strike-through {
+            position: relative;
+            display: inline-block;
+        }
+
+        .strike-through::after {
+            content: '';
+            position: absolute;
+            left: -10%;
+            top: 50%;
+            width: 120%;
+            height: 3px;
+            background-color: #ef4444;
+            transform: rotate(-45deg) scaleX(0);
+            transform-origin: center;
+            transition: transform 0.3s ease-out;
+            opacity: 0.8;
+        }
+
+        .strike-through.active::after {
+            transform: rotate(-45deg) scaleX(1);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // --- Icons ---
+        const Sparkles = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" /></svg>;
+        const Trophy = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>;
+        const ArrowRight = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size || "24"} height={size || "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>;
+        const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>;
+        const CheckCircle2 = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>;
+        const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>;
+        const Flame = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>;
+        const TrendingUp = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size || "24"} height={size || "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>;
+        const BookOpen = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size || "24"} height={size || "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>;
+        const Keyboard = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size || "24"} height={size || "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="16" x="2" y="4" rx="2" ry="2" /><path d="M6 8h.001" /><path d="M10 8h.001" /><path d="M14 8h.001" /><path d="M18 8h.001" /><path d="M6 12h.001" /><path d="M10 12h.001" /><path d="M14 12h.001" /><path d="M18 12h.001" /><path d="M6 16h.001" /><path d="M10 16h.001" /><path d="M14 16h.001" /><path d="M18 16h.001" /></svg>;
+        const Medal = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15" /><path d="M11 12 5.12 2.2" /><path d="m13 12 5.88-9.8" /><path d="M8 7h8" /><circle cx="12" cy="17" r="5" /><path d="M12 18v-2h-.5" /></svg>;
+        const Star = ({ className, style }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" className={className} style={style}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
+        const Scissors = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg>;
+        const Eraser = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></svg>;
+        const Lightbulb = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5a6 6 0 0 0-11 0c0 1.5.5 2.5 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></svg>;
+
+        // --- Config ---
+        const LEVELS = [
+            { level: 1, label: '入門', desc: '一位數減法 (不借位)', maxTop: 9, minTop: 2, maxBottom: 9, allowBorrow: false, threshold: 3 },
+            { level: 2, label: '初級', desc: '二位數 - 一位數 (不借位)', maxTop: 99, minTop: 10, maxBottom: 9, allowBorrow: false, threshold: 3 },
+            { level: 3, label: '進階', desc: '二位數 - 一位數 (需借位)', maxTop: 98, minTop: 20, maxBottom: 9, allowBorrow: true, forceBorrow: true, threshold: 3 },
+            { level: 4, label: '中級', desc: '二位數減法 (不借位)', maxTop: 99, minTop: 20, maxBottom: 89, minBottom: 10, allowBorrow: false, threshold: 3 },
+            { level: 5, label: '挑戰', desc: '二位數減法 (需借位)', maxTop: 98, minTop: 30, maxBottom: 89, minBottom: 10, allowBorrow: true, forceBorrow: true, threshold: 5 },
+            { level: 6, label: '大師', desc: '三位數減法 (連續借位)', maxTop: 999, minTop: 200, maxBottom: 899, minBottom: 50, allowBorrow: true, threshold: 5, forceConsecutiveBorrow: true },
+        ];
+
+        const generateProblem = (levelConfig) => {
+            let top, bottom;
+            let isValid = false;
+            let attempts = 0;
+
+            while (!isValid && attempts < 1000) {
+                attempts++;
+                const minTop = levelConfig.minTop || 2;
+                const maxTop = levelConfig.maxTop;
+                const minBottom = levelConfig.minBottom || 1;
+
+                top = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
+
+                // For level 6 (Consecutive Borrow), ensure we have a setup like 305 - ...
+                if (levelConfig.forceConsecutiveBorrow) {
+                    if (Math.random() > 0.5) {
+                        const hundreds = Math.floor(Math.random() * 8) + 2; // 2-9
+                        const units = Math.floor(Math.random() * 9);
+                        top = hundreds * 100 + 0 * 10 + units;
+                    }
+                }
+
+                const topStr = top.toString().split('').reverse();
+                let bottomMax = Math.min(levelConfig.maxBottom || top - 1, top - 1);
+
+                bottom = Math.floor(Math.random() * (bottomMax - minBottom + 1)) + minBottom;
+                const bStr = bottom.toString().split('').reverse();
+
+                let hasBorrow = false;
+                let hasConsecutiveBorrow = false;
+
+                // 檢查借位邏輯
+                for (let i = 0; i < bStr.length; i++) {
+                    const t = parseInt(topStr[i] || '0');
+                    const b = parseInt(bStr[i]);
+                    if (t < b) {
+                        hasBorrow = true;
+                        if (i + 1 < topStr.length) {
+                            let nextT = parseInt(topStr[i + 1]);
+                            if (nextT === 0 || (nextT - 1 < (parseInt(bStr[i + 1] || 0)))) {
+                                hasConsecutiveBorrow = true;
+                            }
+                        }
+                    }
+                }
+
+                if (top <= bottom) { isValid = false; continue; }
+
+                if (!levelConfig.allowBorrow) {
+                    let clean = true;
+                    let tempTop = [...topStr];
+                    for (let i = 0; i < Math.max(tempTop.length, bStr.length); i++) {
+                        let t = parseInt(tempTop[i] || '0');
+                        let b = parseInt(bStr[i] || '0');
+                        if (t < b) { clean = false; break; }
+                    }
+                    if (clean) isValid = true;
+                } else if (levelConfig.forceConsecutiveBorrow) {
+                    if (hasConsecutiveBorrow) isValid = true;
+                } else if (levelConfig.forceBorrow) {
+                    if (hasBorrow) isValid = true;
+                } else {
+                    isValid = true;
+                }
+            }
+            if (!isValid) { top = 10; bottom = 5; }
+            return { top, bottom, expectedResult: top - bottom };
+        };
+
+        const getDigitAt = (num, pos) => {
+            const str = num.toString().split('').reverse().join('');
+            return parseInt(str[pos] || '0');
+        };
+
+        const getTotalColumns = (problem) => {
+            return Math.max(problem.top.toString().length, problem.bottom.toString().length);
+        };
+
+        // --- Main Component ---
+        function VerticalSubtractionApp() {
+            const [level, setLevel] = useState(1);
+            const [problem, setProblem] = useState(null);
+
+            // Core Logic State
+            const [userDiffs, setUserDiffs] = useState({});
+            const [currentTopDigits, setCurrentTopDigits] = useState({}); // { 0: 3, 1: 5, 2: 2 }
+            const [hasBorrowedFrom, setHasBorrowedFrom] = useState({}); // { 0: true }
+            const [hasReceivedBorrow, setHasReceivedBorrow] = useState({}); // { 0: true }
+
+            const [currentStep, setCurrentStep] = useState({ colIndex: 0, mode: 'calc' });
+            const [targetBorrowCol, setTargetBorrowCol] = useState(null);
+
+            // Feedback & Progress
+            const [feedback, setFeedback] = useState(null);
+            const [score, setScore] = useState(0);
+            const [isComplete, setIsComplete] = useState(false);
+            const [shake, setShake] = useState(false);
+            const [streak, setStreak] = useState(0);
+            const [hasErrorInCurrentProblem, setHasErrorInCurrentProblem] = useState(false);
+            const [justLeveledUp, setJustLeveledUp] = useState(false);
+            const [showCertificate, setShowCertificate] = useState(false);
+            const [latestBorrowCol, setLatestBorrowCol] = useState(null);
+
+            const nextButtonRef = useRef(null);
+
+            const startNewGame = useCallback((forceLevel) => {
+                const currentLevelToUse = forceLevel || level;
+                const config = LEVELS.find(l => l.level === currentLevelToUse);
+                const newProblem = generateProblem(config);
+                setProblem(newProblem);
+
+                const topStr = newProblem.top.toString().split('').reverse();
+                const initDigits = {};
+                topStr.forEach((d, i) => initDigits[i] = parseInt(d));
+                setCurrentTopDigits(initDigits);
+
+                setUserDiffs({});
+                setHasBorrowedFrom({});
+                setHasReceivedBorrow({});
+                setTargetBorrowCol(null);
+
+                const firstColNeedsBorrow = newProblem && (getDigitAt(newProblem.top, 0) < getDigitAt(newProblem.bottom, 0));
+
+                const initialMode = firstColNeedsBorrow ? 'borrow_click' : 'calc';
+                setCurrentStep({ colIndex: 0, mode: initialMode });
+
+                setIsComplete(false);
+                setHasErrorInCurrentProblem(false);
+                setJustLeveledUp(false);
+                setShowCertificate(false);
+
+                if (initialMode === 'borrow_click') {
+                    setFeedback({ type: 'info', msg: '個位數不夠減，請點擊十位數借位！' });
+                } else {
+                    setFeedback({ type: 'info', msg: '從個位數 (最右邊) 開始計算喔！' });
+                }
+            }, [level]);
+
+            useEffect(() => { startNewGame(); }, []);
+
+            useEffect(() => {
+                if (isComplete && nextButtonRef.current) nextButtonRef.current.focus();
+            }, [isComplete]);
+
+            const handleNumberInput = useCallback((num) => {
+                if (isComplete || !problem || showCertificate) return;
+
+                const { colIndex, mode } = currentStep;
+
+                if (mode !== 'calc') {
+                    setFeedback({ type: 'error', msg: '不夠減喔！請點擊左邊的數字向它「借位」！' });
+                    triggerShake();
+                    return;
+                }
+
+                const inputStr = num.toString();
+                const topVal = currentTopDigits[colIndex] !== undefined ? currentTopDigits[colIndex] : 0;
+                const bottomVal = getDigitAt(problem.bottom, colIndex);
+
+                if (topVal < bottomVal) {
+                    setFeedback({ type: 'error', msg: `${topVal} 減 ${bottomVal} 不夠減！請先點擊左邊的數字「借位」。` });
+                    setCurrentStep(prev => ({ ...prev, mode: 'borrow_click' }));
+                    triggerShake();
+                    setHasErrorInCurrentProblem(true);
+                    setStreak(0);
+                    return;
+                }
+
+                const expectedDiff = topVal - bottomVal;
+
+                if (parseInt(inputStr) === expectedDiff) {
+                    setUserDiffs(prev => ({ ...prev, [colIndex]: inputStr }));
+                    const topLen = problem.top.toString().length;
+
+                    const resultLen = problem.expectedResult.toString().length;
+                    const isLeadingZero = (expectedDiff === 0 && colIndex >= resultLen);
+
+                    if (colIndex + 1 >= topLen) {
+                        finishGame();
+                        if (isLeadingZero) {
+                            setFeedback({ type: 'success', msg: '答對了！前面的 0 不用寫，我們把它省略喔！' });
+                        }
+                    } else {
+                        const nextCol = colIndex + 1;
+                        const nextVal = currentTopDigits[nextCol] !== undefined ? currentTopDigits[nextCol] : getDigitAt(problem.top, nextCol);
+                        const nextBottom = getDigitAt(problem.bottom, nextCol);
+
+                        let nextMode = 'calc';
+                        if (nextVal < nextBottom) {
+                            nextMode = 'borrow_click';
+                        }
+
+                        setCurrentStep({ colIndex: nextCol, mode: nextMode });
+
+                        if (isLeadingZero) {
+                            setFeedback({ type: 'success', msg: '答對了！前面的 0 不用寫，繼續算下一位。' });
+                        } else if (nextMode === 'borrow_click') {
+                            setFeedback({ type: 'info', msg: '答對了！但下一位不夠減，請先借位。' });
+                        } else {
+                            setFeedback({ type: 'success', msg: '答對了！繼續算下一位。' });
+                        }
+                    }
+                } else {
+                    setFeedback({ type: 'error', msg: '答案不對喔，再算一次看看？' });
+                    triggerShake();
+                    setHasErrorInCurrentProblem(true);
+                    setStreak(0);
+                }
+            }, [currentStep, isComplete, problem, currentTopDigits, streak, hasErrorInCurrentProblem, showCertificate]);
+
+            const finishGame = () => {
+                setIsComplete(true);
+                setScore(s => s + 10);
+                if (!hasErrorInCurrentProblem) {
+                    const newStreak = streak + 1;
+                    setStreak(newStreak);
+                    const currentConfig = LEVELS.find(l => l.level === level);
+                    const threshold = currentConfig?.threshold || 3;
+                    if (newStreak >= threshold) {
+                        if (level === 6) {
+                            setShowCertificate(true);
+                        } else {
+                            setLevel((prev) => (prev + 1));
+                            setStreak(0);
+                            setJustLeveledUp(true);
+                        }
+                    }
+                }
+            };
+
+            const handleBorrowClick = (targetColIndex) => {
+                if (isComplete || !problem) return;
+
+                const { colIndex, mode } = currentStep;
+
+                let expectedTarget = colIndex + 1;
+                if (targetBorrowCol !== null) {
+                    expectedTarget = targetBorrowCol;
+                }
+
+                if (targetColIndex !== expectedTarget) return;
+
+                const lenderVal = currentTopDigits[targetColIndex];
+
+                if (lenderVal > 0) {
+                    const newDigits = { ...currentTopDigits };
+                    newDigits[targetColIndex] = lenderVal - 1;
+
+                    const borrowerCol = targetColIndex - 1;
+                    const currentBorrowerVal = newDigits[borrowerCol] !== undefined ? newDigits[borrowerCol] : getDigitAt(problem.top, borrowerCol);
+                    newDigits[borrowerCol] = currentBorrowerVal + 10;
+
+                    setCurrentTopDigits(newDigits);
+                    setHasBorrowedFrom(prev => ({ ...prev, [targetColIndex]: true }));
+                    setHasReceivedBorrow(prev => ({ ...prev, [borrowerCol]: true }));
+
+                    setLatestBorrowCol(targetColIndex);
+                    setTimeout(() => setLatestBorrowCol(null), 1000);
+
+                    if (targetBorrowCol !== null) {
+                        setTargetBorrowCol(null);
+                        setFeedback({
+                            type: 'info',
+                            msg: `太棒了！現在 ${borrowerCol === 1 ? '十位' : '百位'} 變成 10 了。再點一次它，借給${borrowerCol === 1 ? '個位' : '十位'}吧！`
+                        });
+                    } else {
+                        setCurrentStep({ colIndex: colIndex, mode: 'calc' });
+
+                        const bottomVal = getDigitAt(problem.bottom, colIndex);
+                        const topNow = newDigits[colIndex];
+                        const originalTop = topNow - 10;
+
+                        setFeedback({
+                            type: 'info',
+                            msg: `借位成功！💡 試試看：先算 10 - ${bottomVal} = ?，再加上原本的 ${originalTop}。`
+                        });
+                    }
+
+                } else {
+                    setFeedback({ type: 'error', msg: `這裡是 0，沒辦法借喔！請先向左邊的${targetColIndex === 1 ? '百位' : '千位'}借給它。` });
+                    triggerShake();
+                    setTargetBorrowCol(targetColIndex + 1);
+                }
+            };
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.key >= '0' && e.key <= '9') {
+                        handleNumberInput(parseInt(e.key));
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (showCertificate) window.location.reload();
+                        else if (isComplete) startNewGame();
+                    }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [handleNumberInput, isComplete, startNewGame, showCertificate]);
+
+            const handleLevelChange = (newLevel) => {
+                if (newLevel === level) { startNewGame(newLevel); return; }
+                setLevel(newLevel);
+                setStreak(0);
+                startNewGame(newLevel);
+            };
+
+            const triggerShake = () => {
+                setShake(true);
+                setTimeout(() => setShake(false), 500);
+            };
+
+            const totalCols = problem ? getTotalColumns(problem) : 3;
+            const displayCols = Math.max(totalCols, 3);
+            const gridIndices = Array.from({ length: displayCols }, (_, i) => i).reverse();
+            const currentLevelConfig = LEVELS.find(l => l.level === level);
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
+                    <div className="flex-1 flex flex-col md:flex-row">
+                        {/* Sidebar */}
+                        <div className="w-full md:w-64 bg-white border-r border-slate-200 p-6 flex flex-col gap-6 shadow-sm z-10">
+                            <div>
+                                <h1 className="text-2xl font-bold text-rose-600 flex items-center gap-2">
+                                    <Scissors className="text-rose-500" />
+                                    直式減法小學堂
+                                </h1>
+                                <p className="text-sm text-slate-500 mt-2">借位不怕，一步步來！</p>
+                            </div>
+                            <div className="flex flex-col gap-2 flex-1 overflow-y-auto min-h-0">
+                                <h3 className="font-bold text-slate-700 flex justify-between items-center sticky top-0 bg-white py-2 z-10">難度選擇</h3>
+                                {LEVELS.map((l) => (
+                                    <button
+                                        key={l.level}
+                                        onClick={() => handleLevelChange(l.level)}
+                                        disabled={showCertificate}
+                                        className={`text-left px-4 py-3 rounded-lg text-sm transition-all border relative overflow-hidden shrink-0 ${level === l.level ? 'bg-rose-50 border-rose-500 text-rose-700 ring-1 ring-rose-500' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        <div className="font-bold relative z-10">Level {l.level}: {l.label}</div>
+                                        <div className="text-xs opacity-75 mt-0.5 relative z-10">{l.desc}</div>
+                                        {level === l.level && <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-10"><TrendingUp size="40" /></div>}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="mt-4 grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
+                                <div className="bg-yellow-50 p-3 rounded-xl border border-yellow-200 flex flex-col items-center justify-center">
+                                    <div className="flex items-center gap-1 text-yellow-700 font-bold text-xs mb-1"><Trophy className="w-4 h-4" /> 積分</div>
+                                    <div className="text-2xl font-black text-yellow-600">{score}</div>
+                                </div>
+                                <div className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-colors ${streak > 0 ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className={`flex items-center gap-1 font-bold text-xs mb-1 ${streak > 0 ? 'text-orange-600' : 'text-slate-400'}`}><Flame className={`w-4 h-4 ${streak > 0 ? 'fill-orange-500 animate-pulse' : ''}`} /> 連勝</div>
+                                    <div className={`text-2xl font-black ${streak > 0 ? 'text-orange-600' : 'text-slate-300'}`}>{streak} <span className="text-xs font-normal opacity-50">/ {currentLevelConfig?.threshold}</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Main Game Area */}
+                        <div className="flex-1 flex flex-col items-center justify-start py-8 md:justify-center relative overflow-y-auto min-h-[500px]">
+                            {showCertificate ? (
+                                <div className="animate-in zoom-in duration-500 p-8 max-w-2xl w-full mx-4 bg-white rounded-xl shadow-2xl border-8 border-yellow-400 flex flex-col items-center text-center relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">{[...Array(20)].map((_, i) => <Star key={i} className="absolute text-yellow-500" style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`, transform: `scale(${Math.random()})` }} />)}</div>
+                                    <Medal className="w-32 h-32 text-yellow-500 mb-6 drop-shadow-lg" />
+                                    <h2 className="text-4xl font-black text-slate-800 mb-2">直式減法大師證書</h2>
+                                    <p className="text-xl text-slate-600 mb-8">恭喜你通過了所有關卡，借位運算已經難不倒你囉！</p>
+                                    <div className="bg-slate-50 p-6 rounded-xl w-full mb-8 border border-slate-200"><div className="text-sm text-slate-500 uppercase tracking-widest mb-1">總積分</div><div className="text-5xl font-black text-rose-600">{score}</div></div>
+                                    <button onClick={() => window.location.reload()} className="px-8 py-3 bg-rose-600 text-white rounded-full font-bold hover:bg-rose-700 transition-colors shadow-lg">領取證書並重新開始</button>
+                                </div>
+                            ) : (
+                                <React.Fragment>
+                                    <div className="mb-8 w-full max-w-md px-4">
+                                        <div className={`p-4 rounded-xl flex items-start gap-3 transition-all duration-300 shadow-sm ${justLeveledUp ? 'bg-rose-600 text-white border-rose-500' : feedback?.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : feedback?.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                                            {justLeveledUp ? <Trophy className="shrink-0 mt-0.5 text-yellow-300" /> : (
+                                                <React.Fragment>
+                                                    {feedback?.type === 'error' && <AlertCircle className="shrink-0 mt-0.5" />}
+                                                    {feedback?.type === 'success' && <CheckCircle2 className="shrink-0 mt-0.5" />}
+                                                    {feedback?.type === 'info' && (feedback.msg.includes('💡') ? <Lightbulb className="shrink-0 mt-0.5 text-yellow-600" /> : <Sparkles className="shrink-0 mt-0.5" />)}
+                                                </React.Fragment>
+                                            )}
+                                            <span className="font-medium text-lg leading-snug">{feedback ? feedback.msg : '準備開始囉！'}</span>
+                                        </div>
+                                    </div>
+
+                                    {problem && (
+                                        <div className="relative mb-8">
+                                            <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 select-none inline-block pt-16">
+
+                                                {/* Header Labels */}
+                                                <div className="flex justify-end gap-2 mb-2 opacity-40 text-xs font-bold tracking-widest text-center">
+                                                    {gridIndices.map(idx => (
+                                                        <div key={`head-${idx}`} className="w-16">
+                                                            {idx === 0 ? '個位' : idx === 1 ? '十位' : idx === 2 ? '百位' : idx === 3 ? '千位' : ''}
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex flex-col gap-1">
+
+                                                    {/* Top Helper Overlay Row (The small borrowed values) */}
+                                                    <div className="absolute top-12 right-8 flex justify-end gap-2 pointer-events-none">
+                                                        {gridIndices.map(idx => {
+                                                            const isBorrowedFrom = hasBorrowedFrom[idx];
+                                                            const currentVal = currentTopDigits[idx];
+                                                            const originalVal = getDigitAt(problem.top, idx);
+                                                            const hasReceived = hasReceivedBorrow[idx];
+
+                                                            const justTriggered = latestBorrowCol === idx;
+
+                                                            let badgeContent = null;
+
+                                                            if (hasReceived) {
+                                                                if (isBorrowedFrom) {
+                                                                    // It both received and lent.
+                                                                    // Case: 2 -> 1 -> 11 (Show 10 and 1) vs 0 -> 10 -> 9 (Show 9)
+                                                                    if (currentVal >= 10) {
+                                                                        const remainder = currentVal - 10;
+                                                                        badgeContent = (
+                                                                            <div className="flex items-end gap-1 animate-pop-in z-20 mb-1">
+                                                                                <div className="text-xl font-bold text-slate-400 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm border border-slate-200 relative">
+                                                                                    {remainder}
+                                                                                </div>
+                                                                                <div className="text-2xl font-bold text-rose-500 bg-white rounded-full px-2 shadow-sm border border-rose-100">
+                                                                                    10
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    } else {
+                                                                        // 0 -> 9 case
+                                                                        badgeContent = (
+                                                                            <div className="text-2xl font-bold text-rose-500 bg-white rounded-full px-2 shadow-sm border border-rose-100 animate-pop-in z-20 mb-1">
+                                                                                {currentVal}
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                } else {
+                                                                    // Standard receive (e.g. 3->13), show 10
+                                                                    badgeContent = (
+                                                                        <div className="text-2xl font-bold text-rose-500 bg-white rounded-full px-2 shadow-sm border border-rose-100 animate-pop-in z-20 mb-1">
+                                                                            10
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            } else if (isBorrowedFrom) {
+                                                                // Standard lend (2->1), show 1
+                                                                badgeContent = (
+                                                                    <div className="text-2xl font-bold text-rose-500 bg-white rounded-full px-2 shadow-sm border border-rose-100 animate-pop-in z-20 mb-1">
+                                                                        {currentVal}
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            const isLeadingDigitOfNumber = idx === problem.top.toString().length - 1;
+                                                            if (badgeContent && currentVal === 0 && isLeadingDigitOfNumber && !hasReceived) {
+                                                                badgeContent = null;
+                                                            }
+
+                                                            return (
+                                                                <div key={`helper-${idx}`} className="w-16 h-12 flex justify-center items-end relative">
+                                                                    {badgeContent}
+                                                                    {justTriggered && (
+                                                                        <div className="absolute top-0 right-0 text-red-500 font-bold text-lg animate-float-out z-30">
+                                                                            -1
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Top Number (Minuend) */}
+                                                    <div className="flex justify-end gap-2 text-5xl font-mono font-medium text-slate-800">
+                                                        {gridIndices.map(idx => {
+                                                            const originalDigit = getDigitAt(problem.top, idx);
+                                                            const currentVal = currentTopDigits[idx];
+                                                            const isLeadingZero = idx >= problem.top.toString().length;
+
+                                                            const isBorrowedFrom = hasBorrowedFrom[idx];
+
+                                                            // Logic Update:
+                                                            // Strike through ONLY if it lent value (isBorrowedFrom is true).
+                                                            // If it just received (e.g. 3->13), we want to KEEP the 3 and show 10 above.
+                                                            const showStrike = isBorrowedFrom;
+
+                                                            let canBeBorrowed = false;
+                                                            if (!isComplete && currentStep.mode === 'borrow_click') {
+                                                                if (targetBorrowCol !== null) {
+                                                                    if (idx === targetBorrowCol) canBeBorrowed = true;
+                                                                } else {
+                                                                    if (idx === currentStep.colIndex + 1) canBeBorrowed = true;
+                                                                }
+                                                            }
+
+                                                            return (
+                                                                <div
+                                                                    key={`top-${idx}`}
+                                                                    className={`w-16 h-16 flex justify-center items-center relative transition-all rounded-lg
+                                                                        ${showStrike ? 'strike-through active text-slate-300' : ''}
+                                                                        ${canBeBorrowed ? 'cursor-pointer bg-yellow-50 ring-2 ring-yellow-400 hover:bg-yellow-100 animate-pulse' : ''}
+                                                                    `}
+                                                                    onClick={() => canBeBorrowed && handleBorrowClick(idx)}
+                                                                >
+                                                                    {isLeadingZero && !showStrike ? '' : originalDigit}
+
+                                                                    {isBorrowedFrom && (
+                                                                        <svg className="absolute top-[-20px] left-0 w-[200%] h-12 pointer-events-none z-10 overflow-visible">
+                                                                            <defs>
+                                                                                <marker id={`arrow-${idx}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                                                                    <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                                                                                </marker>
+                                                                            </defs>
+                                                                            <path
+                                                                                d="M 32 30 Q 68 0 104 30"
+                                                                                fill="none"
+                                                                                stroke="#f59e0b"
+                                                                                strokeWidth="2"
+                                                                                markerEnd={`url(#arrow-${idx})`}
+                                                                                className="animate-draw-line"
+                                                                            />
+                                                                            <text x="68" y="10" textAnchor="middle" fontSize="11" fill="#d97706" className="font-bold">借1當10</text>
+                                                                        </svg>
+                                                                    )}
+
+                                                                    {canBeBorrowed && (
+                                                                        <div className="absolute -top-1 right-0 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Bottom Number */}
+                                                    <div className="flex justify-end gap-2 relative text-5xl font-mono font-medium text-slate-800">
+                                                        <div className="absolute -left-10 top-2 text-4xl text-slate-400 font-bold">-</div>
+                                                        {gridIndices.map(idx => {
+                                                            const digit = getDigitAt(problem.bottom, idx);
+                                                            const isLeadingZero = idx >= problem.bottom.toString().length;
+                                                            return <div key={`btm-${idx}`} className="w-16 h-16 flex justify-center items-center">{isLeadingZero ? '' : digit}</div>;
+                                                        })}
+                                                    </div>
+
+                                                    <div className="h-1 bg-slate-800 w-full rounded-full my-2"></div>
+
+                                                    {/* Result Row */}
+                                                    <div className="flex justify-end gap-2">
+                                                        {gridIndices.map(idx => {
+                                                            const isFocus = !isComplete && currentStep.colIndex === idx && currentStep.mode === 'calc';
+                                                            const val = userDiffs[idx] || '';
+                                                            const topLen = problem.top.toString().length;
+                                                            if (idx >= topLen) return <div key={`res-${idx}`} className="w-16" />;
+
+                                                            const resultLen = problem.expectedResult.toString().length;
+                                                            const isLeadingZero = (val === '0' && idx >= resultLen);
+
+                                                            const currentTop = currentTopDigits[idx] !== undefined ? currentTopDigits[idx] : getDigitAt(problem.top, idx);
+                                                            const showHintBubble = isFocus && currentTop >= 10;
+
+                                                            const b = getDigitAt(problem.bottom, idx);
+                                                            const originalTop = currentTop - 10;
+
+                                                            return (
+                                                                <div key={`res-${idx}`} className="w-16 flex flex-col items-center relative">
+                                                                    <div className={`w-14 h-16 rounded-lg flex items-center justify-center text-4xl font-mono font-medium border-2 transition-all duration-200 
+                                                                        ${shake && isFocus ? 'animate-shake border-red-400 bg-red-50' : ''} 
+                                                                        ${val ? (isLeadingZero ? 'bg-slate-50 border-slate-200 text-slate-300' : 'bg-white border-slate-300 text-slate-900 shadow-inner') : ''} 
+                                                                        ${isFocus ? 'bg-yellow-50 border-yellow-400 ring-4 ring-yellow-100 scale-105 shadow-lg z-10' : 'border-slate-100 bg-slate-50'}
+                                                                    `}>
+                                                                        {isFocus && !val ? <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping" /> :
+                                                                            (isLeadingZero ? (
+                                                                                <div className="relative w-full h-full flex items-center justify-center">
+                                                                                    <span className="opacity-30">{val}</span>
+                                                                                    <svg className="absolute inset-0 w-full h-full text-red-400 pointer-events-none p-1">
+                                                                                        <line x1="100%" y1="0%" x2="0%" y2="100%" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                                                                                    </svg>
+                                                                                </div>
+                                                                            ) : val)
+                                                                        }
+                                                                    </div>
+
+                                                                    {isFocus && (
+                                                                        <div className="absolute top-full mt-2 flex flex-col items-center">
+                                                                            <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-rose-500 mb-1"></div>
+                                                                            <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md shadow-sm whitespace-nowrap">算這裡</span>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {showHintBubble && (
+                                                                        <div className="absolute top-full mt-10 z-50 animate-bounce-slow">
+                                                                            <div className="relative bg-white border-2 border-orange-200 rounded-xl p-3 shadow-xl w-32 flex flex-col items-center">
+                                                                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-t-2 border-l-2 border-orange-200 rotate-45"></div>
+                                                                                <div className="flex items-center gap-1 text-xs font-bold text-orange-500 mb-1">
+                                                                                    <Lightbulb size="12" /> 速算小撇步
+                                                                                </div>
+                                                                                <div className="text-sm text-slate-600 font-mono">
+                                                                                    <div>10 - {b} = <span className="text-orange-600 font-bold">?</span></div>
+                                                                                    <div><span className="text-orange-600 font-bold">?</span> + {originalTop} = <span className="text-orange-600 font-bold">?</span></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="w-full max-w-sm px-4 mt-auto md:mt-0 pb-6">
+                                        {isComplete ? (
+                                            <button ref={nextButtonRef} onClick={() => startNewGame()} className={`w-full py-4 text-white text-xl font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 focus:outline-none focus:ring-4 focus:ring-rose-300 ${justLeveledUp ? 'bg-gradient-to-r from-pink-600 to-rose-600 shadow-rose-300 hover:brightness-110' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-200'}`}>
+                                                {justLeveledUp ? <React.Fragment><TrendingUp className="animate-bounce" /> 挑戰 Level {level}</React.Fragment> : <React.Fragment><RefreshCw className="animate-spin-slow" /> 下一題 (Enter)</React.Fragment>}
+                                            </button>
+                                        ) : (
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => <button key={num} onClick={() => handleNumberInput(num)} className="h-16 bg-white border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 rounded-xl text-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">{num}</button>)}
+                                                <div className="col-span-1"></div>
+                                                <button onClick={() => handleNumberInput(0)} className="h-16 bg-white border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 rounded-xl text-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">0</button>
+                                                <div className="col-span-1 flex items-center justify-center text-slate-300"><ArrowRight size="24" /></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </React.Fragment>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white border-t border-slate-200 p-6 md:p-8">
+                        <div className="max-w-6xl mx-auto">
+                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><BookOpen className="text-rose-600" /> 直式減法小技巧</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex gap-3"><div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">1</div><div><h4 className="font-bold text-slate-800 mb-1">對齊位數</h4><p className="text-sm text-slate-600">個位對個位，十位對十位，大數在上面，小數在下面。</p></div></div>
+                                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex gap-3"><div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold shrink-0">2</div><div><h4 className="font-bold text-slate-800 mb-1">由右往左</h4><p className="text-sm text-slate-600">先算右邊的個位數，不夠減的時候才看左邊。</p></div></div>
+                                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex gap-3"><div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0">3</div><div><h4 className="font-bold text-slate-800 mb-1">借位口訣</h4><p className="text-sm text-slate-600">「借1個十，換10個一」。先用借來的10減下面的數，再加原本的數。</p></div></div>
+                                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex gap-3"><div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold shrink-0"><Eraser size="20" /></div><div><h4 className="font-bold text-slate-800 mb-1">省略開頭的0</h4><p className="text-sm text-slate-600">如果最前面的答案算出來是 0，這個 0 不用寫出來喔！</p></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<VerticalSubtractionApp />);
+    </script>
+</body>
+
+</html>

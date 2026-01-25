@@ -56,5 +56,14 @@ window.MATH_TOOLS_DATA = [
     "link": "Direct_addition.html",
     "icon": "Plus",
     "color": "rose"
+  },
+  {
+    "id": "tool_1769313059672",
+    "title": "直式減法小學堂",
+    "grade": "二年級",
+    "description": "利用橘色箭頭與獨立紅色10具象化借位，引導學生以破十法直觀運算，透過清晰步驟拆解降低負擔，輕鬆戰勝減法難關。",
+    "link": "Direct_subtraction.html",
+    "icon": "Minus",
+    "color": "orange"
   }
 ];
