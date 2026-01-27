@@ -65,5 +65,14 @@ window.MATH_TOOLS_DATA = [
     "link": "Direct_subtraction.html",
     "icon": "Minus",
     "color": "orange"
+  },
+  {
+    "id": "tool_1769494905090",
+    "title": "直式除法運算嚮導",
+    "grade": "四年級",
+    "description": "協助學生熟練直式除法的標準步驟與位值對齊觀念。透過智慧提示與自動進階機制，引導學生掌握估商技巧及處理特殊補零情境，在即時互動中建立紮實的運算自信。",
+    "link": "Direct_division2.html",
+    "icon": "Divide",
+    "color": "blue"
   }
 ];
