@@ -74,5 +74,14 @@ window.MATH_TOOLS_DATA = [
     "link": "Direct_division2.html",
     "icon": "Divide",
     "color": "blue"
+  },
+  {
+    "id": "tool_1769677272267",
+    "title": "速率互動實驗室",
+    "grade": "六年級",
+    "description": "透過模組化互動模擬，引導使用者掌握速率、距離與時間的動態關係。學習目標包含精準執行單位換算，並針對追趕、相遇與流水等生活場景，建立邏輯建模與系統性列式的實戰能力。",
+    "link": "speed_learning_lab.html",
+    "icon": "Leaf",
+    "color": "green"
   }
 ];
