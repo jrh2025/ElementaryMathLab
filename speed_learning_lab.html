@@ -1401,10 +1401,10 @@
                 formulaHint = `先算速率和 (${v1} + ${v2})，再用總距離 ${dist} 除以它`;
             } else if (type === 'echo') {
                 const v = 340;
-                const dist = randomInt(3, 8) * 170;
-                q = `對著山壁大喊，聽到回聲時聲音走了 ${dist * 2} 公尺。已知聲速 340 m/s，請問是幾秒後聽到？`;
-                ans = (dist * 2) / v;
-                formulaHint = `總距離 ${dist * 2} 除以聲速 340`;
+                const oneWayDist = randomInt(2, 6) * 170; // 確保時間是整數或簡單小數 (170*2/340=1)
+                q = `小明站在距離山壁 ${oneWayDist} 公尺處大喊一聲。已知聲速為 340 m/s，請問他幾秒後會聽到回聲？`;
+                ans = (oneWayDist * 2) / v;
+                formulaHint = `關鍵：回聲是聲音「來回」走。總距離 = 單趟 ${oneWayDist} × 2，再除以聲速。`;
             } else if (type === 'avg') {
                 const t1 = randomInt(2, 5);
                 const t2 = randomInt(3, 6);
