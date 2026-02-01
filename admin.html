@@ -5,11 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理者後台 | 數學實驗室</title>
+    <!-- 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 字型 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- 核心函式庫 (UMD 版本，支援本地開啟) -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
+    <!-- 更新 Lucide 版本 -->
+    <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <!-- 載入目前的資料 -->
     <script src="data.js"></script>
+
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
@@ -21,13 +31,56 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-type="module">
-        import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0';
-        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
-        import {
-            LayoutDashboard, Plus, Save, Trash2, Edit, X, Download,
-            FileCode, ExternalLink, RefreshCw, Search
-        } from 'https://esm.sh/lucide-react@0.263.1';
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+
+        // --- Lucide Icon Helper (修復版) ---
+        const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
+            // 安全檢查：如果 window.lucide 不存在，避免崩潰
+            if (!window.lucide || !window.lucide.icons) {
+                console.warn("Lucide library not loaded.");
+                return <span className="inline-block bg-slate-200 rounded text-xs text-slate-500 flex items-center justify-center" style={{ width: size, height: size }}>?</span>;
+            }
+
+            // 嘗試獲取圖示，如果找不到則使用預設圖示 (CircleHelp)
+            const iconData = window.lucide.icons[name] || window.lucide.icons['CircleHelp'];
+
+            if (!iconData) return null;
+
+            const [tag, attrs, children] = iconData;
+
+            const renderChild = (child, index) => {
+                const [childTag, childAttrs, grandChildren] = child;
+                return React.createElement(childTag, { ...childAttrs, key: index },
+                    grandChildren ? grandChildren.map(renderChild) : null
+                );
+            };
+
+            return React.createElement(tag,
+                {
+                    ...attrs,
+                    width: size,
+                    height: size,
+                    className: className,
+                    strokeWidth: 2,
+                    ...props
+                },
+                children ? children.map(renderChild) : null
+            );
+        };
+
+        // 定義此頁面用到的圖示元件 (使用新的 Helper)
+        const LayoutDashboard = (p) => <LucideIcon name="LayoutDashboard" {...p} />;
+        const Plus = (p) => <LucideIcon name="Plus" {...p} />;
+        const Trash2 = (p) => <LucideIcon name="Trash2" {...p} />;
+        const Edit = (p) => <LucideIcon name="Edit" {...p} />;
+        const X = (p) => <LucideIcon name="X" {...p} />;
+        const Download = (p) => <LucideIcon name="Download" {...p} />;
+        const FileCode = (p) => <LucideIcon name="FileCode" {...p} />;
+        const ExternalLink = (p) => <LucideIcon name="ExternalLink" {...p} />;
+        const Search = (p) => <LucideIcon name="Search" {...p} />;
+        const BookOpen = (p) => <LucideIcon name="BookOpen" {...p} />;
 
         function AdminApp() {
             const [tools, setTools] = useState([]);
@@ -152,8 +205,8 @@
                                         <tr key={tool.id} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white bg-${tool.color}-500 bg-gray-400`}>
-                                                    {/* 簡單顯示第一個字當 icon 示意 */}
-                                                    <span className="font-mono text-xs">{tool.icon.substring(0, 2)}</span>
+                                                    {/* 動態渲染圖示 */}
+                                                    <LucideIcon name={tool.icon} size={20} />
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -264,13 +317,17 @@
                                                 className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none font-mono text-sm"
                                                 placeholder="例如：Calculator, Shapes..."
                                             />
+                                            <div className="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-lg border border-slate-200">
+                                                {/* 即時預覽 icon */}
+                                                <LucideIcon name={formData.icon} size={20} className="text-slate-600" />
+                                            </div>
                                             <a
-                                                href="icon_browser.html"
+                                                href="https://lucide.dev/icons/"
                                                 target="_blank"
                                                 className="shrink-0 flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-bold transition-colors"
                                                 title="開啟圖示瀏覽器"
                                             >
-                                                <Search size={16} /> 查找圖示
+                                                <Search size={16} /> 查找
                                             </a>
                                         </div>
                                     </div>

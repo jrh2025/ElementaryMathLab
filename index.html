@@ -5,12 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>國小數學互動教學實驗室</title>
+    <!-- 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 字型 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
         rel="stylesheet">
+
+    <!-- 核心函式庫 (UMD 版本) -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
+    <!-- 更新 Lucide 版本 -->
+    <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <!-- 載入資料檔 -->
     <script src="data.js"></script>
+
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
@@ -49,10 +59,57 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
-        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
-        import * as LucideIcons from 'https://esm.sh/lucide-react@0.263.1';
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { createRoot } = ReactDOM;
+
+        // --- Lucide Icon Helper (修復版) ---
+        // 渲染圖示的通用元件
+        const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
+            // 安全檢查：如果 window.lucide 不存在，避免崩潰，顯示一個佔位符
+            if (!window.lucide || !window.lucide.icons) {
+                console.warn("Lucide library not loaded or icons missing.");
+                return <span className="inline-block bg-slate-100 rounded" style={{ width: size, height: size }}></span>;
+            }
+
+            // 嘗試從 window.lucide.icons 獲取圖示定義
+            // 如果找不到 (可能是輸入錯誤或版本差異)，則回退顯示預設圖示 (CircleHelp)
+            const iconData = window.lucide.icons[name] || window.lucide.icons['CircleHelp'];
+
+            if (!iconData) return null;
+
+            const [tag, attrs, children] = iconData;
+
+            const renderChild = (child, index) => {
+                const [childTag, childAttrs, grandChildren] = child;
+                return React.createElement(childTag, { ...childAttrs, key: index },
+                    grandChildren ? grandChildren.map(renderChild) : null
+                );
+            };
+
+            return React.createElement(tag,
+                {
+                    ...attrs,
+                    width: size,
+                    height: size,
+                    className: className,
+                    strokeWidth: 2,
+                    ...props
+                },
+                children ? children.map(renderChild) : null
+            );
+        };
+
+        // 定義頁面使用的靜態圖示 (使用 Helper)
+        const LayoutGrid = (p) => <LucideIcon name="LayoutGrid" {...p} />;
+        const List = (p) => <LucideIcon name="List" {...p} />;
+        const Search = (p) => <LucideIcon name="Search" {...p} />;
+        const Database = (p) => <LucideIcon name="Database" {...p} />;
+        const ArrowUpDown = (p) => <LucideIcon name="ArrowUpDown" {...p} />;
+        const ArrowRight = (p) => <LucideIcon name="ArrowRight" {...p} />;
+        const SearchX = (p) => <LucideIcon name="SearchX" {...p} />;
+        const ExternalLink = (p) => <LucideIcon name="ExternalLink" {...p} />;
+
 
         // 年級排序權重表
         const GRADE_WEIGHTS = {
@@ -100,11 +157,6 @@
                 return result;
             }, [tools, searchTerm, sortBy]);
 
-            // Icon Helper
-            const getIconComponent = (iconName) => {
-                return LucideIcons[iconName] || LucideIcons.LayoutGrid;
-            };
-
             // Color Helper
             const getColorConfig = (color) => {
                 const configs = {
@@ -125,7 +177,7 @@
                         <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg text-white shadow-md">
-                                    <LucideIcons.LayoutGrid size={22} />
+                                    <LayoutGrid size={22} />
                                 </div>
                                 <h1 className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-500 hidden md:block">
                                     國小數學互動教學實驗室
@@ -136,7 +188,7 @@
                             {/* 桌面版統計資訊 */}
                             <div className="hidden md:flex items-center gap-4 text-sm text-slate-500 font-medium">
                                 <div className="flex items-center gap-2">
-                                    <LucideIcons.Database size={16} />
+                                    <Database size={16} />
                                     <span>共 {tools.length} 個單元</span>
                                 </div>
                             </div>
@@ -151,7 +203,9 @@
 
                             {/* 搜尋框 */}
                             <div className="relative w-full md:max-w-md group">
-                                <LucideIcons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors pointer-events-none">
+                                    <Search size={20} />
+                                </div>
                                 <input
                                     type="text"
                                     placeholder="搜尋標題、年級或關鍵字..."
@@ -174,7 +228,9 @@
                                         <option value="grade">依年級 (低➜高)</option>
                                         <option value="title">依標題名稱</option>
                                     </select>
-                                    <LucideIcons.ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                        <ArrowUpDown size={16} />
+                                    </div>
                                 </div>
 
                                 {/* 視圖切換按鈕 */}
@@ -184,14 +240,14 @@
                                         className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
                                         title="卡片模式"
                                     >
-                                        <LucideIcons.LayoutGrid size={20} />
+                                        <LayoutGrid size={20} />
                                     </button>
                                     <button
                                         onClick={() => setViewMode('list')}
                                         className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
                                         title="列表模式"
                                     >
-                                        <LucideIcons.List size={20} />
+                                        <List size={20} />
                                     </button>
                                 </div>
                             </div>
@@ -201,7 +257,7 @@
                         {filteredTools.length === 0 && (
                             <div className="text-center py-20">
                                 <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                                    <LucideIcons.SearchX size={40} />
+                                    <SearchX size={40} />
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-600">找不到相關教材</h3>
                                 <p className="text-slate-500 mt-2">請嘗試不同的關鍵字，或切換篩選條件。</p>
@@ -218,7 +274,6 @@
                         {viewMode === 'grid' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredTools.map((tool) => {
-                                    const Icon = getIconComponent(tool.icon);
                                     const style = getColorConfig(tool.color);
 
                                     return (
@@ -227,18 +282,17 @@
                                             href={tool.link}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            // 修正：移除 bg-white，讓 style.bg (如 bg-blue-50) 生效
                                             className={`card-hover block rounded-3xl p-6 border-2 relative overflow-hidden group ${style.bg} ${style.border} ${style.hover}`}
                                         >
                                             {/* 背景裝飾 */}
                                             <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 pointer-events-none text-current">
-                                                <Icon size={160} />
+                                                <LucideIcon name={tool.icon} size={160} />
                                             </div>
 
                                             <div className="relative z-10 flex flex-col h-full">
                                                 <div className="flex justify-between items-start mb-4">
                                                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${style.iconBg}`}>
-                                                        <Icon size={28} />
+                                                        <LucideIcon name={tool.icon} size={28} />
                                                     </div>
                                                     <span className={`text-xs font-black px-3 py-1.5 rounded-full bg-white/80 backdrop-blur border border-white/50 shadow-sm ${style.text}`}>
                                                         {tool.grade}
@@ -254,7 +308,7 @@
                                                 </p>
 
                                                 <div className={`flex items-center text-sm font-bold mt-auto group-hover:translate-x-2 transition-transform ${style.text}`}>
-                                                    開始練習 <LucideIcons.ArrowRight size={16} className="ml-2" />
+                                                    開始練習 <ArrowRight size={16} className="ml-2" />
                                                 </div>
                                             </div>
                                         </a>
@@ -267,7 +321,6 @@
                         {viewMode === 'list' && (
                             <div className="flex flex-col gap-3">
                                 {filteredTools.map((tool) => {
-                                    const Icon = getIconComponent(tool.icon);
                                     const style = getColorConfig(tool.color);
 
                                     return (
@@ -279,7 +332,7 @@
                                             className="group flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all"
                                         >
                                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 ${style.iconBg}`}>
-                                                <Icon size={24} />
+                                                <LucideIcon name={tool.icon} size={24} />
                                             </div>
 
                                             <div className="flex-grow min-w-0">
@@ -297,7 +350,7 @@
                                             </div>
 
                                             <div className="hidden sm:flex shrink-0 items-center justify-center w-10 h-10 rounded-full bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-blue-600 transition-colors">
-                                                <LucideIcons.ExternalLink size={20} />
+                                                <ExternalLink size={20} />
                                             </div>
                                         </a>
                                     );
