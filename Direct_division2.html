@@ -9,8 +9,16 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Babel for JSX transformation -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- React 核心 (UMD) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"
+        crossorigin></script>
+
+    <!-- Lucide Icons (UMD) -->
+    <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
     <!-- Google Fonts: Noto Sans TC -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -253,9 +261,9 @@
                 <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 z-30 whitespace-nowrap animate-fade-in`}>
                     <div className={`relative px-3 py-2 rounded-xl shadow-lg font-bold text-sm ${colors[type]}`}>
                         <div className={`absolute top-1/2 -left-2 -translate-y-1/2 w-0 h-0 border-t-6 border-t-transparent border-r-[8px] border-b-6 border-b-transparent ${type === 'info' ? 'border-r-indigo-600' :
-                                type === 'success' ? 'border-r-green-500' :
-                                    type === 'error' ? 'border-r-rose-500' :
-                                        'border-r-amber-500'
+                            type === 'success' ? 'border-r-green-500' :
+                                type === 'error' ? 'border-r-rose-500' :
+                                    'border-r-amber-500'
                             }`}></div>
                         {text}
                     </div>
