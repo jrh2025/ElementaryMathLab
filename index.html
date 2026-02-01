@@ -63,44 +63,57 @@
         const { useState, useEffect, useMemo } = React;
         const { createRoot } = ReactDOM;
 
-        // --- Lucide Icon Helper (修復版) ---
-        // 渲染圖示的通用元件
+        // --- Lucide Icon Helper (修復版 + React Props 修正) ---
         const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
-            // 安全檢查：如果 window.lucide 不存在，避免崩潰，顯示一個佔位符
             if (!window.lucide || !window.lucide.icons) {
                 console.warn("Lucide library not loaded or icons missing.");
                 return <span className="inline-block bg-slate-100 rounded" style={{ width: size, height: size }}></span>;
             }
-
-            // 嘗試從 window.lucide.icons 獲取圖示定義
-            // 如果找不到 (可能是輸入錯誤或版本差異)，則回退顯示預設圖示 (CircleHelp)
             const iconData = window.lucide.icons[name] || window.lucide.icons['CircleHelp'];
-
             if (!iconData) return null;
+
+            // React 屬性名稱轉換 helper: 將 SVG 的 kebab-case 轉為 camelCase
+            const convertAttrs = (attrs) => {
+                if (!attrs) return attrs;
+                const map = {
+                    'stroke-width': 'strokeWidth',
+                    'stroke-linecap': 'strokeLinecap',
+                    'stroke-linejoin': 'strokeLinejoin',
+                    'fill-rule': 'fillRule',
+                    'clip-rule': 'clipRule',
+                    'class': 'className'
+                };
+
+                return Object.entries(attrs).reduce((acc, [key, val]) => {
+                    const newKey = map[key] || key;
+                    acc[newKey] = val;
+                    return acc;
+                }, {});
+            };
 
             const [tag, attrs, children] = iconData;
 
             const renderChild = (child, index) => {
                 const [childTag, childAttrs, grandChildren] = child;
-                return React.createElement(childTag, { ...childAttrs, key: index },
+                return React.createElement(childTag, { ...convertAttrs(childAttrs), key: index },
                     grandChildren ? grandChildren.map(renderChild) : null
                 );
             };
 
             return React.createElement(tag,
                 {
-                    ...attrs,
+                    ...convertAttrs(attrs),
                     width: size,
                     height: size,
                     className: className,
-                    strokeWidth: 2,
+                    strokeWidth: 2, // 預設值，可能會被 props 覆蓋
                     ...props
                 },
                 children ? children.map(renderChild) : null
             );
         };
 
-        // 定義頁面使用的靜態圖示 (使用 Helper)
+        // 定義頁面使用的靜態圖示
         const LayoutGrid = (p) => <LucideIcon name="LayoutGrid" {...p} />;
         const List = (p) => <LucideIcon name="List" {...p} />;
         const Search = (p) => <LucideIcon name="Search" {...p} />;
@@ -109,6 +122,86 @@
         const ArrowRight = (p) => <LucideIcon name="ArrowRight" {...p} />;
         const SearchX = (p) => <LucideIcon name="SearchX" {...p} />;
         const ExternalLink = (p) => <LucideIcon name="ExternalLink" {...p} />;
+
+        // Color Helper
+        const getColorConfig = (color) => {
+            const configs = {
+                blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', hover: 'hover:border-blue-400', iconBg: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
+                sky: { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200', hover: 'hover:border-sky-400', iconBg: 'bg-sky-500', badge: 'bg-sky-100 text-sky-700' },
+                indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200', hover: 'hover:border-indigo-400', iconBg: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-700' },
+                green: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200', hover: 'hover:border-green-400', iconBg: 'bg-green-500', badge: 'bg-green-100 text-green-700' },
+                orange: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', hover: 'hover:border-orange-400', iconBg: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700' },
+                rose: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', hover: 'hover:border-rose-400', iconBg: 'bg-rose-500', badge: 'bg-rose-100 text-rose-700' },
+            };
+            return configs[color] || configs.blue;
+        };
+
+        // --- 新增: 獨立的卡片元件 (處理展開/收合邏輯) ---
+        const ToolCard = ({ tool }) => {
+            const [isExpanded, setIsExpanded] = useState(false);
+            const style = getColorConfig(tool.color);
+
+            // 判斷文字是否夠長需要顯示 "more" (這裡設定閾值為 55 字，可依需求調整)
+            const shouldTruncate = tool.description.length > 55;
+
+            const handleCardClick = () => {
+                window.open(tool.link, '_blank');
+            };
+
+            const toggleExpand = (e) => {
+                // 阻止事件冒泡，避免觸發卡片的跳轉
+                e.preventDefault();
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+            };
+
+            return (
+                <div
+                    onClick={handleCardClick}
+                    className={`card-hover block rounded-3xl p-6 border-2 relative overflow-hidden group cursor-pointer ${style.bg} ${style.border} ${style.hover}`}
+                >
+                    {/* 背景裝飾 */}
+                    <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 pointer-events-none text-current">
+                        <LucideIcon name={tool.icon} size={160} />
+                    </div>
+
+                    <div className="relative z-10 flex flex-col h-full">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${style.iconBg}`}>
+                                <LucideIcon name={tool.icon} size={28} />
+                            </div>
+                            <span className={`text-xs font-black px-3 py-1.5 rounded-full bg-white/80 backdrop-blur border border-white/50 shadow-sm ${style.text}`}>
+                                {tool.grade}
+                            </span>
+                        </div>
+
+                        <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-700 transition-colors line-clamp-1">
+                            {tool.title}
+                        </h3>
+
+                        {/* 描述區域：使用 mb-4 讓下方按鈕有空間，flex-grow 讓內容撐開 */}
+                        <div className="mb-6 flex-grow">
+                            <p className={`text-slate-600 text-sm leading-relaxed font-medium transition-all ${isExpanded ? '' : 'line-clamp-3'}`}>
+                                {tool.description}
+                            </p>
+
+                            {shouldTruncate && (
+                                <button
+                                    onClick={toggleExpand}
+                                    className={`text-xs font-bold mt-1 hover:underline focus:outline-none z-20 relative ${style.text}`}
+                                >
+                                    {isExpanded ? "收起內容" : "...more"}
+                                </button>
+                            )}
+                        </div>
+
+                        <div className={`flex items-center text-sm font-bold mt-auto group-hover:translate-x-2 transition-transform ${style.text}`}>
+                            開始練習 <ArrowRight size={16} className="ml-2" />
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
 
         // 年級排序權重表
@@ -120,8 +213,8 @@
         function App() {
             const [tools, setTools] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
-            const [sortBy, setSortBy] = useState('default'); // default, grade, title
-            const [viewMode, setViewMode] = useState('grid'); // grid, list
+            const [sortBy, setSortBy] = useState('default');
+            const [viewMode, setViewMode] = useState('grid');
 
             useEffect(() => {
                 if (window.MATH_TOOLS_DATA) {
@@ -157,19 +250,6 @@
                 return result;
             }, [tools, searchTerm, sortBy]);
 
-            // Color Helper
-            const getColorConfig = (color) => {
-                const configs = {
-                    blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', hover: 'hover:border-blue-400', iconBg: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
-                    sky: { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200', hover: 'hover:border-sky-400', iconBg: 'bg-sky-500', badge: 'bg-sky-100 text-sky-700' },
-                    indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200', hover: 'hover:border-indigo-400', iconBg: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-700' },
-                    green: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200', hover: 'hover:border-green-400', iconBg: 'bg-green-500', badge: 'bg-green-100 text-green-700' },
-                    orange: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', hover: 'hover:border-orange-400', iconBg: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700' },
-                    rose: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', hover: 'hover:border-rose-400', iconBg: 'bg-rose-500', badge: 'bg-rose-100 text-rose-700' },
-                };
-                return configs[color] || configs.blue;
-            };
-
             return (
                 <div className="min-h-screen flex flex-col text-slate-800">
                     {/* Header */}
@@ -198,9 +278,8 @@
                     {/* Main Content */}
                     <main className="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full">
 
-                        {/* 控制列：搜尋、排序、視圖切換 */}
+                        {/* 控制列 */}
                         <div className="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-
                             {/* 搜尋框 */}
                             <div className="relative w-full md:max-w-md group">
                                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors pointer-events-none">
@@ -270,50 +349,12 @@
                             </div>
                         )}
 
-                        {/* 卡片視圖 (Grid View) */}
+                        {/* 卡片視圖 (Grid View) - 改用 ToolCard 元件 */}
                         {viewMode === 'grid' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredTools.map((tool) => {
-                                    const style = getColorConfig(tool.color);
-
-                                    return (
-                                        <a
-                                            key={tool.id}
-                                            href={tool.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={`card-hover block rounded-3xl p-6 border-2 relative overflow-hidden group ${style.bg} ${style.border} ${style.hover}`}
-                                        >
-                                            {/* 背景裝飾 */}
-                                            <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 pointer-events-none text-current">
-                                                <LucideIcon name={tool.icon} size={160} />
-                                            </div>
-
-                                            <div className="relative z-10 flex flex-col h-full">
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${style.iconBg}`}>
-                                                        <LucideIcon name={tool.icon} size={28} />
-                                                    </div>
-                                                    <span className={`text-xs font-black px-3 py-1.5 rounded-full bg-white/80 backdrop-blur border border-white/50 shadow-sm ${style.text}`}>
-                                                        {tool.grade}
-                                                    </span>
-                                                </div>
-
-                                                <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-700 transition-colors line-clamp-1">
-                                                    {tool.title}
-                                                </h3>
-
-                                                <p className="text-slate-600 text-sm leading-relaxed mb-6 flex-grow font-medium line-clamp-3">
-                                                    {tool.description}
-                                                </p>
-
-                                                <div className={`flex items-center text-sm font-bold mt-auto group-hover:translate-x-2 transition-transform ${style.text}`}>
-                                                    開始練習 <ArrowRight size={16} className="ml-2" />
-                                                </div>
-                                            </div>
-                                        </a>
-                                    );
-                                })}
+                                {filteredTools.map((tool) => (
+                                    <ToolCard key={tool.id} tool={tool} />
+                                ))}
                             </div>
                         )}
 

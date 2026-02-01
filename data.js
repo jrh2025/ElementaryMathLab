@@ -83,5 +83,14 @@ window.MATH_TOOLS_DATA = [
     "link": "speed_learning_lab.html",
     "icon": "Leaf",
     "color": "green"
+  },
+  {
+    "id": "tool_1769941873762",
+    "title": "分數運算實驗室",
+    "grade": "五年級",
+    "description": "五年級適用-本程式透過「擴分工坊」、「約分道場」、「通分橋梁」及「異分母大挑戰」四個循序漸進的模組，結合鷹架式引導、即時回饋與自我挑戰機制，幫助學生以視覺化方式掌握異分母分數加減的核心概念與運算技能。",
+    "link": "unlike_denominators.html",
+    "icon": "Command",
+    "color": "orange"
   }
 ];

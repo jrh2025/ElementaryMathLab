@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分數運算實驗室(5年級) | 國小數學互動教學實驗室</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React 核心 (UMD) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"
+        crossorigin></script>
+
+    <!-- Lucide Icons (UMD) -->
+    <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+    <!-- Google Fonts: Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes confetti {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .animate-shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        .animate-pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ffd700;
+            top: -10px;
+            animation: confetti 3s linear infinite;
+        }
+
+        /* Fraction Specific Styles */
+        .fraction-line {
+            border-top: 3px solid currentColor;
+            width: 100%;
+            margin: 4px 0;
+        }
+
+        .input-box {
+            width: 3.5rem;
+            height: 3.5rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            outline: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .input-box:focus {
+            background-color: #e0e7ff;
+            box-shadow: 0 0 0 3px #818cf8;
+            border-color: #6366f1;
+        }
+
+        .input-box.error {
+            background-color: #fee2e2;
+            box-shadow: 0 0 0 3px #fca5a5;
+            animation: shake 0.3s ease-in-out;
+        }
+
+        .input-box.success {
+            background-color: #dcfce7;
+            border-color: #22c55e;
+            color: #15803d;
+        }
+
+        /* Mode Selector Tab Active State */
+        .tab-active {
+            background-color: #4f46e5;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+        }
+
+        .tab-inactive {
+            background-color: white;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .bg-pattern {
+            background-image: radial-gradient(#e0e7ff 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen bg-pattern">
+
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import {
+            CheckCircle2, AlertCircle, RefreshCcw, Trophy, ChevronRight, Settings,
+            Sparkles, HelpCircle, Lightbulb, Calculator, ArrowRight,
+            PieChart, Divide, X, GripHorizontal, Scale, Star, ArrowUp, Swords, Medal, ArrowDown, Eye
+        } from 'https://esm.sh/lucide-react@0.263.1';
+
+        // --- Utils ---
+        const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+        const lcm = (a, b) => (a * b) / gcd(a, b);
+
+        // --- Constants: Difficulty Levels ---
+        const LEVELS = {
+            EXPAND: [
+                { id: 1, desc: '基礎擴分 (一位數)', maxNum: 5, maxDen: 9, maxMult: 5 },
+                { id: 2, desc: '進階擴分 (倍數增強)', maxNum: 9, maxDen: 12, maxMult: 9 },
+                { id: 3, desc: '兩位數挑戰 (10-30)', maxNum: 25, maxDen: 30, maxMult: 12 },
+                { id: 4, desc: '高階兩位數 (30-99)', maxNum: 50, maxDen: 99, maxMult: 15 },
+                { id: 5, desc: '百位數大挑戰', maxNum: 100, maxDen: 200, maxMult: 20 }
+            ],
+            REDUCE: [
+                { id: 1, desc: '基礎約分 (除數2,3,5)', maxDen: 12, multRange: [2, 3, 5] },
+                { id: 2, desc: '進階約分 (除數2-9)', maxDen: 24, multRange: [2, 3, 4, 5, 6, 7, 8, 9] },
+                { id: 3, desc: '兩位數約分', maxDen: 60, multRange: [2, 3, 4, 5, 6, 10, 12] },
+                { id: 4, desc: '大數約分挑戰', maxDen: 99, multRange: [2, 3, 5, 7, 11, 13] },
+                { id: 5, desc: '百位數極限約分', maxDen: 200, multRange: [2, 3, 4, 5, 8, 10, 12, 15, 20] }
+            ],
+            COMMON: [
+                { id: 1, desc: '倍數關係 (如 2和4)', type: 'multiple', range: [2, 10] },
+                { id: 2, desc: '互質關係 (如 2和3)', type: 'coprime', range: [2, 10] },
+                { id: 3, desc: '一般關係 (需找LCM)', type: 'general', range: [4, 12] },
+                { id: 4, desc: '兩位數分母 (互質/一般)', type: 'mixed', range: [10, 30] },
+                { id: 5, desc: '大分母通分挑戰', type: 'mixed', range: [20, 60] }
+            ],
+            ADDSUB: [
+                { id: 1, desc: '倍數關係加減', type: 'multiple', range: [2, 10] },
+                { id: 2, desc: '互質關係加減', type: 'coprime', range: [2, 10] },
+                { id: 3, desc: '一般異分母加減', type: 'general', range: [4, 12] },
+                { id: 4, desc: '兩位數加減挑戰', type: 'mixed', range: [10, 30] },
+                { id: 5, desc: '複雜運算大師', type: 'mixed', range: [20, 60] }
+            ]
+        };
+
+        // --- Component: Instruction Bubble ---
+        const InstructionBubble = ({ text, type = 'info', show, position = 'right' }) => {
+            if (!show) return null;
+
+            const colors = {
+                info: 'bg-indigo-600 text-white',
+                success: 'bg-green-500 text-white',
+                error: 'bg-rose-500 text-white',
+                hint: 'bg-amber-500 text-white'
+            };
+
+            const posClass = position === 'top'
+                ? 'bottom-full mb-2 left-1/2 -translate-x-1/2'
+                : 'left-full ml-2 top-1/2 -translate-y-1/2';
+
+            const arrowClass = position === 'top'
+                ? 'bottom-[-6px] left-1/2 -translate-x-1/2 border-l-6 border-r-6 border-t-[8px] border-l-transparent border-r-transparent'
+                : 'top-1/2 -left-2 -translate-y-1/2 border-t-6 border-b-6 border-r-[8px] border-t-transparent border-b-transparent';
+
+            const arrowColorClass = type === 'info' ? (position === 'top' ? 'border-t-indigo-600' : 'border-r-indigo-600') :
+                type === 'success' ? (position === 'top' ? 'border-t-green-500' : 'border-r-green-500') :
+                    type === 'error' ? (position === 'top' ? 'border-t-rose-500' : 'border-r-rose-500') :
+                        (position === 'top' ? 'border-t-amber-500' : 'border-r-amber-500');
+
+            return (
+                <div className={`absolute ${posClass} z-30 whitespace-nowrap animate-fade-in pointer-events-none`}>
+                    <div className={`relative px-3 py-2 rounded-xl shadow-lg font-bold text-sm ${colors[type]}`}>
+                        <div className={`absolute w-0 h-0 ${arrowClass} ${arrowColorClass}`}></div>
+                        {text}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Challenge Summary Component ---
+        const ChallengeSummary = ({ score, onRestart }) => {
+            let title = "分數運算新手";
+            let desc = "別氣餒，多練習幾次會更熟練的！";
+            let color = "text-slate-600";
+
+            if (score === 100) {
+                title = "分數運算之神！";
+                desc = "太完美了！你已經完全掌握了異分母加減！";
+                color = "text-yellow-500";
+            } else if (score >= 80) {
+                title = "數學小博士！";
+                desc = "表現非常優異，繼續保持！";
+                color = "text-indigo-600";
+            } else if (score >= 60) {
+                title = "挑戰成功！";
+                desc = "通過了考驗，下次試著挑戰滿分吧！";
+                color = "text-green-600";
+            }
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    {score >= 80 && Array.from({ length: 30 }).map((_, i) => (
+                        <div key={i} className="confetti-piece" style={{
+                            left: `${Math.random() * 100}%`,
+                            animationDelay: `${Math.random() * 2}s`,
+                            backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'][Math.floor(Math.random() * 4)]
+                        }}></div>
+                    ))}
+                    <div className="bg-white rounded-[2rem] p-2 max-w-xl w-full shadow-2xl animate-pop-in">
+                        <div className="border-4 border-double border-indigo-200 rounded-[1.5rem] p-8 flex flex-col items-center text-center relative overflow-hidden">
+                            <div className="mb-6 bg-yellow-100 p-4 rounded-full">
+                                <Medal size={60} className={color + " fill-current opacity-80"} />
+                            </div>
+                            <h2 className={`text-3xl font-black mb-2 ${color}`}>{title}</h2>
+                            <p className="text-slate-500 font-bold text-lg mb-6">{desc}</p>
+                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8 w-full flex justify-around items-center">
+                                <div>
+                                    <p className="text-slate-400 text-xs font-bold uppercase">總得分</p>
+                                    <span className={`text-5xl font-black ${color}`}>{score}</span>
+                                    <span className="text-slate-300 text-xl font-bold">/100</span>
+                                </div>
+                            </div>
+                            <button onClick={onRestart} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center gap-2">
+                                <RefreshCcw size={20} /> 再次挑戰
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Certificate Component (Normal Mode) ---
+        const Certificate = ({ score, modeName, onRestart }) => (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                {Array.from({ length: 30 }).map((_, i) => (
+                    <div key={i} className="confetti-piece" style={{
+                        left: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 2}s`,
+                        backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'][Math.floor(Math.random() * 4)]
+                    }}></div>
+                ))}
+                <div className="bg-white rounded-[2rem] p-2 max-w-xl w-full shadow-2xl animate-pop-in">
+                    <div className="border-4 border-double border-indigo-200 rounded-[1.5rem] p-8 flex flex-col items-center text-center relative overflow-hidden">
+                        <div className="mb-6 bg-yellow-100 p-4 rounded-full">
+                            <Trophy size={60} className="text-yellow-500 fill-yellow-500" />
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-800 mb-2">分數運算大師</h2>
+                        <p className="text-indigo-600 font-bold text-lg mb-6 uppercase tracking-widest">{modeName} Master</p>
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8 w-full">
+                            <p className="text-slate-600 mb-2">最終得分</p>
+                            <span className="text-4xl font-black text-indigo-600">{score}</span>
+                        </div>
+                        <button onClick={onRestart} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center gap-2">
+                            <RefreshCcw size={20} /> 再次挑戰
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- Fraction Component ---
+        const Fraction = ({ num, den, className = "", scale = 1 }) => (
+            <div className={`flex flex-col items-center justify-center font-mono font-bold text-slate-700 ${className}`} style={{ transform: `scale(${scale})` }}>
+                <span className="px-2 text-2xl">{num}</span>
+                <div className="fraction-line text-slate-800"></div>
+                <span className="px-2 text-2xl">{den}</span>
+            </div>
+        );
+
+        // --- Arrow Input Component ---
+        const ArrowInput = ({ inputKey, inputs, updateInput, inputStatus, showHint, mode, problem, symbol, domId, onEnter, shakeId, isActive }) => {
+            const [focused, setFocused] = useState(false);
+
+            let hint = "倍數";
+            if (symbol === '÷') hint = "除數";
+
+            // Socratic Hints - ONLY show if it's the active input or focused
+            const shouldShowHint = showHint && (isActive || focused) && !inputs[inputKey];
+
+            if (shouldShowHint && problem) {
+                if (symbol === '×') {
+                    if (mode === 'EXPAND') hint = `題目指定擴分 ${problem.multiplier} 倍`;
+                    else {
+                        // Common Denom / AddSub Step 0
+                        // Improved scaffolding: Ask about LCM instead of giving the answer
+                        hint = `想想看：${problem.d1} 和 ${problem.d2} 的最小公倍數是多少？`;
+                    }
+                } else {
+                    hint = `找出 ${problem.num} 和 ${problem.den} 的公因數`;
+                }
+            }
+
+            const isSuccess = inputStatus[inputKey] === 'success';
+            const isError = inputStatus[inputKey] === 'error' || shakeId === domId;
+
+            const borderColor = symbol === '×'
+                ? (isError ? 'border-red-400 bg-red-50' : isSuccess ? 'border-green-400 bg-green-50' : 'border-indigo-200 focus:border-indigo-500 focus:bg-indigo-50')
+                : (isError ? 'border-red-400 bg-red-50' : isSuccess ? 'border-green-400 bg-green-50' : 'border-amber-200 focus:border-amber-500 focus:bg-amber-50');
+
+            const textColor = symbol === '×' ? 'text-indigo-500' : 'text-amber-600';
+            const shakeClass = shakeId === domId ? 'animate-shake' : '';
+
+            return (
+                <div className={`flex flex-col items-center justify-center mx-2 ${textColor} relative`}>
+                    <span className="text-sm font-bold mb-1">{symbol}</span>
+                    <div className="relative">
+                        <input
+                            id={domId}
+                            type="text"
+                            value={inputs[inputKey] || ''}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
+                            onChange={(e) => updateInput(inputKey, e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    onEnter && onEnter(domId, e.target.value);
+                                }
+                            }}
+                            className={`w-10 h-10 text-center text-lg border-2 rounded-lg font-bold outline-none transition-all ${borderColor} ${shakeClass}`}
+                            placeholder="?"
+                            autoComplete="off"
+                        />
+                        <InstructionBubble
+                            text={hint}
+                            show={shouldShowHint}
+                            type="hint"
+                            position="top"
+                        />
+                    </div>
+                    <ArrowRight size={24} className="mt-1" />
+                </div>
+            );
+        };
+
+        // --- Editable Fraction Component ---
+        const EditableFraction = ({
+            num, den,
+            onNumChange, onDenChange,
+            numStatus, denStatus,
+            readOnlyDen = false,
+            readOnlyNum = false,
+            hintTextNum, hintTextDen,
+            showHint,
+            numDomId, denDomId,
+            onEnter, shakeId,
+            activeInputId
+        }) => {
+            const [focused, setFocused] = useState(null);
+
+            // Hints logic
+            const showNumHint = showHint && (activeInputId === numDomId || focused === 'num') && !readOnlyNum && !num;
+            const showDenHint = showHint && (activeInputId === denDomId || focused === 'den') && !readOnlyDen && !den;
+
+            return (
+                <div className="flex flex-col items-center justify-center gap-1 relative">
+                    <div className="relative">
+                        {readOnlyNum ? (
+                            <span className="text-2xl font-bold text-slate-700 px-2 h-[3.5rem] flex items-center justify-center">{num}</span>
+                        ) : (
+                            <input
+                                id={numDomId}
+                                type="text"
+                                value={num}
+                                onFocus={() => setFocused('num')}
+                                onBlur={() => setFocused(null)}
+                                onChange={(e) => onNumChange(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        onEnter && onEnter(numDomId, e.target.value);
+                                    }
+                                }}
+                                className={`input-box border-2 border-slate-200 ${numStatus === 'error' || shakeId === numDomId ? 'error' : numStatus === 'success' ? 'success' : ''}`}
+                                placeholder="?"
+                                autoComplete="off"
+                            />
+                        )}
+                        <InstructionBubble
+                            text={hintTextNum || "填入分子"}
+                            show={showNumHint}
+                            type="hint"
+                            position="right"
+                        />
+                    </div>
+
+                    <div className="fraction-line text-slate-800"></div>
+
+                    <div className="relative">
+                        {readOnlyDen ? (
+                            <span className="text-2xl font-bold text-slate-700 px-2 h-[3.5rem] flex items-center justify-center">{den}</span>
+                        ) : (
+                            <input
+                                id={denDomId}
+                                type="text"
+                                value={den}
+                                onFocus={() => setFocused('den')}
+                                onBlur={() => setFocused(null)}
+                                onChange={(e) => onDenChange(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        onEnter && onEnter(denDomId, e.target.value);
+                                    }
+                                }}
+                                className={`input-box border-2 border-slate-200 ${denStatus === 'error' || shakeId === denDomId ? 'error' : denStatus === 'success' ? 'success' : ''}`}
+                                placeholder="?"
+                                autoComplete="off"
+                            />
+                        )}
+                        <InstructionBubble
+                            text={hintTextDen || "填入分母"}
+                            show={showDenHint}
+                            type="hint"
+                            position="right"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App ---
+        const App = () => {
+            const [mode, setMode] = useState('EXPAND'); // 'EXPAND' | 'REDUCE' | 'COMMON' | 'ADDSUB' | 'CHALLENGE'
+            const [level, setLevel] = useState(1);
+            const [isAutoLevel, setIsAutoLevel] = useState(true);
+            const [score, setScore] = useState(0);
+            const [streak, setStreak] = useState(0);
+            const [showCertificate, setShowCertificate] = useState(false);
+            const [feedback, setFeedback] = useState(null);
+            const [showHint, setShowHint] = useState(false);
+
+            // Challenge Mode State
+            const [challengeState, setChallengeState] = useState({
+                qNum: 1,
+                totalQ: 10,
+                scores: 0,
+                currentQPoints: 10,
+                isFinished: false
+            });
+
+            // Logic State
+            const [problem, setProblem] = useState(null);
+            const [step, setStep] = useState(0);
+            const [inputs, setInputs] = useState({});
+            const [inputStatus, setInputStatus] = useState({});
+            const [focusOrder, setFocusOrder] = useState([]);
+            const [shakeId, setShakeId] = useState(null);
+
+            // Refs for balancing operators
+            const lastOp = useRef(null);
+            const opStreak = useRef(0);
+
+            // Compute Active Input (First incomplete field in order)
+            const activeInputId = focusOrder.find(id => inputStatus[id] !== 'success' && inputStatus[id] !== 'fixed');
+
+            // --- Handlers & Functions ---
+
+            const updateInput = (key, val) => {
+                if (val && !val.match(/^\d*$/)) return;
+                setInputs(prev => ({ ...prev, [key]: val }));
+                setInputStatus(prev => ({ ...prev, [key]: '' }));
+            };
+
+            const handleError = (msg) => {
+                setFeedback({ type: 'error', text: msg });
+                setStreak(0);
+            };
+
+            const resetGame = () => {
+                if (mode === 'CHALLENGE') {
+                    setChallengeState({ qNum: 1, totalQ: 10, scores: 0, currentQPoints: 10, isFinished: false });
+                    setLevel(1); // Challenge starts easy
+                    generateProblem(1, 'ADDSUB'); // Always ADDSUB in challenge
+                } else {
+                    setLevel(1);
+                    setScore(0);
+                    setStreak(0);
+                    setShowCertificate(false);
+                    generateProblem(1, mode);
+                }
+                setShowHint(false);
+            };
+
+            // Use effect for init
+            useEffect(() => {
+                resetGame();
+            }, [mode]);
+
+            // Auto Focus Logic (When problem or step changes)
+            useEffect(() => {
+                if (focusOrder.length > 0 && problem) {
+                    setTimeout(() => {
+                        const firstInput = document.getElementById(focusOrder[0]);
+                        if (firstInput) firstInput.focus();
+                    }, 50);
+                }
+            }, [problem, step]);
+
+            // Emergency "Show Answer" Logic
+            const handleShowAnswer = () => {
+                if (!problem) return;
+
+                const newInputs = { ...inputs };
+                const newStatus = { ...inputStatus };
+
+                const setField = (key, value) => {
+                    newInputs[key] = value.toString();
+                    newStatus[key] = 'success';
+                };
+
+                const currentMode = mode === 'CHALLENGE' ? 'ADDSUB' : mode;
+
+                if (currentMode === 'EXPAND') {
+                    setField('mul1_top', problem.multiplier);
+                    setField('mul1_bot', problem.multiplier);
+                    setField('num', problem.num * problem.multiplier);
+                    setField('den', problem.den * problem.multiplier);
+                } else if (currentMode === 'REDUCE') {
+                    setField('div1_top', problem.divisor);
+                    setField('div1_bot', problem.divisor);
+                    setField('num', problem.targetNum);
+                    setField('den', problem.targetDen);
+                } else if (currentMode === 'COMMON' || (currentMode === 'ADDSUB' && step === 0)) {
+                    setField('m1_top', problem.m1);
+                    setField('m1_bot', problem.m1);
+                    setField('m2_top', problem.m2);
+                    setField('m2_bot', problem.m2);
+                    setField('n1_new', problem.n1 * problem.m1);
+                    setField('d1_new', problem.lcm);
+                    setField('n2_new', problem.n2 * problem.m2);
+                    setField('d2_new', problem.lcm);
+                } else if (currentMode === 'ADDSUB' && step === 1) {
+                    let correctNum;
+                    if (problem.op === '+') correctNum = (problem.n1 * problem.m1) + (problem.n2 * problem.m2);
+                    else correctNum = (problem.n1 * problem.m1) - (problem.n2 * problem.m2);
+                    setField('finalNum', correctNum);
+                    setField('finalDen', problem.lcm);
+                }
+
+                setInputs(newInputs);
+                setInputStatus(newStatus);
+                setFeedback({ type: 'info', text: "已為您填入答案，請按下「檢查答案」繼續。" });
+            };
+
+            const checkField = (id, valStr) => {
+                const val = parseInt(valStr);
+                if (isNaN(val)) return false;
+
+                const currentMode = mode === 'CHALLENGE' ? 'ADDSUB' : mode;
+
+                if (currentMode === 'EXPAND') {
+                    if (id.includes('mul')) return val === problem.multiplier;
+                    if (id === 'num') return val === problem.num * problem.multiplier;
+                    if (id === 'den') return val === problem.den * problem.multiplier;
+                }
+                else if (currentMode === 'REDUCE') {
+                    if (id.includes('div')) return val === problem.divisor;
+                    if (id === 'num') return val === problem.targetNum;
+                    if (id === 'den') return val === problem.targetDen;
+                }
+                else if (currentMode === 'COMMON' || (currentMode === 'ADDSUB' && step === 0)) {
+                    if (id === 'm1_top' || id === 'm1_bot') return val === problem.m1;
+                    if (id === 'm2_top' || id === 'm2_bot') return val === problem.m2;
+                    if (id === 'n1_new') return val === problem.n1 * problem.m1;
+                    if (id === 'd1_new') return val === problem.lcm;
+                    if (id === 'n2_new') return val === problem.n2 * problem.m2;
+                    if (id === 'd2_new') return val === problem.lcm;
+                }
+                else if (currentMode === 'ADDSUB' && step === 1) {
+                    let correctNum;
+                    if (problem.op === '+') correctNum = (problem.n1 * problem.m1) + (problem.n2 * problem.m2);
+                    else correctNum = (problem.n1 * problem.m1) - (problem.n2 * problem.m2);
+
+                    if (id === 'finalNum') return val === correctNum;
+                    if (id === 'finalDen') return val === problem.lcm;
+                }
+                return false;
+            };
+
+            const getChallengeLevel = (q) => {
+                if (q <= 3) return 1;
+                if (q <= 6) return 3; // Jump to normal
+                if (q <= 8) return 4;
+                return 5;
+            };
+
+            const generateProblem = (lvl, forcedMode = null) => {
+                setInputs({});
+                setInputStatus({});
+                setFeedback(null);
+                setStep(0);
+                setShowHint(false);
+
+                const currentMode = forcedMode || mode;
+                const r = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+                const config = LEVELS[currentMode].find(l => l.id === lvl) || LEVELS[currentMode][0];
+
+                if (currentMode === 'EXPAND') {
+                    const b_ex = r(2, config.maxDen);
+                    const a_ex = r(1, b_ex - 1);
+                    const m_ex = r(2, config.maxMult);
+                    setProblem({ type: 'EXPAND', num: a_ex, den: b_ex, multiplier: m_ex, levelConfig: config });
+                    setFocusOrder(['mul1_top', 'mul1_bot', 'num', 'den']);
+                } else if (currentMode === 'REDUCE') {
+                    const b_re = r(2, config.maxDen);
+                    const a_re = r(1, b_re - 1);
+                    const common = gcd(a_re, b_re);
+                    const finalA = a_re / common;
+                    const finalB = b_re / common;
+
+                    const mults = config.multRange;
+                    const m_re = mults[Math.floor(Math.random() * mults.length)];
+
+                    setProblem({
+                        type: 'REDUCE',
+                        num: finalA * m_re,
+                        den: finalB * m_re,
+                        targetNum: finalA,
+                        targetDen: finalB,
+                        divisor: m_re,
+                        levelConfig: config
+                    });
+                    setFocusOrder(['div1_top', 'div1_bot', 'num', 'den']);
+                } else if (currentMode === 'COMMON' || currentMode === 'ADDSUB') {
+                    let d1, n1, d2, n2;
+                    const { range } = config;
+                    const min = range[0], max = range[1];
+
+                    if (config.type === 'multiple') {
+                        d1 = r(Math.max(2, min / 2), max / 2);
+                        d2 = d1 * r(2, 4);
+                        if (d2 > 100) d2 = d1 * 2;
+                    } else if (config.type === 'coprime') {
+                        do {
+                            d1 = r(min, max);
+                            d2 = r(min, max);
+                        } while (d1 === d2 || gcd(d1, d2) !== 1);
+                    } else {
+                        do {
+                            d1 = r(min, max);
+                            d2 = r(min, max);
+                        } while (d1 === d2 || d1 % d2 === 0 || d2 % d1 === 0);
+                    }
+
+                    n1 = r(1, d1 - 1);
+                    n2 = r(1, d2 - 1);
+
+                    const targetLCM = lcm(d1, d2);
+
+                    // --- Balanced Operator Generation ---
+                    let op = Math.random() > 0.5 ? '+' : '-';
+
+                    if (currentMode === 'ADDSUB') {
+                        if (lastOp.current === op) {
+                            opStreak.current += 1;
+                        } else {
+                            opStreak.current = 0;
+                        }
+
+                        // Force swap if streak > 1 (i.e. 2 same ops already)
+                        if (opStreak.current > 1) {
+                            op = op === '+' ? '-' : '+';
+                            opStreak.current = 0;
+                        }
+                        lastOp.current = op;
+                    }
+
+                    if (op === '-' && (n1 / d1 < n2 / d2)) {
+                        [n1, n2] = [n2, n1];
+                        [d1, d2] = [d2, d1];
+                    }
+
+                    setProblem({
+                        type: currentMode,
+                        n1, d1, n2, d2,
+                        lcm: targetLCM,
+                        m1: targetLCM / d1,
+                        m2: targetLCM / d2,
+                        op,
+                        levelConfig: config
+                    });
+
+                    setFocusOrder(['m1_top', 'm1_bot', 'n1_new', 'd1_new', 'm2_top', 'm2_bot', 'n2_new', 'd2_new']);
+                }
+            };
+
+            const handleSuccess = () => {
+                setFeedback({ type: 'success', text: "答案正確！" });
+
+                if (mode === 'CHALLENGE') {
+                    const newTotal = challengeState.scores + challengeState.currentQPoints;
+                    const nextQ = challengeState.qNum + 1;
+
+                    setChallengeState(prev => ({ ...prev, scores: newTotal }));
+
+                    if (nextQ > 10) {
+                        setTimeout(() => {
+                            setChallengeState(prev => ({ ...prev, isFinished: true }));
+                        }, 1000);
+                    } else {
+                        setTimeout(() => {
+                            setChallengeState(prev => ({
+                                ...prev,
+                                qNum: nextQ,
+                                currentQPoints: 10
+                            }));
+                            generateProblem(getChallengeLevel(nextQ), 'ADDSUB');
+                        }, 1500);
+                    }
+                } else {
+                    setScore(s => s + (level * 10));
+                    const newStreak = streak + 1;
+                    setStreak(newStreak);
+
+                    if (isAutoLevel && newStreak >= 2 && level < 5) {
+                        setTimeout(() => {
+                            setFeedback({ type: 'success', text: "連勝！挑戰下一個難度等級！" });
+                            setLevel(l => l + 1);
+                            setStreak(0);
+                            setTimeout(() => generateProblem(level + 1), 1500);
+                        }, 1000);
+                    } else if (score + 10 >= 150 && level === 5) {
+                        setTimeout(() => setShowCertificate(true), 1000);
+                    } else {
+                        setTimeout(() => generateProblem(level), 1500);
+                    }
+                }
+            };
+
+            // Unified Validation Logic
+            const performValidation = (requiredKeys, onSuccess) => {
+                const empty = requiredKeys.filter(k => !inputs[k]);
+                if (empty.length > 0) {
+                    setShakeId(empty[0]);
+                    setTimeout(() => setShakeId(null), 500);
+                    handleError("請填寫所有欄位");
+                    return;
+                }
+
+                let allCorrect = true;
+                let firstWrong = null;
+                const newStatus = { ...inputStatus };
+
+                requiredKeys.forEach(k => {
+                    if (!checkField(k, inputs[k])) {
+                        allCorrect = false;
+                        newStatus[k] = 'error';
+                        if (!firstWrong) firstWrong = k;
+                    } else {
+                        newStatus[k] = 'success';
+                    }
+                });
+
+                setInputStatus(newStatus);
+
+                if (allCorrect) {
+                    onSuccess();
+                } else {
+                    setShakeId(firstWrong);
+                    setTimeout(() => setShakeId(null), 500);
+                    handleError("答案有誤");
+                    if (mode === 'CHALLENGE') {
+                        const nextPoints = Math.max(0, challengeState.currentQPoints - 2);
+                        setChallengeState(prev => ({ ...prev, currentQPoints: nextPoints }));
+                        if (nextPoints === 0 && challengeState.currentQPoints > 0) {
+                            setShowHint(true);
+                            setFeedback({ type: 'info', text: "別灰心！已為您開啟提示，試著完成這題吧！(本題無法得分)" });
+                        }
+                    }
+                }
+            };
+
+            const handleExpandCheck = () => {
+                performValidation(['mul1_top', 'mul1_bot', 'num', 'den'], handleSuccess);
+            };
+
+            const handleReduceCheck = () => {
+                performValidation(['div1_top', 'div1_bot', 'num', 'den'], handleSuccess);
+            };
+
+            const handleCommonCheck = () => {
+                const currentMode = mode === 'CHALLENGE' ? 'ADDSUB' : mode;
+                const keys = ['m1_top', 'm1_bot', 'n1_new', 'd1_new', 'm2_top', 'm2_bot', 'n2_new', 'd2_new'];
+
+                performValidation(keys, () => {
+                    if (currentMode === 'ADDSUB') {
+                        setFeedback({ type: 'success', text: "通分成功！下一步..." });
+                        setTimeout(() => {
+                            setStep(1);
+                            setFocusOrder(['finalNum', 'finalDen']);
+                        }, 800);
+                    } else {
+                        handleSuccess();
+                    }
+                });
+            };
+
+            const handleAddSubFinalCheck = () => {
+                performValidation(['finalNum', 'finalDen'], handleSuccess);
+            };
+
+            const handleCheck = () => {
+                const currentMode = mode === 'CHALLENGE' ? 'ADDSUB' : mode;
+
+                if (currentMode === 'EXPAND') handleExpandCheck();
+                else if (currentMode === 'REDUCE') handleReduceCheck();
+                else if (currentMode === 'COMMON') handleCommonCheck();
+                else if (currentMode === 'ADDSUB') {
+                    if (step === 0) handleCommonCheck();
+                    else handleAddSubFinalCheck();
+                }
+            };
+
+            const handleEnterNavigation = (currentId, currentVal) => {
+                const isCorrect = checkField(currentId, currentVal);
+
+                if (!isCorrect) {
+                    setShakeId(currentId);
+                    setTimeout(() => setShakeId(null), 500);
+
+                    if (mode === 'CHALLENGE') {
+                        const nextPoints = Math.max(0, challengeState.currentQPoints - 2);
+                        setChallengeState(prev => ({
+                            ...prev,
+                            currentQPoints: nextPoints
+                        }));
+
+                        // Auto-enable hints if points drop to 0
+                        if (nextPoints === 0 && challengeState.currentQPoints > 0) {
+                            setShowHint(true);
+                            setFeedback({ type: 'info', text: "別灰心！已為您開啟提示，試著完成這題吧！(本題無法得分)" });
+                        }
+                    }
+                    return;
+                }
+
+                let inputKey = currentId;
+                setInputStatus(prev => ({ ...prev, [inputKey]: 'success' }));
+
+                const currentIndex = focusOrder.indexOf(currentId);
+                if (currentIndex !== -1 && currentIndex < focusOrder.length - 1) {
+                    const nextId = focusOrder[currentIndex + 1];
+                    const nextEl = document.getElementById(nextId);
+                    if (nextEl) nextEl.focus();
+                } else if (currentIndex === focusOrder.length - 1) {
+                    handleCheck();
+                }
+            };
+
+            const getHintText = () => {
+                if (!problem) return "";
+                if (!showHint) return mode === 'CHALLENGE' ? `挑戰題第 ${challengeState.qNum} 題` : "請依序填入數字，按 Enter 跳至下一格。";
+
+                if (mode === 'CHALLENGE') return "挑戰模式中，請仔細思考！";
+                return "跟著氣泡提示一步步完成喔！";
+            };
+
+            return (
+                <div className="max-w-6xl mx-auto p-4 md:p-8">
+                    {/* Modals */}
+                    {showCertificate && <Certificate score={score} modeName={mode} onRestart={resetGame} />}
+                    {mode === 'CHALLENGE' && challengeState.isFinished && (
+                        <ChallengeSummary score={challengeState.scores} onRestart={resetGame} />
+                    )}
+
+                    {/* Header */}
+                    <header className="flex flex-col lg:flex-row justify-between items-center mb-8 gap-6">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-3 rounded-2xl shadow-lg text-white ${mode === 'CHALLENGE' ? 'bg-rose-600 shadow-rose-200' : 'bg-indigo-600 shadow-indigo-200'}`}>
+                                {mode === 'CHALLENGE' ? <Swords size={32} strokeWidth={2.5} /> : <PieChart size={32} strokeWidth={2.5} />}
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-800 tracking-tight">分數運算實驗室(5年級)</h1>
+                                {mode === 'CHALLENGE' ? (
+                                    <p className="text-rose-500 font-bold text-sm">自我挑戰中：第 {challengeState.qNum}/10 題</p>
+                                ) : (
+                                    <p className="text-slate-500 font-medium text-sm">Level {level}：{LEVELS[mode].find(l => l.id === level)?.desc}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap justify-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+                            {[
+                                { id: 'EXPAND', icon: Scale, label: '擴分' },
+                                { id: 'REDUCE', icon: Divide, label: '約分' },
+                                { id: 'COMMON', icon: GripHorizontal, label: '通分' },
+                                { id: 'ADDSUB', icon: Calculator, label: '加減' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setMode(tab.id)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === tab.id ? 'tab-active' : 'tab-inactive hover:bg-slate-50'}`}
+                                >
+                                    <tab.icon size={16} />
+                                    <span className="hidden md:inline">{tab.label}</span>
+                                </button>
+                            ))}
+                            <div className="w-[1px] bg-slate-200 mx-1"></div>
+                            <button
+                                onClick={() => setMode('CHALLENGE')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'CHALLENGE' ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'tab-inactive hover:bg-rose-50 text-rose-500 border-rose-100'}`}
+                            >
+                                <Swords size={16} />
+                                <span className="hidden md:inline">自我挑戰</span>
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <div className="bg-white px-5 py-2 rounded-xl shadow-sm border border-slate-100 text-center">
+                                <div className="text-[10px] uppercase font-bold text-slate-400">Score</div>
+                                <div className={`text-xl font-black ${mode === 'CHALLENGE' ? 'text-rose-600' : 'text-indigo-600'}`}>
+                                    {mode === 'CHALLENGE' ? challengeState.scores : score}
+                                </div>
+                            </div>
+                            {mode !== 'CHALLENGE' && (
+                                <div className="bg-white px-5 py-2 rounded-xl shadow-sm border border-slate-100 text-center">
+                                    <div className="text-[10px] uppercase font-bold text-slate-400">Streak</div>
+                                    <div className="text-xl font-black text-amber-500">{streak}</div>
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+                        {/* Main Workspace */}
+                        <main className="lg:col-span-8 bg-white rounded-[2.5rem] shadow-xl border-4 border-white p-6 md:p-12 min-h-[500px] relative overflow-hidden flex flex-col items-center justify-center">
+                            <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+                            {/* Mode Label */}
+                            <div className="absolute top-6 left-0 w-full text-center">
+                                <span className={`px-4 py-1 rounded-full text-sm font-bold border ${mode === 'CHALLENGE' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                    {mode === 'CHALLENGE' && `挑戰第 ${challengeState.qNum} 題 (本題 ${challengeState.currentQPoints} 分)`}
+                                    {mode === 'EXPAND' && `將分數擴大 ${problem?.multiplier} 倍`}
+                                    {mode === 'REDUCE' && `將分數化為最簡分數`}
+                                    {mode === 'COMMON' && `找出最小公倍數進行通分`}
+                                    {(mode === 'ADDSUB' || (mode === 'CHALLENGE' && problem)) && (step === 0 ? `第一步：先通分` : `第二步：計算結果`)}
+                                </span>
+                            </div>
+
+                            {/* Interactive Area */}
+                            <div className="flex items-center justify-center gap-2 md:gap-8 flex-wrap mt-8 mb-8 w-full">
+
+                                {/* EXPAND MODE */}
+                                {mode === 'EXPAND' && problem && (
+                                    <>
+                                        <div className="flex flex-col items-center">
+                                            <div className="flex items-center">
+                                                <span className="text-3xl font-bold text-slate-700 mx-2">{problem.num}</span>
+                                                <ArrowInput
+                                                    domId="mul1_top" onEnter={handleEnterNavigation}
+                                                    inputKey="mul1_top" inputs={inputs} updateInput={updateInput}
+                                                    inputStatus={inputStatus} showHint={showHint} mode={mode}
+                                                    problem={problem} symbol="×" shakeId={shakeId} isActive={activeInputId === 'mul1_top'}
+                                                />
+                                            </div>
+                                            <div className="w-full h-[3px] bg-slate-800 my-2"></div>
+                                            <div className="flex items-center">
+                                                <span className="text-3xl font-bold text-slate-700 mx-2">{problem.den}</span>
+                                                <ArrowInput
+                                                    domId="mul1_bot" onEnter={handleEnterNavigation}
+                                                    inputKey="mul1_bot" inputs={inputs} updateInput={updateInput}
+                                                    inputStatus={inputStatus} showHint={showHint} mode={mode}
+                                                    problem={problem} symbol="×" shakeId={shakeId} isActive={activeInputId === 'mul1_bot'}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="text-4xl text-slate-400 mx-4">=</div>
+                                        <EditableFraction
+                                            numDomId="num" denDomId="den" onEnter={handleEnterNavigation}
+                                            num={inputs.num || ''}
+                                            den={inputs.den || ''}
+                                            onNumChange={v => updateInput('num', v)}
+                                            onDenChange={v => updateInput('den', v)}
+                                            numStatus={inputStatus.num}
+                                            denStatus={inputStatus.den}
+                                            hintTextNum={showHint ? `分子 ${problem.num} 也要乘以 ${problem.multiplier}` : "分子"}
+                                            hintTextDen={showHint ? `分母 ${problem.den} 也要乘以 ${problem.multiplier}` : "分母"}
+                                            showHint={showHint} shakeId={shakeId}
+                                            activeInputId={activeInputId}
+                                        />
+                                    </>
+                                )}
+
+                                {/* REDUCE MODE */}
+                                {mode === 'REDUCE' && problem && (
+                                    <>
+                                        <div className="flex flex-col items-center">
+                                            <div className="flex items-center">
+                                                <span className="text-3xl font-bold text-slate-700 mx-2">{problem.num}</span>
+                                                <ArrowInput
+                                                    domId="div1_top" onEnter={handleEnterNavigation}
+                                                    inputKey="div1_top" inputs={inputs} updateInput={updateInput}
+                                                    inputStatus={inputStatus} showHint={showHint} mode={mode}
+                                                    problem={problem} symbol="÷" shakeId={shakeId} isActive={activeInputId === 'div1_top'}
+                                                />
+                                            </div>
+                                            <div className="w-full h-[3px] bg-slate-800 my-2"></div>
+                                            <div className="flex items-center">
+                                                <span className="text-3xl font-bold text-slate-700 mx-2">{problem.den}</span>
+                                                <ArrowInput
+                                                    domId="div1_bot" onEnter={handleEnterNavigation}
+                                                    inputKey="div1_bot" inputs={inputs} updateInput={updateInput}
+                                                    inputStatus={inputStatus} showHint={showHint} mode={mode}
+                                                    problem={problem} symbol="÷" shakeId={shakeId} isActive={activeInputId === 'div1_bot'}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="text-4xl text-slate-400 mx-4">=</div>
+                                        <EditableFraction
+                                            numDomId="num" denDomId="den" onEnter={handleEnterNavigation}
+                                            num={inputs.num || ''}
+                                            den={inputs.den || ''}
+                                            onNumChange={v => updateInput('num', v)}
+                                            onDenChange={v => updateInput('den', v)}
+                                            numStatus={inputStatus.num}
+                                            denStatus={inputStatus.den}
+                                            hintTextNum={showHint ? "分子除以公因數的結果" : "分子"}
+                                            hintTextDen={showHint ? "分母除以公因數的結果" : "分母"}
+                                            showHint={showHint} shakeId={shakeId}
+                                            activeInputId={activeInputId}
+                                        />
+                                    </>
+                                )}
+
+                                {/* COMMON & ADDSUB MODE (STEP 0) */}
+                                {(mode === 'COMMON' || ((mode === 'ADDSUB' || mode === 'CHALLENGE') && step === 0)) && problem && (
+                                    <div className="flex flex-col gap-8 items-center w-full">
+                                        <div className="flex items-center gap-4 md:gap-8 flex-wrap justify-center w-full">
+                                            {/* Fraction 1 Expansion */}
+                                            <div className="flex items-center bg-white p-3 md:p-6 rounded-2xl border border-slate-200 shadow-sm relative">
+                                                <Fraction num={problem.n1} den={problem.d1} />
+                                                <div className="flex flex-col gap-2 mx-2">
+                                                    <ArrowInput
+                                                        domId="m1_top" onEnter={handleEnterNavigation}
+                                                        inputKey="m1_top" inputs={inputs} updateInput={updateInput}
+                                                        inputStatus={inputStatus} showHint={showHint} mode={mode}
+                                                        problem={problem} symbol="×" shakeId={shakeId} isActive={activeInputId === 'm1_top'}
+                                                    />
+                                                    <ArrowInput
+                                                        domId="m1_bot" onEnter={handleEnterNavigation}
+                                                        inputKey="m1_bot" inputs={inputs} updateInput={updateInput}
+                                                        inputStatus={inputStatus} showHint={showHint} mode={mode}
+                                                        problem={problem} symbol="×" shakeId={shakeId} isActive={activeInputId === 'm1_bot'}
+                                                    />
+                                                </div>
+                                                <EditableFraction
+                                                    numDomId="n1_new" denDomId="d1_new" onEnter={handleEnterNavigation}
+                                                    num={inputs.n1_new || ''} den={inputs.d1_new || ''}
+                                                    onNumChange={v => updateInput('n1_new', v)}
+                                                    onDenChange={v => updateInput('d1_new', v)}
+                                                    numStatus={inputStatus.n1_new} denStatus={inputStatus.d1_new}
+                                                    hintTextNum={showHint ? "分子隨分母同乘倍數" : "新分子"}
+                                                    hintTextDen={showHint ? `目標分母是 ${problem.lcm}` : "LCM"}
+                                                    showHint={showHint} shakeId={shakeId}
+                                                    activeInputId={activeInputId}
+                                                />
+                                            </div>
+
+                                            <div className="text-3xl font-black text-slate-300">
+                                                {mode === 'COMMON' ? '及' : problem.op}
+                                            </div>
+
+                                            {/* Fraction 2 Expansion */}
+                                            <div className="flex items-center bg-white p-3 md:p-6 rounded-2xl border border-slate-200 shadow-sm relative">
+                                                <Fraction num={problem.n2} den={problem.d2} />
+                                                <div className="flex flex-col gap-2 mx-2">
+                                                    <ArrowInput
+                                                        domId="m2_top" onEnter={handleEnterNavigation}
+                                                        inputKey="m2_top" inputs={inputs} updateInput={updateInput}
+                                                        inputStatus={inputStatus} showHint={showHint} mode={mode}
+                                                        problem={problem} symbol="×" shakeId={shakeId} isActive={activeInputId === 'm2_top'}
+                                                    />
+                                                    <ArrowInput
+                                                        domId="m2_bot" onEnter={handleEnterNavigation}
+                                                        inputKey="m2_bot" inputs={inputs} updateInput={updateInput}
+                                                        inputStatus={inputStatus} showHint={showHint} mode={mode}
+                                                        problem={problem} symbol="×" shakeId={shakeId} isActive={activeInputId === 'm2_bot'}
+                                                    />
+                                                </div>
+                                                <EditableFraction
+                                                    numDomId="n2_new" denDomId="d2_new" onEnter={handleEnterNavigation}
+                                                    num={inputs.n2_new || ''} den={inputs.d2_new || ''}
+                                                    onNumChange={v => updateInput('n2_new', v)}
+                                                    onDenChange={v => updateInput('d2_new', v)}
+                                                    numStatus={inputStatus.n2_new} denStatus={inputStatus.d2_new}
+                                                    hintTextNum={showHint ? "分子隨分母同乘倍數" : "新分子"}
+                                                    hintTextDen={showHint ? `目標分母是 ${problem.lcm}` : "LCM"}
+                                                    showHint={showHint} shakeId={shakeId}
+                                                    activeInputId={activeInputId}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ADDSUB MODE (STEP 1: CALCULATE) */}
+                                {(mode === 'ADDSUB' || mode === 'CHALLENGE') && step === 1 && problem && (
+                                    <div className="flex flex-col items-center gap-6 animate-slide-down">
+                                        {/* Trace: Original Problem */}
+                                        <div className="flex flex-col items-center gap-2 text-slate-400 opacity-70 scale-90 mb-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Step 1: 原題目</span>
+                                            <div className="flex items-center gap-4 text-2xl font-bold">
+                                                <Fraction num={problem.n1} den={problem.d1} />
+                                                <span className="text-slate-300">{problem.op}</span>
+                                                <Fraction num={problem.n2} den={problem.d2} />
+                                            </div>
+                                        </div>
+
+                                        <ArrowDown size={24} className="text-slate-300" />
+
+                                        {/* Main Input Area: Expanded Problem */}
+                                        <div className="relative">
+                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-500 whitespace-nowrap">Step 2: 通分後計算</div>
+                                            <div className="flex items-center gap-4 text-3xl">
+                                                <Fraction num={problem.n1 * problem.m1} den={problem.lcm} />
+                                                <span className="font-black text-slate-700">{problem.op}</span>
+                                                <Fraction num={problem.n2 * problem.m2} den={problem.lcm} />
+                                                <span className="font-black text-slate-400">=</span>
+                                                <EditableFraction
+                                                    numDomId="finalNum" denDomId="finalDen" onEnter={handleEnterNavigation}
+                                                    num={inputs.finalNum || ''}
+                                                    den={inputs.finalDen || ''}
+                                                    onNumChange={v => updateInput('finalNum', v)}
+                                                    onDenChange={v => updateInput('finalDen', v)}
+                                                    numStatus={inputStatus.finalNum}
+                                                    denStatus={inputStatus.finalDen}
+                                                    hintTextNum={showHint ? `分母不變，分子相${problem.op === '+' ? '加' : '減'}` : "分子計算"}
+                                                    hintTextDen={showHint ? "分母保持不變" : "結果分母"}
+                                                    showHint={showHint} shakeId={shakeId}
+                                                    activeInputId={activeInputId}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                        </main>
+
+                        {/* Side Panel: Difficulty & Hints */}
+                        <div className="lg:col-span-4 space-y-6">
+
+                            {/* Mission / Hint Panel */}
+                            <div className="bg-white rounded-[2rem] shadow-lg p-6 border border-slate-100 relative overflow-hidden">
+                                <div className={`absolute top-0 left-0 w-2 h-full ${showHint ? 'bg-amber-400' : 'bg-indigo-500'}`}></div>
+
+                                <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+                                    <Sparkles className={showHint ? "text-amber-400 fill-amber-400" : "text-indigo-500"} size={18} />
+                                    {showHint ? "解題提示" : "當前任務"}
+                                </h2>
+
+                                <div className="min-h-[80px] mb-6">
+                                    {feedback ? (
+                                        <p className={`font-bold leading-relaxed ${feedback.type === 'error' ? 'text-rose-500' : 'text-green-600'}`}>{feedback.text}</p>
+                                    ) : (
+                                        <p className="text-slate-600 font-medium leading-relaxed">
+                                            {getHintText()}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col gap-3">
+                                    {/* Hide Manual Check in Challenge Mode? No, keep it as redundant safety */}
+                                    <button
+                                        onClick={handleCheck}
+                                        className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-1 transition-all flex justify-center items-center gap-2"
+                                    >
+                                        檢查答案 <ChevronRight size={18} />
+                                    </button>
+
+                                    <div className="flex gap-2">
+                                        {/* Challenge Mode Show Answer Button */}
+                                        {mode === 'CHALLENGE' && challengeState.currentQPoints === 0 && (
+                                            <button
+                                                onClick={handleShowAnswer}
+                                                className="flex-1 py-3 rounded-xl font-bold shadow-sm border-2 border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all flex justify-center items-center gap-2"
+                                            >
+                                                <Eye size={18} /> 顯示答案
+                                            </button>
+                                        )}
+
+                                        <button
+                                            onClick={() => setShowHint(!showHint)}
+                                            disabled={mode === 'CHALLENGE' && challengeState.currentQPoints > 0}
+                                            className={`flex-1 py-3 rounded-xl font-bold shadow-sm border-2 transition-all flex justify-center items-center gap-2 ${mode === 'CHALLENGE' && challengeState.currentQPoints > 0
+                                                ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                                                : (showHint ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50')
+                                                }`}
+                                        >
+                                            <Lightbulb size={18} className={showHint ? "fill-amber-500 text-amber-500" : ""} />
+                                            {showHint ? '關閉提示' : (mode === 'CHALLENGE' && challengeState.currentQPoints === 0 ? '查看提示' : '求救')}
+                                        </button>
+                                        {mode !== 'CHALLENGE' && (
+                                            <button
+                                                onClick={() => generateProblem(level)}
+                                                className="px-4 py-3 rounded-xl font-bold border-2 border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                                                title="跳過此題"
+                                            >
+                                                <RefreshCcw size={18} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Level Control Panel (Hide in Challenge Mode) */}
+                            {mode !== 'CHALLENGE' && (
+                                <div className="bg-white p-6 rounded-3xl border border-slate-200">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2 font-bold text-slate-700">
+                                            <Settings size={18} /> 難度設定
+                                        </div>
+                                        <button
+                                            onClick={() => { setIsAutoLevel(!isAutoLevel); setStreak(0); }}
+                                            className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${isAutoLevel ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                                            title="自動晉級"
+                                        >
+                                            <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-sm ${isAutoLevel ? 'left-6' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {[1, 2, 3, 4, 5].map((lvl) => (
+                                            <button
+                                                key={lvl}
+                                                onClick={() => { setLevel(lvl); setIsAutoLevel(false); setStreak(0); generateProblem(lvl); }}
+                                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all border-2 ${level === lvl ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-transparent hover:bg-slate-50 text-slate-500'}`}
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <span>Level {lvl}</span>
+                                                    {level === lvl && <CheckCircle2 size={16} />}
+                                                </div>
+                                                <div className="text-xs font-normal opacity-70 mt-1">
+                                                    {LEVELS[mode].find(l => l.id === lvl)?.desc}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {isAutoLevel && <div className="mt-4 text-xs text-indigo-600 bg-indigo-50 p-2 rounded-lg text-center font-bold">🔥 連勝 2 場自動晉級</div>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
