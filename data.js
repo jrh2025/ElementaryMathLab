@@ -92,5 +92,14 @@ window.MATH_TOOLS_DATA = [
     "link": "unlike_denominators.html",
     "icon": "Command",
     "color": "orange"
+  },
+  {
+    "id": "tool_1770619889716",
+    "title": "直式時間加減小學堂",
+    "grade": "四年級",
+    "description": "本程式為專為國小學生開發的互動式數學輔助工具，核心功能為「時間單位的直式加減運算」。透過視覺化介面與遊戲化機制，引導學習者掌握 60 進位（分秒）與 24 進位（日時）之複雜進位與借位邏輯，以強化時間計算概念。",
+    "link": "TimeMathApp_Fixed.html",
+    "icon": "Timer",
+    "color": "rose"
   }
 ];
