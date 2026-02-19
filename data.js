@@ -104,7 +104,7 @@ window.MATH_TOOLS_DATA = [
   },
   {
     "id": "tool_1771500606283",
-    "title": "九九乘法互動式學習",
+    "title": "智趣九九",
     "grade": "二年級",
     "description": "專為九九乘法表的初學者設計，結合了視覺與聽覺探索、遊戲化練習與即時多感官回饋。",
     "link": "9nine.html",
