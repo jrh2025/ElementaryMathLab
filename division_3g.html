@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>除法探險家(三年級) | 國小數學互動教學實驗室</title>
+
+    <!-- 載入 React, ReactDOM, Babel, Tailwind -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* 擴充自訂動畫 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes bounce-subtle {
+
+            0%,
+            100% {
+                transform: translateY(-10%);
+            }
+
+            50% {
+                transform: translateY(0);
+            }
+        }
+
+        .animate-bounce {
+            animation: bounce-subtle 1.5s infinite;
+        }
+
+        @keyframes pulse-subtle {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+
+        .animate-pulse {
+            animation: pulse-subtle 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* 隱藏原生捲軸但保持可捲動功能 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        body {
+            background-color: #f8fafc;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 font-sans antialiased h-screen w-screen">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // ==========================================
+        // 共用 UX 工具：Enter 鍵自動跳躍下一個輸入欄位
+        // ==========================================
+        const handleEnterFocusNext = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // 尋找當前所在的表單容器
+                const container = e.target.closest('.focus-container') || document.body;
+                // 抓取所有可以輸入與互動的元件
+                const focusableStr = 'input:not([disabled]), select:not([disabled]), button:not([disabled])';
+                const elements = Array.from(container.querySelectorAll(focusableStr));
+                const index = elements.indexOf(e.target);
+
+                // 如果有找到下一個元件，則聚焦它
+                if (index > -1 && index < elements.length - 1) {
+                    elements[index + 1].focus();
+                }
+            }
+        };
+
+        // ==========================================
+        // 1. 資料庫與設定 (Data & Configuration)
+        // ==========================================
+        const MISSIONS = [
+            {
+                id: 1, type: 'partitive', title: '任務一：平分蘋果 (無餘數)',
+                story: [
+                    { text: '森林裡有 ', isNoise: false }, { text: '12 顆蘋果', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '小熊今年 8 歲，昨天還吃了 2 個布丁。', isNoise: true },
+                    { text: '要把蘋果', isNoise: false }, { text: '平均分給', isNoise: false, highlight: true }, { text: ' 3 隻小兔子', isNoise: false, isKey: true },
+                    { text: '，每隻小兔子可以分到幾顆？', isNoise: false },
+                ], total: 12, divisor: 3, quotient: 4, remainder: 0,
+                itemEmoji: '🍎', containerEmoji: '🐰', containerName: '小兔子', unit: '顆'
+            },
+            {
+                id: 2, type: 'quotitive', title: '任務二：包裝糖果 (無餘數)',
+                story: [
+                    { text: '媽媽買了 ', isNoise: false }, { text: '15 顆糖果', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '這包糖果原價 150 元，今天特價 99 元。', isNoise: true },
+                    { text: '規定', isNoise: false }, { text: '每 5 顆裝成一袋', isNoise: false, highlight: true }, { text: '，請問可以裝成幾袋？', isNoise: false },
+                ], total: 15, divisor: 5, quotient: 3, remainder: 0,
+                itemEmoji: '🍬', containerEmoji: '🛍️', containerName: '袋子', unit: '顆'
+            },
+            {
+                id: 3, type: 'partitive', title: '任務三：整理積木 (無餘數)',
+                story: [
+                    { text: '教室裡有 ', isNoise: false }, { text: '24 塊積木', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '教室後面還有 15 本童話書和 3 顆籃球。', isNoise: true },
+                    { text: '老師請你把它們', isNoise: false }, { text: '平分放進', isNoise: false, highlight: true }, { text: ' 4 個收納箱', isNoise: false, isKey: true },
+                    { text: '裡，每個收納箱會有幾塊積木？', isNoise: false },
+                ], total: 24, divisor: 4, quotient: 6, remainder: 0,
+                itemEmoji: '🧱', containerEmoji: '📦', containerName: '收納箱', unit: '塊'
+            },
+            {
+                id: 4, type: 'quotitive', title: '任務四：綑綁鉛筆 (無餘數)',
+                story: [
+                    { text: '文具店進貨了 ', isNoise: false }, { text: '20 枝鉛筆', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '老闆今年 45 歲，店裡還有 50 本筆記本。', isNoise: true },
+                    { text: '老闆要把鉛筆', isNoise: false }, { text: '每 5 枝綁成一捆', isNoise: false, highlight: true }, { text: '，請問可以綁成幾捆？', isNoise: false },
+                ], total: 20, divisor: 5, quotient: 4, remainder: 0,
+                itemEmoji: '✏️', containerEmoji: '🪢', containerName: '捆', unit: '枝'
+            },
+            {
+                id: 5, type: 'partitive', title: '任務五：花朵插瓶 (無餘數)',
+                story: [
+                    { text: '花園裡採了 ', isNoise: false }, { text: '18 朵玫瑰花', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '花園裡另外有 12 朵百合花和 5 隻蝴蝶。', isNoise: true },
+                    { text: '把它們', isNoise: false }, { text: '平均插進', isNoise: false, highlight: true }, { text: ' 3 個花瓶', isNoise: false, isKey: true },
+                    { text: '中，每個花瓶要插幾朵？', isNoise: false },
+                ], total: 18, divisor: 3, quotient: 6, remainder: 0,
+                itemEmoji: '🌹', containerEmoji: '🏺', containerName: '花瓶', unit: '朵'
+            },
+            {
+                id: 6, type: 'quotitive', title: '任務六：烤手工餅乾 (無餘數)',
+                story: [
+                    { text: '姐姐烤了 ', isNoise: false }, { text: '30 片餅乾', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '姐姐烤餅乾花了 45 分鐘，烤箱溫度是 180 度。', isNoise: true },
+                    { text: '如果', isNoise: false }, { text: '每 6 片裝成一盒', isNoise: false, highlight: true }, { text: '來賣，請問可以裝成幾盒？', isNoise: false },
+                ], total: 30, divisor: 6, quotient: 5, remainder: 0,
+                itemEmoji: '🍪', containerEmoji: '🎁', containerName: '禮盒', unit: '片'
+            },
+            {
+                id: 7, type: 'partitive', title: '任務七：分發彈珠 (進階-有餘數)',
+                story: [
+                    { text: '小安收集了 ', isNoise: false }, { text: '26 顆彈珠', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '小安家距離學校 500 公尺，走路要 10 分鐘。', isNoise: true },
+                    { text: '他想把彈珠', isNoise: false }, { text: '平均分給', isNoise: false, highlight: true }, { text: ' 4 個好朋友', isNoise: false, isKey: true },
+                    { text: '，每個人可以分到幾顆？還剩下幾顆不夠分？', isNoise: false },
+                ], total: 26, divisor: 4, quotient: 6, remainder: 2,
+                itemEmoji: '🔮', containerEmoji: '👦', containerName: '朋友', unit: '顆'
+            },
+            {
+                id: 8, type: 'quotitive', title: '任務八：整理故事書 (進階-有餘數)',
+                story: [
+                    { text: '圖書館裡有 ', isNoise: false }, { text: '35 本故事書', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '圖書館裡總共有 5000 本書，今天借出了 128 本。', isNoise: true },
+                    { text: '為了方便搬運，', isNoise: false }, { text: '每 8 本裝成一箱', isNoise: false, highlight: true },
+                    { text: '，請問可以裝滿幾箱？還剩下幾本裝不滿？', isNoise: false },
+                ], total: 35, divisor: 8, quotient: 4, remainder: 3,
+                itemEmoji: '📚', containerEmoji: '📦', containerName: '紙箱', unit: '本'
+            }
+        ];
+
+        const PCG_DATA = {
+            subjects: ['小智', '安妮', '魔法師', '精靈', '店長', '農夫'],
+            noises: [
+                '今天天氣非常好，有出太陽。', '他身上帶著 500 元。', '他今年 9 歲，喜歡打籃球。',
+                '這些東西的顏色非常鮮豔。', '旁邊有一隻可愛的小狗在睡覺。', '昨天下午下了一場大雷雨。',
+                '他的背包是藍色的。', '路邊開滿了美麗的花朵。', '聽說明天學校要舉辦運動會。', '他早餐吃了一個三明治和一杯牛奶。'
+            ],
+            items: [
+                { name: '金幣', emoji: '💰', unit: '枚' }, { name: '魔法石', emoji: '💎', unit: '顆' },
+                { name: '蘋果', emoji: '🍎', unit: '顆' }, { name: '餅乾', emoji: '🍪', unit: '片' }
+            ],
+            containers: [
+                { name: '寶箱', emoji: '🧰', action: '裝進', unit: '個' }, { name: '魔法袋', emoji: '👝', action: '放進', unit: '袋' },
+                { name: '籃子', emoji: '🧺', action: '放進', unit: '籃' }, { name: '盒子', emoji: '🎁', action: '裝進', unit: '盒' }
+            ],
+            allUnits: ['枚', '顆', '片', '個', '袋', '籃', '盒', '人', '箱', '本', '輛', '元']
+        };
+
+        // ==========================================
+        // 2. 主應用程式 (App Router & Sidebar Layout)
+        // ==========================================
+        function App() {
+            const [theme, setTheme] = useState('missions');
+
+            const menuItems = [
+                { id: 'guide', icon: '📖', title: '除法秘笈', desc: '圖解等分除、包含除與餘數' },
+                { id: 'missions', icon: '🎯', title: '任務挑戰', desc: '手動拖曳分配，畫圖解題' },
+                { id: 'life', icon: '🌍', title: '生活情境', desc: '進一/去尾法與自行出題' },
+                { id: 'challenge', icon: '⚔️', title: '素養大挑戰', desc: '電腦輔助專注列式與運算' },
+            ];
+
+            return (
+                <div className="flex flex-col md:flex-row h-full w-full bg-slate-100 font-sans text-slate-800 overflow-hidden">
+
+                    <div className="w-full md:w-72 lg:w-80 bg-indigo-900 text-white flex flex-col shadow-2xl z-20 flex-shrink-0">
+                        <div className="p-6 bg-indigo-950 shadow-md">
+                            <h1 className="text-xl lg:text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-400 drop-shadow-sm leading-tight">
+                                除法探險家(三年級)
+                            </h1>
+                            <p className="text-indigo-300 text-xs mt-2 font-bold tracking-wide">國小數學互動教學實驗室</p>
+                        </div>
+
+                        <nav className="flex-1 overflow-y-auto py-2 md:py-6 flex md:flex-col overflow-x-auto md:overflow-x-hidden hide-scrollbar">
+                            {menuItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setTheme(item.id)}
+                                    className={`flex-shrink-0 md:w-full text-left px-5 lg:px-6 py-4 flex flex-col transition-all border-b-4 md:border-b-0 md:border-l-4 relative group ${theme === item.id
+                                        ? 'bg-indigo-800 border-yellow-400'
+                                        : 'border-transparent hover:bg-indigo-800/60'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <span className="text-2xl drop-shadow-sm">{item.icon}</span>
+                                        <span className={`font-bold text-base lg:text-lg whitespace-nowrap ${theme === item.id ? 'text-white' : 'text-indigo-100 group-hover:text-white'}`}>
+                                            {item.title}
+                                        </span>
+                                    </div>
+                                    <span className={`text-xs md:pl-9 hidden md:block ${theme === item.id ? 'text-indigo-200' : 'text-indigo-300/70 group-hover:text-indigo-200'}`}>
+                                        {item.desc}
+                                    </span>
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+
+                    <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50">
+                        <header className="bg-white p-4 md:px-8 md:py-5 shadow-sm z-10 flex items-center border-b border-slate-200">
+                            <h2 className="text-2xl md:text-3xl font-black text-slate-800 flex items-center gap-3">
+                                <span>{menuItems.find(i => i.id === theme)?.icon}</span>
+                                {menuItems.find(i => i.id === theme)?.title}
+                            </h2>
+                        </header>
+
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+                            <div key={theme} className="max-w-5xl mx-auto h-full pb-10">
+                                {theme === 'guide' && <ThemeGuide />}
+                                {theme === 'missions' && <ThemeMissions />}
+                                {theme === 'life' && <ThemeLife />}
+                                {theme === 'challenge' && <ThemeChallenge />}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 3. 主題一：除法秘笈 
+        // ==========================================
+        function ThemeGuide() {
+            return (
+                <div className="animate-fade-in space-y-10">
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <h2 className="bg-indigo-100 text-indigo-800 text-2xl font-black p-4 px-6 border-b border-indigo-200 flex items-center gap-2">
+                            <span>🔍</span> 魔法一：兩種不同的分配方式
+                        </h2>
+                        <div className="p-6 grid md:grid-cols-2 gap-8">
+                            <div className="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200">
+                                <h3 className="text-xl font-bold text-blue-800 mb-3 flex items-center justify-between">
+                                    <span>等分除 (分給誰)</span>
+                                    <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">已知份數，求每份多少</span>
+                                </h3>
+                                <p className="text-slate-600 text-sm mb-4">關鍵字：<strong className="text-red-500">「平均分給」、「平分」</strong></p>
+                                <div className="bg-white p-4 rounded-xl shadow-inner text-center border border-blue-100 mb-4">
+                                    <p className="font-bold mb-2 text-slate-700">12顆蘋果，平分給3隻兔子</p>
+                                    <div className="flex justify-center gap-4">
+                                        <div className="text-center text-3xl">🐰<br /><span className="text-sm">🍎🍎🍎🍎</span></div>
+                                        <div className="text-center text-3xl">🐰<br /><span className="text-sm">🍎🍎🍎🍎</span></div>
+                                        <div className="text-center text-3xl">🐰<br /><span className="text-sm">🍎🍎🍎🍎</span></div>
+                                    </div>
+                                </div>
+                                <p className="text-center font-bold text-blue-900 bg-blue-100 py-2 rounded-lg">算式：12 ÷ 3 = 4 (顆/隻)</p>
+                            </div>
+
+                            <div className="bg-purple-50 p-6 rounded-2xl border-2 border-purple-200">
+                                <h3 className="text-xl font-bold text-purple-800 mb-3 flex items-center justify-between">
+                                    <span>包含除 (裝幾袋)</span>
+                                    <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-full">已知每份數量，求總份數</span>
+                                </h3>
+                                <p className="text-slate-600 text-sm mb-4">關鍵字：<strong className="text-red-500">「每...裝一袋」、「每...綁一捆」</strong></p>
+                                <div className="bg-white p-4 rounded-xl shadow-inner text-center border border-purple-100 mb-4">
+                                    <p className="font-bold mb-2 text-slate-700">12顆蘋果，每4顆裝一袋</p>
+                                    <div className="flex justify-center gap-4 py-2">
+                                        <div className="border-2 border-dashed border-purple-400 rounded-lg p-1 text-sm bg-purple-50">🍎🍎🍎🍎</div>
+                                        <div className="border-2 border-dashed border-purple-400 rounded-lg p-1 text-sm bg-purple-50">🍎🍎🍎🍎</div>
+                                        <div className="border-2 border-dashed border-purple-400 rounded-lg p-1 text-sm bg-purple-50">🍎🍎🍎🍎</div>
+                                    </div>
+                                </div>
+                                <p className="text-center font-bold text-purple-900 bg-purple-100 py-2 rounded-lg">算式：12 ÷ 4 = 3 (袋)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <h2 className="bg-amber-100 text-amber-800 text-2xl font-black p-4 px-6 border-b border-amber-200 flex items-center gap-2">
+                            <span>✨</span> 魔法二：什麼是「餘數」？
+                        </h2>
+                        <div className="p-6 flex flex-col md:flex-row gap-8 items-center">
+                            <div className="flex-1">
+                                <p className="text-lg text-slate-700 leading-relaxed mb-4">
+                                    當東西沒辦法「剛剛好分完」或「裝滿」，剩下的部分就叫做<strong>餘數</strong>。
+                                </p>
+                                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+                                    <h4 className="font-bold text-red-700 mb-1">⚠️ 鐵律：餘數必須小於除數！</h4>
+                                    <p className="text-sm text-red-600">如果剩下的東西比「除數」還要大，代表你還可以繼續分喔！</p>
+                                </div>
+                            </div>
+                            <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 text-center shadow-inner min-w-[300px]">
+                                <p className="font-bold mb-4 text-lg text-slate-700">14 顆蘋果，每 4 顆裝一袋</p>
+                                <div className="flex justify-center gap-2 mb-4">
+                                    <div className="border-2 border-slate-300 rounded p-1 text-sm bg-white">🍎🍎🍎🍎</div>
+                                    <div className="border-2 border-slate-300 rounded p-1 text-sm bg-white">🍎🍎🍎🍎</div>
+                                    <div className="border-2 border-slate-300 rounded p-1 text-sm bg-white">🍎🍎🍎🍎</div>
+                                </div>
+                                <div className="flex justify-center gap-2 items-center mb-5 text-red-500 font-bold">
+                                    <span>剩下：</span><div className="p-1 text-sm bg-red-100 border border-red-200 rounded animate-pulse">🍎🍎</div>
+                                </div>
+                                <p className="text-amber-700 font-black text-xl bg-amber-100 py-2 rounded-lg tracking-widest">14 ÷ 4 = 3 ... 2</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 4. 主題二：任務挑戰
+        // ==========================================
+        function ThemeMissions() {
+            const [currentIdx, setCurrentIdx] = useState(null);
+            const [step, setStep] = useState(0);
+            const [crossedOut, setCrossedOut] = useState([]);
+
+            const startProblem = (idx) => {
+                setCurrentIdx(idx);
+                setCrossedOut(Array(MISSIONS[idx].story.length).fill(false));
+                setStep(1);
+            };
+            const nextStep = () => setStep(s => s + 1);
+
+            if (step === 0) {
+                return (
+                    <div className="animate-fade-in">
+                        <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 mb-8 flex flex-col md:flex-row gap-4 justify-between items-center shadow-inner">
+                            <div>
+                                <h3 className="text-xl font-bold text-indigo-800 mb-2">請選擇你的試煉：</h3>
+                                <p className="text-slate-600 font-medium text-sm">親自拖曳分配物件，畫出正確的數學圖解！</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            {MISSIONS.map((p, idx) => (
+                                <button key={p.id} onClick={() => startProblem(idx)} className="bg-white p-6 rounded-2xl shadow-sm border-2 border-slate-200 hover:border-green-500 hover:shadow-lg transition-all text-center flex flex-col items-center group">
+                                    <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">{p.itemEmoji}</span>
+                                    <span className={`text-xs font-bold px-3 py-1 rounded-full mb-3 shadow-inner ${p.remainder > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
+                                        {p.remainder > 0 ? '進階(有餘數)' : '基礎'}
+                                    </span>
+                                    <h3 className="text-sm font-bold text-slate-800">{p.title}</h3>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            const problem = MISSIONS[currentIdx];
+
+            return (
+                <div className="flex flex-col h-full animate-fade-in relative pb-10">
+                    <button onClick={() => setStep(0)} className="absolute top-0 right-0 text-slate-400 hover:text-slate-600 font-bold bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm transition-colors z-10">
+                        ✖ 返回選單
+                    </button>
+
+                    <div className="w-full pt-4">
+                        {step === 1 && <DenoiseStep problem={problem} initialSelections={crossedOut} onComplete={(sel) => { setCrossedOut(sel); nextStep(); }} />}
+                        {step === 2 && <ModelStep problem={problem} crossedOut={crossedOut} onComplete={nextStep} />}
+                        {step === 3 && <CalculateStep problem={problem} crossedOut={crossedOut} onComplete={nextStep} />}
+                        {step === 4 && (
+                            <div className="text-center py-20 animate-fade-in bg-white rounded-3xl shadow-sm border-2 border-green-300 mt-8">
+                                <div className="text-8xl mb-6 drop-shadow-md">🎉</div>
+                                <h2 className="text-4xl font-black text-green-600 mb-4">任務大成功！</h2>
+                                <p className="text-xl text-slate-600 mb-8">你完美破關了【{problem.title}】！</p>
+                                <button onClick={() => setStep(0)} className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition-transform active:scale-95">
+                                    挑戰其他任務
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function ProblemText({ story, crossedOut, interactive = false, onToggle = null }) {
+            return (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border-l-8 border-indigo-400 mb-6">
+                    <div className="text-lg md:text-xl leading-relaxed font-medium select-none">
+                        {story.map((part, idx) => {
+                            const isCrossed = crossedOut[idx];
+                            return (
+                                <span key={idx} onClick={() => interactive && onToggle(idx)} className={`
+                  transition-all duration-200 px-1 py-1 rounded-lg mx-0.5 inline-block mb-1
+                  ${interactive ? 'cursor-pointer hover:bg-indigo-50' : ''}
+                  ${isCrossed ? 'bg-slate-200 text-slate-400 line-through decoration-red-500 decoration-4' : 'text-slate-800'}
+                  ${part.highlight && !isCrossed ? 'bg-yellow-100 border-b-4 border-yellow-400 font-bold' : ''}
+                  ${part.isKey && !isCrossed ? 'text-indigo-700 font-bold bg-indigo-50' : ''}
+                `}>
+                                    {part.text}
+                                </span>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        function DenoiseStep({ problem, initialSelections, onComplete }) {
+            const [selections, setSelections] = useState(initialSelections);
+            const [errorMsg, setErrorMsg] = useState("");
+            const toggleSelection = (idx) => { const newSel = [...selections]; newSel[idx] = !newSel[idx]; setSelections(newSel); setErrorMsg(""); };
+            const checkAnswers = () => {
+                const isCorrect = problem.story.every((part, idx) => (part.isNoise ? selections[idx] : !selections[idx]));
+                if (isCorrect) onComplete(selections); else setErrorMsg("仔細看喔！只有「與數字計算無關」的廢話才需要劃掉！");
+            };
+            return (
+                <div className="animate-fade-in mt-4">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-4">📍 步驟一：劃掉干擾資訊</h2>
+                    <ProblemText story={problem.story} crossedOut={selections} interactive={true} onToggle={toggleSelection} />
+                    {errorMsg && <p className="text-red-500 font-bold mb-4 animate-bounce text-center bg-red-50 py-3 rounded-lg border border-red-200">{errorMsg}</p>}
+                    <button onClick={checkAnswers} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-4 rounded-xl shadow-md transition-transform active:scale-95">檢查並進入下一步</button>
+                </div>
+            );
+        }
+
+        function ModelStep({ problem, crossedOut, onComplete }) {
+            const isPartitive = problem.type === 'partitive';
+            const [unassigned, setUnassigned] = useState(problem.total);
+            const [containers, setContainers] = useState([]);
+            const [selectedItem, setSelectedItem] = useState(false);
+            const [error, setError] = useState('');
+
+            const addContainer = () => {
+                if (isPartitive && containers.length >= problem.divisor) {
+                    setError(`等分除只要 ${problem.divisor} 個${problem.containerName}就夠囉！`);
+                    return;
+                }
+                setContainers([...containers, 0]);
+                setError('');
+            };
+
+            const removeContainer = (index) => {
+                if (containers[index] === 0) {
+                    setContainers(prev => prev.filter((_, i) => i !== index));
+                }
+            };
+
+            const handleDragStart = (e) => { e.dataTransfer.setData('action', 'move_item'); };
+
+            const handleDropLogic = (index) => {
+                if (unassigned > 0) {
+                    if (!isPartitive && containers[index] >= problem.divisor) {
+                        setError(`這${problem.containerName}已經裝滿 ${problem.divisor} 個了！`);
+                        return;
+                    }
+                    setUnassigned(p => p - 1);
+                    setContainers(prev => {
+                        const next = [...prev];
+                        next[index]++;
+                        return next;
+                    });
+                    setError('');
+                }
+            };
+
+            const handleDrop = (e, index) => {
+                e.preventDefault();
+                if (e.dataTransfer.getData('action') === 'move_item') {
+                    handleDropLogic(index);
+                }
+            };
+
+            const handleUnassignedClick = () => {
+                if (unassigned > 0) setSelectedItem(!selectedItem);
+            };
+
+            const handleContainerClick = (index) => {
+                if (selectedItem) {
+                    handleDropLogic(index);
+                    setSelectedItem(false);
+                } else {
+                    if (containers[index] > 0) {
+                        setContainers(prev => {
+                            const next = [...prev];
+                            next[index]--;
+                            return next;
+                        });
+                        setUnassigned(p => p + 1);
+                        setError('');
+                    } else {
+                        removeContainer(index);
+                    }
+                }
+            };
+
+            const autoAction = () => {
+                if (isPartitive) {
+                    if (containers.length < problem.divisor) {
+                        setError(`請先新增 ${problem.divisor} 個${problem.containerName}！`);
+                        return;
+                    }
+                    if (unassigned >= problem.divisor) {
+                        setUnassigned(p => p - problem.divisor);
+                        setContainers(prev => prev.map(c => c + 1));
+                        setError('');
+                    }
+                } else {
+                    if (unassigned >= problem.divisor) {
+                        setContainers([...containers, problem.divisor]);
+                        setUnassigned(p => p - problem.divisor);
+                        setError('');
+                    } else if (unassigned > 0) {
+                        setContainers([...containers, unassigned]);
+                        setUnassigned(0);
+                        setError('');
+                    }
+                }
+            };
+
+            let helperMsg = "";
+            let isSuccess = false;
+
+            if (isPartitive) {
+                if (containers.length < problem.divisor) {
+                    helperMsg = `1️⃣ 請先新增 ${problem.divisor} 個${problem.containerName}。`;
+                } else if (unassigned > problem.remainder) {
+                    helperMsg = `2️⃣ 請將上方的 ${problem.itemEmoji} 點選或拖曳到${problem.containerName}中，盡量平分。`;
+                } else if (unassigned < problem.remainder) {
+                    helperMsg = `⚠️ 哎呀，你把餘數也分下去了，分得不平均喔！點擊${problem.containerName}把多出來的退回去。`;
+                } else if (!containers.every(c => c === problem.quotient)) {
+                    helperMsg = `⚠️ 數量不一樣喔！等分除必須讓大家一樣多。點擊容器調整。`;
+                } else {
+                    helperMsg = problem.remainder > 0
+                        ? `🎉 完美平分！剩下 ${unassigned} 個不夠分了 (這就是餘數)。`
+                        : `🎉 完美平分！沒有剩下任何東西。`;
+                    isSuccess = true;
+                }
+            } else {
+                if (containers.length === 0) {
+                    helperMsg = `1️⃣ 請點擊「新增${problem.containerName}」開始裝袋。`;
+                } else if (containers.some(c => c > 0 && c < problem.divisor) && unassigned === 0) {
+                    helperMsg = `⚠️ 有${problem.containerName}沒有裝滿喔！不夠裝的要拿出來放在外面當作「餘數」。`;
+                } else if (unassigned >= problem.divisor) {
+                    helperMsg = `2️⃣ 還有 ${unassigned} 個，點選或拖曳 ${problem.itemEmoji} 放進去裝滿。`;
+                } else {
+                    if (containers.every(c => c === problem.divisor) && unassigned === problem.remainder && containers.length === problem.quotient) {
+                        helperMsg = problem.remainder > 0
+                            ? `🎉 完美裝袋！剩下 ${unassigned} 個不夠裝一袋 (這就是餘數)。`
+                            : `🎉 完美裝袋！全部裝得剛剛好。`;
+                        isSuccess = true;
+                    } else {
+                        helperMsg = `請繼續新增${problem.containerName}，直到無法再裝滿為止。`;
+                    }
+                }
+            }
+
+            return (
+                <div className="animate-fade-in flex flex-col mt-4">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        📍 步驟二：動手畫圖 ({isPartitive ? '等分除' : '包含除'})
+                    </h2>
+                    <ProblemText story={problem.story} crossedOut={crossedOut} />
+
+                    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border-2 border-slate-200 flex flex-col items-center">
+
+                        <div className={`w-full p-4 rounded-xl font-bold text-center mb-6 transition-colors shadow-inner flex items-center justify-center gap-2 ${isSuccess ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-indigo-50 text-indigo-800 border border-indigo-200'}`}>
+                            <span>{isSuccess ? '✅' : '💡'}</span> {helperMsg}
+                        </div>
+
+                        <div
+                            className={`min-h-[120px] w-full rounded-2xl p-4 flex flex-wrap justify-center items-center gap-2 border-4 border-dashed mb-8 transition-colors cursor-pointer select-none
+                ${selectedItem ? 'border-yellow-400 bg-yellow-50' : (unassigned > 0 ? 'border-slate-300 bg-slate-50 hover:bg-slate-100' : 'border-slate-200 bg-slate-50 opacity-50')}`}
+                            onClick={handleUnassignedClick}
+                        >
+                            {unassigned > 0 && !selectedItem && (
+                                <div className="w-full text-center text-slate-400 text-sm font-bold mb-2">點擊選取，或直接拖曳 👇</div>
+                            )}
+                            {Array.from({ length: unassigned }).map((_, i) => (
+                                <span
+                                    key={`u-${i}`}
+                                    draggable
+                                    onDragStart={handleDragStart}
+                                    className={`text-4xl transition-transform ${selectedItem ? 'scale-110 drop-shadow-md animate-pulse' : 'hover:scale-110 cursor-grab active:cursor-grabbing'}`}
+                                >
+                                    {problem.itemEmoji}
+                                </span>
+                            ))}
+                            {unassigned === 0 && <span className="text-slate-400 font-bold text-xl">全部分配完畢！</span>}
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 w-full justify-center mb-8 border-b border-slate-100 pb-8">
+                            <button
+                                onClick={addContainer}
+                                className={`font-bold py-3 px-6 rounded-xl shadow-sm transition-transform active:scale-95 flex items-center gap-2 ${isPartitive && containers.length >= problem.divisor ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
+                                disabled={isPartitive && containers.length >= problem.divisor}
+                            >
+                                <span>➕</span> 新增 {problem.containerName}
+                            </button>
+
+                            <button onClick={autoAction} className="bg-amber-400 hover:bg-amber-500 text-amber-900 font-bold py-3 px-6 rounded-xl shadow-sm transition-transform active:scale-95 flex items-center gap-2">
+                                <span>⚡</span> 自動{isPartitive ? '發送 1 輪' : '裝滿 1 袋'}
+                            </button>
+                        </div>
+
+                        {error && <p className="text-red-500 font-bold mb-4 animate-bounce bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
+
+                        <div className="flex flex-wrap justify-center gap-6 w-full mb-8 min-h-[160px]">
+                            {containers.length === 0 && (
+                                <div className="text-slate-400 font-bold flex items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-xl">
+                                    請先點擊上方按鈕新增容器
+                                </div>
+                            )}
+                            {containers.map((count, i) => {
+                                const isFull = !isPartitive && count === problem.divisor;
+                                return (
+                                    <div
+                                        key={i}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={(e) => handleDrop(e, i)}
+                                        onClick={() => handleContainerClick(i)}
+                                        className={`flex flex-col items-center p-4 rounded-2xl border-4 min-w-[120px] transition-all relative select-none
+                      ${selectedItem ? 'cursor-cell ring-4 ring-yellow-200 border-yellow-400 bg-yellow-50 shadow-lg scale-105' : 'cursor-pointer hover:border-indigo-400 shadow-sm'}
+                      ${isFull ? 'bg-green-50 border-green-400' : (selectedItem ? '' : 'bg-white border-slate-200')}
+                    `}
+                                    >
+                                        {!selectedItem && count === 0 && (
+                                            <div className="absolute top-1 right-2 text-slate-300 hover:text-red-500 text-xs font-bold">✖ 移除</div>
+                                        )}
+                                        <span className="text-5xl mb-2 z-10">{problem.containerEmoji}</span>
+                                        <div className="flex flex-wrap justify-center gap-1 min-h-[40px] z-10 w-24">
+                                            {Array.from({ length: count }).map((_, j) => (<span key={`c-${i}-${j}`} className="text-2xl pointer-events-none animate-fade-in">{problem.itemEmoji}</span>))}
+                                        </div>
+                                        <div className={`mt-3 px-3 py-1 rounded-lg text-sm font-bold z-10 ${isFull ? 'bg-green-200 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
+                                            {count} {isPartitive ? '' : `/ ${problem.divisor}`}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {isSuccess && (
+                            <button onClick={onComplete} className="bg-green-500 hover:bg-green-600 text-white font-bold text-2xl py-4 px-12 rounded-full shadow-lg animate-bounce mt-4">
+                                ✅ 畫圖完成，進入計算！
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function CalculateStep({ problem, crossedOut, onComplete }) {
+            const [vals, setVals] = useState({ v1: '', v2: '', v3: '', v4: '' });
+            const [errorMsg, setErrorMsg] = useState('');
+
+            const check = () => {
+                const v1 = parseInt(vals.v1); const v2 = parseInt(vals.v2);
+                const v3 = parseInt(vals.v3); const v4 = parseInt(vals.v4) || 0;
+                if (v1 === problem.total && v2 === problem.divisor && v3 === problem.quotient && v4 === problem.remainder) onComplete();
+                else setErrorMsg("算式錯誤！口訣：總數量 ÷ 條件 = 答案 ... 餘數 (若沒餘數請填 0)");
+            };
+
+            return (
+                <div className="animate-fade-in flex flex-col h-full mt-4">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-4">📍 步驟三：寫出除法算式</h2>
+                    <ProblemText story={problem.story} crossedOut={crossedOut} />
+
+                    {/* 套用 focus-container 與 onKeyDown 邏輯 */}
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border-2 border-slate-200 flex flex-col items-center focus-container">
+                        <div className="bg-indigo-50 px-6 py-2 rounded-lg mb-8 text-indigo-800 font-bold border border-indigo-100">
+                            根據你剛剛畫的圖，填出正確的數學算式：
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-center gap-4 mb-8 text-2xl font-black text-slate-700 w-full">
+                            <div className="flex flex-col items-center">
+                                <input autoFocus type="number" onKeyDown={handleEnterFocusNext} value={vals.v1} onChange={e => setVals({ ...vals, v1: e.target.value })} className="w-20 h-20 text-center border-4 border-slate-200 rounded-2xl focus:border-indigo-500 bg-slate-50 outline-none" />
+                                <span className="text-sm text-slate-500 mt-2 font-bold">總數</span>
+                            </div>
+                            <span className="mb-6">÷</span>
+                            <div className="flex flex-col items-center">
+                                <input type="number" onKeyDown={handleEnterFocusNext} value={vals.v2} onChange={e => setVals({ ...vals, v2: e.target.value })} className="w-20 h-20 text-center border-4 border-slate-200 rounded-2xl focus:border-blue-500 bg-slate-50 outline-none" />
+                                <span className="text-sm text-slate-500 mt-2 font-bold">{problem.type === 'partitive' ? '份數' : '每袋數量'}</span>
+                            </div>
+                            <span className="mb-6">=</span>
+                            <div className="flex flex-col items-center">
+                                <input type="number" onKeyDown={handleEnterFocusNext} value={vals.v3} onChange={e => setVals({ ...vals, v3: e.target.value })} className="w-20 h-20 text-center border-4 border-green-300 rounded-2xl focus:border-green-500 bg-green-50 text-green-700 outline-none" />
+                                <span className="text-sm text-green-600 mt-2 font-bold">答案</span>
+                            </div>
+                            <span className="mb-6 tracking-widest text-slate-400">...</span>
+                            <div className="flex flex-col items-center">
+                                <input type="number" onKeyDown={handleEnterFocusNext} value={vals.v4} onChange={e => setVals({ ...vals, v4: e.target.value })} placeholder="0" className="w-20 h-20 text-center border-4 border-red-300 rounded-2xl focus:border-red-500 bg-red-50 text-red-600 outline-none" />
+                                <span className="text-sm font-bold text-red-600 mt-2">餘數</span>
+                            </div>
+                        </div>
+
+                        {errorMsg && <p className="text-red-500 font-bold mb-6 bg-red-50 p-3 rounded-lg border border-red-200 shadow-sm">{errorMsg}</p>}
+                        <button onClick={check} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-4 px-16 rounded-full shadow-lg transition-transform active:scale-95">送出解答！</button>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 5. 主題三：生活情境 & 互動命題
+        // ==========================================
+        function ThemeLife() {
+            const [mode, setMode] = useState('read');
+
+            return (
+                <div className="animate-fade-in">
+                    <div className="flex justify-center gap-4 mb-8 bg-white p-2 rounded-full shadow-sm border border-slate-200 w-max mx-auto">
+                        <button onClick={() => setMode('read')} className={`px-6 py-2 rounded-full font-bold transition-all ${mode === 'read' ? 'bg-amber-500 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-100'}`}>
+                            📖 閱讀生活情境
+                        </button>
+                        <button onClick={() => setMode('create')} className={`px-6 py-2 rounded-full font-bold transition-all ${mode === 'create' ? 'bg-amber-500 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-100'}`}>
+                            ✍️ 小小出題家 (自訂)
+                        </button>
+                    </div>
+                    {mode === 'read' ? <LifeScenarios /> : <LifeProblemBuilder />}
+                </div>
+            );
+        }
+
+        function LifeScenarios() {
+            const scenarios = [
+                {
+                    title: '搭計程車 (餘數進一法)', desc: '14 個小朋友要去博物館，一輛計程車最多只能載 4 個人。總共需要叫幾輛車？',
+                    calc: '14 ÷ 4 = 3 ... 2', explain: '算出來是 3 輛車，但剩下 2 個人不能自己跑去！', conclusion: '必須再多叫 1 輛車。答案是：4 輛計程車', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', icon: '🚕'
+                },
+                {
+                    title: '買筆記本 (餘數去尾法)', desc: '小智有 50 元，一本筆記本 15 元。最多可以買幾本？',
+                    calc: '50 ÷ 15 = 3 ... 5', explain: '可以買 3 本，剩下 5 元不夠再買一本了。', conclusion: '剩下的錢只能收起來。答案是：最多買 3 本', bgColor: 'bg-green-50', borderColor: 'border-green-200', icon: '📓'
+                },
+                {
+                    title: '搭纜車 (餘數進一法)', desc: '34 位遊客要搭乘高山纜車，每台纜車規定坐 8 人。請問至少需要幾台纜車才夠？',
+                    calc: '34 ÷ 8 = 4 ... 2', explain: '4 台纜車載了 32 人，剩下的 2 人也要搭乘。', conclusion: '必須多準備 1 台纜車。答案是：5 台纜車', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', icon: '🚠'
+                },
+                {
+                    title: '裁製緞帶 (餘數去尾法)', desc: '有一條長 25 公尺的緞帶，每 3 公尺剪成一段來包裝禮物。最多可以剪出幾段？',
+                    calc: '25 ÷ 3 = 8 ... 1', explain: '剪出 8 段後，剩下 1 公尺，不夠包裝一個禮物。', conclusion: '剩下的緞帶無法使用。答案是：最多 8 段', bgColor: 'bg-pink-50', borderColor: 'border-pink-200', icon: '🎀'
+                }
+            ];
+            return (
+                <div className="grid md:grid-cols-2 gap-8 animate-fade-in">
+                    {scenarios.map((sc, i) => (
+                        <div key={i} className={`rounded-3xl p-8 border-4 shadow-sm flex flex-col ${sc.bgColor} ${sc.borderColor}`}>
+                            <div className="text-6xl mb-4">{sc.icon}</div>
+                            <h3 className="text-2xl font-bold text-slate-800 mb-4">{sc.title}</h3>
+                            <p className="text-slate-700 text-lg mb-6 flex-1 leading-relaxed">{sc.desc}</p>
+                            <div className="bg-white p-4 rounded-xl shadow-inner mb-4 text-center border border-slate-100">
+                                <p className="font-mono text-xl font-bold text-indigo-700 mb-2">{sc.calc}</p>
+                                <p className="text-slate-600 text-sm font-medium">{sc.explain}</p>
+                            </div>
+                            <p className="font-bold text-lg text-slate-800 border-t-2 border-slate-200/50 pt-4 text-center mt-auto">💡 {sc.conclusion}</p>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        function LifeProblemBuilder() {
+            const [total, setTotal] = useState('');
+            const [divisor, setDivisor] = useState('');
+            const [type, setType] = useState('partitive');
+            const [itemObj, setItemObj] = useState(JSON.stringify({ name: '糖果', emoji: '🍬', unit: '顆' }));
+            const [targetObj, setTargetObj] = useState(JSON.stringify({ name: '朋友', emoji: '👦', unit: '人' }));
+            const [validateMsg, setValidateMsg] = useState(null);
+            const [solution, setSolution] = useState(null);
+
+            const items = [
+                { name: '糖果', emoji: '🍬', unit: '顆' }, { name: '蘋果', emoji: '🍎', unit: '顆' },
+                { name: '金幣', emoji: '💰', unit: '枚' }, { name: '貼紙', emoji: '🌟', unit: '張' },
+                { name: '積木', emoji: '🧱', unit: '塊' }, { name: '餅乾', emoji: '🍪', unit: '片' }
+            ];
+            const partitiveTargets = [
+                { name: '朋友', emoji: '👦', unit: '人' }, { name: '學生', emoji: '👧', unit: '人' },
+                { name: '小狗', emoji: '🐶', unit: '隻' }, { name: '箱子', emoji: '📦', unit: '個' }
+            ];
+            const quotitiveTargets = [
+                { name: '袋', emoji: '🛍️', unit: '袋' }, { name: '盒', emoji: '🎁', unit: '盒' },
+                { name: '箱', emoji: '📦', unit: '箱' }, { name: '包', emoji: '🎒', unit: '包' }
+            ];
+
+            useEffect(() => {
+                if (type === 'partitive') setTargetObj(JSON.stringify(partitiveTargets[0]));
+                else setTargetObj(JSON.stringify(quotitiveTargets[0]));
+            }, [type]);
+
+            const handleCheck = () => {
+                const t = parseInt(total); const d = parseInt(divisor);
+                if (isNaN(t) || isNaN(d)) { setValidateMsg({ ok: false, text: '請輸入有效的數字！' }); return; }
+                if (t <= 0 || d <= 0) { setValidateMsg({ ok: false, text: '數量不能是 0 或負數喔！' }); return; }
+                if (d > t) { setValidateMsg({ ok: false, text: '除數大於總量了，這樣根本分不了喔，請修改！' }); return; }
+                if (t > 500) { setValidateMsg({ ok: false, text: '數字太大了（超過500），請出適合三年級的題目！' }); return; }
+
+                setValidateMsg({ ok: true, text: '題目很合理！請看下方的解答與圖解：' });
+                setSolution({ q: Math.floor(t / d), r: t % d, t, d });
+            };
+
+            const parsedItem = JSON.parse(itemObj);
+            const parsedTarget = JSON.parse(targetObj);
+
+            return (
+                // 套用 focus-container
+                <div className="bg-white p-8 rounded-3xl shadow-sm border-2 border-slate-200 animate-fade-in focus-container">
+                    <h2 className="text-2xl font-bold text-indigo-800 mb-6 flex items-center gap-2"><span>⚙️</span> 第一步：設定你的題目</h2>
+
+                    <div className="space-y-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <div className="flex flex-wrap items-center gap-4 text-lg">
+                            <label className="font-bold text-slate-600">我有</label>
+                            {/* 自動聚焦 */}
+                            <input autoFocus onKeyDown={handleEnterFocusNext} type="number" value={total} onChange={e => { setTotal(e.target.value); setSolution(null); }} className="w-24 p-2 border-2 rounded-lg text-center font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="總數" />
+                            <label className="font-bold text-slate-600">個 (或張/片/枚)</label>
+                            {/* 加入 Enter 導航到 Select */}
+                            <select onKeyDown={handleEnterFocusNext} value={itemObj} onChange={e => { setItemObj(e.target.value); setSolution(null); }} className="p-2 border-2 rounded-lg font-bold bg-white outline-none focus:border-indigo-500">
+                                {items.map(item => <option key={item.name} value={JSON.stringify(item)}>{item.emoji} {item.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 text-lg">
+                            <label className="font-bold text-slate-600">我想要</label>
+                            {/* 加入 Enter 導航到 Select */}
+                            <select onKeyDown={handleEnterFocusNext} value={type} onChange={e => { setType(e.target.value); setSolution(null); }} className="p-2 border-2 rounded-lg font-bold bg-indigo-50 text-indigo-800 outline-none focus:border-indigo-500">
+                                <option value="partitive">平均分給</option>
+                                <option value="quotitive">每幾個裝成一</option>
+                            </select>
+
+                            {type === 'partitive' ? (
+                                <React.Fragment>
+                                    {/* Enter 導航 */}
+                                    <input type="number" onKeyDown={handleEnterFocusNext} value={divisor} onChange={e => { setDivisor(e.target.value); setSolution(null); }} className="w-24 p-2 border-2 rounded-lg text-center font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="條件" />
+                                    <label className="font-bold text-slate-600">個 (或隻/位)</label>
+                                    {/* 加入 Enter 導航到 Select */}
+                                    <select onKeyDown={handleEnterFocusNext} value={targetObj} onChange={e => { setTargetObj(e.target.value); setSolution(null); }} className="p-2 border-2 rounded-lg font-bold bg-white outline-none focus:border-indigo-500">
+                                        {partitiveTargets.map(t => <option key={t.name} value={JSON.stringify(t)}>{t.emoji} {t.name}</option>)}
+                                    </select>
+                                </React.Fragment>
+                            ) : (
+                                <React.Fragment>
+                                    {/* 加入 Enter 導航到 Select */}
+                                    <select onKeyDown={handleEnterFocusNext} value={targetObj} onChange={e => { setTargetObj(e.target.value); setSolution(null); }} className="p-2 border-2 rounded-lg font-bold bg-white outline-none focus:border-indigo-500">
+                                        {quotitiveTargets.map(t => <option key={t.name} value={JSON.stringify(t)}>{t.emoji} {t.name}</option>)}
+                                    </select>
+                                    <label className="font-bold text-slate-600">，每{parsedTarget.name}有</label>
+                                    {/* Enter 導航 */}
+                                    <input type="number" onKeyDown={handleEnterFocusNext} value={divisor} onChange={e => { setDivisor(e.target.value); setSolution(null); }} className="w-24 p-2 border-2 rounded-lg text-center font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="條件" />
+                                    <label className="font-bold text-slate-600">{parsedItem.unit}</label>
+                                </React.Fragment>
+                            )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 text-lg font-bold text-slate-700 pt-6 border-t border-slate-200">
+                            請問：<span className="text-indigo-600">{type === 'partitive' ? `每個${parsedTarget.name}分到幾${parsedItem.unit}？剩下幾${parsedItem.unit}？` : `可以裝滿幾${parsedTarget.name}？剩下幾${parsedItem.unit}？`}</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 text-center">
+                        {/* 這裡的按鈕也會被自動 Focus 到，讓學生可以直接按 Enter 送出 */}
+                        <button onClick={handleCheck} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-4 px-10 rounded-xl shadow-md transition-transform active:scale-95">檢查題目合理性並解題</button>
+                    </div>
+
+                    {validateMsg && (
+                        <div className={`mt-6 p-4 rounded-xl text-center font-bold text-lg border-2 ${validateMsg.ok ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}`}>{validateMsg.text}</div>
+                    )}
+                    {solution && validateMsg?.ok && (
+                        <div className="mt-6 bg-slate-800 text-white p-8 rounded-3xl animate-fade-in shadow-xl">
+                            <h3 className="text-xl font-bold text-amber-400 mb-6 flex items-center gap-2"><span>💡</span> 電腦幫你解出來了：</h3>
+                            <p className="text-4xl font-mono mb-6 text-center tracking-widest bg-slate-900 py-6 rounded-2xl shadow-inner border border-slate-700">
+                                {solution.t} ÷ {solution.d} = <span className="text-green-400">{solution.q}</span> ... <span className="text-red-400">{solution.r}</span>
+                            </p>
+                            <p className="text-xl text-center font-medium leading-relaxed">
+                                {type === 'partitive'
+                                    ? `每個${parsedTarget.name}分到 ${solution.q} ${parsedItem.unit}，還剩下 ${solution.r} ${parsedItem.unit}不夠分。`
+                                    : `可以裝滿 ${solution.q} ${parsedTarget.name}，還剩下 ${solution.r} ${parsedItem.unit}不夠裝。`}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 6. 主題四：素養大挑戰
+        // ==========================================
+        function ThemeChallenge() {
+            const [gameState, setGameState] = useState('start');
+            const [questions, setQuestions] = useState([]);
+            const [currentQIdx, setCurrentQIdx] = useState(0);
+            const [score, setScore] = useState(0);
+
+            const [equations, setEquations] = useState([{ id: Date.now(), v1: '', op: '÷', v2: '' }]);
+            const [ans, setAns] = useState({ q: '', qUnit: '', r: '', rUnit: '' });
+            const [feedback, setFeedback] = useState(null);
+
+            const generateQuestions = useCallback(() => {
+                const qs = [];
+                for (let i = 0; i < 5; i++) {
+                    const level = i + 1;
+                    let steps = 1; let noiseCount = 0;
+
+                    if (level === 1) { steps = 1; noiseCount = 0; }
+                    else if (level === 2) {
+                        if (Math.random() > 0.5) { steps = 1; noiseCount = 1; } else { steps = 2; noiseCount = 0; }
+                    }
+                    else if (level === 3) {
+                        if (Math.random() > 0.5) { steps = 1; noiseCount = 2; } else { steps = 2; noiseCount = 1; }
+                    }
+                    else if (level === 4) {
+                        if (Math.random() > 0.5) { steps = 2; noiseCount = 2; } else { steps = 3; noiseCount = 1; }
+                    }
+                    else if (level === 5) {
+                        if (Math.random() > 0.5) { steps = 2; noiseCount = 3; } else { steps = 3; noiseCount = 2; }
+                    }
+
+                    const subject = PCG_DATA.subjects[Math.floor(Math.random() * PCG_DATA.subjects.length)];
+                    const item = PCG_DATA.items[Math.floor(Math.random() * PCG_DATA.items.length)];
+                    const isPartitive = Math.random() > 0.5;
+
+                    const divisor = Math.floor(Math.random() * 6) + 3;
+                    const quotient = Math.floor(Math.random() * 8) + 2;
+                    const remainder = Math.floor(Math.random() * divisor);
+                    const total = divisor * quotient + remainder;
+
+                    let storySentences = [];
+                    if (steps === 1) {
+                        storySentences.push(`${subject}收集了 ${total} ${item.unit}${item.name}。`);
+                    } else if (steps === 2) {
+                        const p1 = Math.floor(total / 2) + Math.floor(Math.random() * 3);
+                        const p2 = total - p1;
+                        storySentences.push(`${subject}原本有 ${p1} ${item.unit}${item.name}。`);
+                        storySentences.push(`後來又得到了 ${p2} ${item.unit}${item.name}。`);
+                    } else if (steps === 3) {
+                        const p1 = Math.floor(total / 3); const p2 = Math.floor(total / 3); const p3 = total - p1 - p2;
+                        storySentences.push(`${subject}第一天收集了 ${p1} ${item.unit}${item.name}。`);
+                        storySentences.push(`第二天找到了 ${p2} ${item.unit}${item.name}。`);
+                        storySentences.push(`第三天又得到了 ${p3} ${item.unit}${item.name}。`);
+                    }
+
+                    const shuffledNoises = [...PCG_DATA.noises].sort(() => 0.5 - Math.random());
+                    const selectedNoises = shuffledNoises.slice(0, noiseCount);
+
+                    let combinedSentences = [...storySentences];
+                    for (let noise of selectedNoises) {
+                        const insertIdx = Math.floor(Math.random() * (combinedSentences.length + 1));
+                        combinedSentences.splice(insertIdx, 0, noise);
+                    }
+                    const storyBase = combinedSentences.join('');
+
+                    let text = ''; let correctQUnit, correctRUnit;
+                    const container = PCG_DATA.containers[Math.floor(Math.random() * PCG_DATA.containers.length)];
+
+                    if (isPartitive) {
+                        text = `今天是特別的日子。${storyBase}他想要把這些${item.name}平均分給 ${divisor} 個人。請問每個人可以分到多少？還會剩下多少？`;
+                        correctQUnit = item.unit; correctRUnit = item.unit;
+                    } else {
+                        text = `${storyBase}他打算每 ${divisor} ${item.unit}${item.name}${container.action}一${container.unit}${container.name}。請問最多可以裝滿幾${container.unit}？還會剩下多少？`;
+                        correctQUnit = container.unit; correctRUnit = item.unit;
+                    }
+
+                    const baseUnits = [item.unit, container.unit, '人', '元'];
+                    const uniqueUnits = Array.from(new Set(baseUnits));
+                    if (!uniqueUnits.includes(correctQUnit)) uniqueUnits.push(correctQUnit);
+                    if (!uniqueUnits.includes(correctRUnit)) uniqueUnits.push(correctRUnit);
+                    uniqueUnits.sort(() => Math.random() - 0.5);
+
+                    qs.push({
+                        id: i, level, total, divisor, quotient, remainder, text,
+                        correctQUnit, correctRUnit, unitOptions: uniqueUnits
+                    });
+                }
+                setQuestions(qs); setCurrentQIdx(0); setScore(0); setGameState('playing'); resetInputs();
+            }, []);
+
+            const resetInputs = () => {
+                setEquations([{ id: Date.now(), v1: '', op: '÷', v2: '' }]);
+                setAns({ q: '', qUnit: '', r: '', rUnit: '' });
+                setFeedback(null);
+            };
+
+            const addEquation = () => {
+                setEquations([...equations, { id: Date.now(), v1: '', op: '÷', v2: '' }]);
+                // 利用 setTimeout 確保在 React 渲染新 DOM 節點後進行自動聚焦
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('.eq-v1-input');
+                    if (inputs.length > 0) {
+                        inputs[inputs.length - 1].focus();
+                    }
+                }, 50);
+            };
+
+            const removeEquation = (idToRemove) => { if (equations.length > 1) setEquations(equations.filter(eq => eq.id !== idToRemove)); };
+            const updateEquation = (id, field, value) => setEquations(equations.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
+
+            const computeResult = (v1, op, v2) => {
+                const n1 = parseInt(v1); const n2 = parseInt(v2);
+                if (isNaN(n1) || isNaN(n2)) return '?';
+                if (op === '+') return n1 + n2;
+                if (op === '-') return n1 - n2;
+                if (op === '×') return n1 * n2;
+                if (op === '÷') {
+                    if (n2 === 0) return '除數不能為0';
+                    return `商 ${Math.floor(n1 / n2)} 餘 ${n1 % n2}`;
+                }
+                return '?';
+            };
+
+            const submitAnswer = () => {
+                if (feedback) return;
+                const q = questions[currentQIdx];
+                const userQ = parseInt(ans.q); const userR = parseInt(ans.r) || 0;
+
+                let errors = [];
+                if (userQ !== q.quotient || userR !== q.remainder) errors.push('最終數字計算錯誤');
+                if (ans.qUnit !== q.correctQUnit) errors.push('答案單位選錯了');
+                if (ans.rUnit !== q.correctRUnit) errors.push('餘數單位選錯了');
+
+                if (errors.length === 0) {
+                    setFeedback({ ok: true, msg: '太厲害了！列式、計算與單位完全正確！' }); setScore(s => s + 20);
+                } else {
+                    setFeedback({ ok: false, msg: `答錯囉！(${errors.join('、')})\n\n正確解析：\n總共數量是 ${q.total}，除以 ${q.divisor}。\n正確算式：${q.total} ÷ ${q.divisor} = ${q.quotient} ... ${q.remainder}\n正確單位：答案是「${q.correctQUnit}」，餘數是「${q.correctRUnit}」。` });
+                }
+            };
+
+            const nextQuestion = () => {
+                if (currentQIdx < 4) { setCurrentQIdx(c => c + 1); resetInputs(); } else setGameState('end');
+            };
+
+            if (gameState === 'start') {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in">
+                        <div className="text-8xl md:text-9xl mb-6 drop-shadow-md">⚔️</div>
+                        <h2 className="text-3xl md:text-4xl font-black text-purple-800 mb-6">魔王關卡：素養大挑戰</h2>
+                        <div className="text-base md:text-lg text-slate-700 mb-8 max-w-2xl bg-white p-6 md:p-8 rounded-3xl shadow-sm border-2 border-purple-200 text-left space-y-4">
+                            <p className="flex gap-2"><span>📌</span> <span>此挑戰共有 5 題，<strong>難度將逐題提升（1 星到 5 星）</strong>！</span></p>
+                            <p className="flex gap-2"><span>📌</span> <span><strong>星等說明：</strong>難度星星代表「干擾資訊數」加上「算式步驟數」。例如 5 顆星可能會有 3 句廢話加上 2 步加減法！</span></p>
+                            <p className="flex gap-2"><span>📌</span> <span><strong>你不用自己算！</strong>善用「算式小幫手」，讓電腦幫你算出每一步結果，最後填入正確解答與單位即可。</span></p>
+                        </div>
+                        <button onClick={generateQuestions} className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xl md:text-2xl py-4 px-12 rounded-full shadow-xl transition-transform active:scale-95">接受挑戰</button>
+                    </div>
+                );
+            }
+
+            if (gameState === 'end') {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in">
+                        <div className="text-[100px] md:text-[120px] mb-6 drop-shadow-lg">{score >= 80 ? '👑' : '💪'}</div>
+                        <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-2">挑戰結束！</h2>
+                        <p className="text-xl md:text-2xl text-slate-600 mb-10 font-medium">你的素養總分是：<span className="text-5xl font-black text-purple-600 mx-2">{score}</span> 分</p>
+                        <button onClick={generateQuestions} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-4 px-10 rounded-full shadow-lg transition-transform active:scale-95">再戰一次</button>
+                    </div>
+                );
+            }
+
+            const q = questions[currentQIdx];
+
+            return (
+                <div className="animate-fade-in flex flex-col h-full">
+                    <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-purple-200 text-purple-900 font-bold px-4 py-2 rounded-full shadow-sm text-sm">第 {currentQIdx + 1} / 5 題</span>
+                            <span className="bg-amber-100 text-amber-800 font-bold px-4 py-2 rounded-full border border-amber-300 shadow-sm text-sm flex items-center gap-1">
+                                難度：<span className="tracking-widest">{'⭐'.repeat(q.level)}</span>
+                            </span>
+                        </div>
+                        <span className="font-bold text-slate-600 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200 text-sm">目前分數：{score}</span>
+                    </div>
+
+                    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border-l-8 border-purple-500 mb-6">
+                        <p className="text-lg md:text-xl leading-relaxed font-medium text-slate-800">{q.text}</p>
+                    </div>
+
+                    {/* 套用 focus-container 包覆整個操作區 */}
+                    <div className="flex flex-col xl:flex-row gap-6 pb-10 focus-container">
+                        {/* 左側：算式小幫手區 */}
+                        <div className="bg-indigo-50 p-6 rounded-3xl border-2 border-indigo-200 flex-1 shadow-inner flex flex-col">
+                            <h3 className="text-xl font-black text-indigo-900 mb-4 flex items-center gap-2 border-b border-indigo-200 pb-2">
+                                <span>🧮</span> 算式區 (交給電腦算)
+                            </h3>
+
+                            <div className="space-y-4 mb-6">
+                                {equations.map((eq, index) => (
+                                    <div key={eq.id} className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl shadow-sm border border-indigo-100">
+                                        <span className="font-black text-indigo-300 w-5">{index + 1}.</span>
+                                        {/* 第一個輸入框設定 autoFocus 且支援 Enter 導航 */}
+                                        <input autoFocus={index === 0} onKeyDown={handleEnterFocusNext} type="number" value={eq.v1} onChange={(e) => updateEquation(eq.id, 'v1', e.target.value)} disabled={feedback != null} className="eq-v1-input w-16 md:w-20 p-2 rounded-lg border-2 border-slate-200 focus:border-indigo-500 text-center text-lg font-bold bg-slate-50 outline-none" />
+
+                                        {/* 加入 Enter 導航到 Select */}
+                                        <select onKeyDown={handleEnterFocusNext} value={eq.op} onChange={(e) => updateEquation(eq.id, 'op', e.target.value)} disabled={feedback != null} className="p-2 rounded-lg border-2 border-slate-200 focus:border-indigo-500 text-lg font-bold bg-slate-100 outline-none">
+                                            <option value="+">+</option><option value="-">-</option><option value="×">×</option><option value="÷">÷</option>
+                                        </select>
+
+                                        {/* 第二個輸入框支援 Enter 導航 */}
+                                        <input type="number" onKeyDown={handleEnterFocusNext} value={eq.v2} onChange={(e) => updateEquation(eq.id, 'v2', e.target.value)} disabled={feedback != null} className="w-16 md:w-20 p-2 rounded-lg border-2 border-slate-200 focus:border-indigo-500 text-center text-lg font-bold bg-slate-50 outline-none" />
+
+                                        <span className="font-bold text-xl text-slate-400 mx-1">=</span>
+                                        <div className="bg-indigo-100 px-4 py-2 rounded-lg border border-indigo-200 min-w-[100px] text-center font-bold text-indigo-800 text-lg shadow-inner">
+                                            {computeResult(eq.v1, eq.op, eq.v2)}
+                                        </div>
+                                        {equations.length > 1 && !feedback && (
+                                            <button onClick={() => removeEquation(eq.id)} className="ml-auto text-red-400 hover:text-red-600 font-bold px-2 text-xl transition-colors">✖</button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {!feedback && (
+                                <button onClick={addEquation} className="text-indigo-700 font-bold hover:text-indigo-900 flex items-center justify-center gap-2 bg-indigo-200/50 hover:bg-indigo-200 px-4 py-3 rounded-xl transition-colors mt-auto border border-dashed border-indigo-300">
+                                    <span>➕</span> 新增一步算式
+                                </button>
+                            )}
+                        </div>
+
+                        {/* 右側：最終作答區 */}
+                        <div className="bg-green-50 p-6 rounded-3xl border-2 border-green-200 flex-1 flex flex-col shadow-inner">
+                            <h3 className="text-xl font-black text-green-900 mb-4 flex items-center gap-2 border-b border-green-200 pb-2">
+                                <span>🎯</span> 作答區 (請填入最終結果)
+                            </h3>
+
+                            <div className="bg-white p-6 rounded-2xl border border-green-100 shadow-sm flex flex-col gap-5 mb-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                    <span className="font-bold text-slate-700 w-16">答案：</span>
+                                    <div className="flex items-center gap-2 flex-1">
+                                        {/* Enter 導航 */}
+                                        <input type="number" onKeyDown={handleEnterFocusNext} value={ans.q} onChange={e => setAns({ ...ans, q: e.target.value })} disabled={feedback != null} className="w-24 p-3 rounded-lg border-2 border-green-300 text-center font-bold text-lg focus:border-green-500 bg-slate-50 outline-none" />
+                                        {/* 加入 Enter 導航到 Select */}
+                                        <select onKeyDown={handleEnterFocusNext} value={ans.qUnit} onChange={e => setAns({ ...ans, qUnit: e.target.value })} disabled={feedback != null} className="flex-1 p-3 rounded-lg border-2 border-green-300 bg-slate-50 font-bold text-green-800 focus:border-green-500 outline-none">
+                                            <option value="">選擇單位</option>
+                                            {/* 優化：只載入該題目有意義的干擾單位 */}
+                                            {q.unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                    <span className="font-bold text-slate-700 w-16">剩下：</span>
+                                    <div className="flex items-center gap-2 flex-1">
+                                        {/* Enter 導航 */}
+                                        <input type="number" onKeyDown={handleEnterFocusNext} value={ans.r} onChange={e => setAns({ ...ans, r: e.target.value })} disabled={feedback != null} className="w-24 p-3 rounded-lg border-2 border-red-300 text-center font-bold text-lg focus:border-red-500 bg-slate-50 outline-none" placeholder="0" />
+                                        {/* 加入 Enter 導航到 Select */}
+                                        <select onKeyDown={handleEnterFocusNext} value={ans.rUnit} onChange={e => setAns({ ...ans, rUnit: e.target.value })} disabled={feedback != null} className="flex-1 p-3 rounded-lg border-2 border-red-300 bg-slate-50 font-bold text-red-800 focus:border-red-500 outline-none">
+                                            <option value="">選擇單位</option>
+                                            {/* 優化：只載入該題目有意義的干擾單位 */}
+                                            {q.unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {!feedback ? (
+                                <button onClick={submitAnswer} disabled={!ans.q || !ans.qUnit || !ans.rUnit} className="mt-auto bg-green-600 disabled:bg-slate-300 disabled:text-slate-500 hover:bg-green-700 text-white font-bold text-xl py-4 rounded-xl shadow-md transition-transform active:scale-95">
+                                    確定送出
+                                </button>
+                            ) : (
+                                <div className="mt-auto w-full text-center animate-fade-in flex flex-col">
+                                    <div className={`p-5 rounded-2xl mb-5 text-left font-bold whitespace-pre-wrap border-2 ${feedback.ok ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-50 text-red-800 border-red-300 shadow-inner'}`}>
+                                        {feedback.msg}
+                                    </div>
+                                    <button onClick={nextQuestion} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-4 rounded-xl shadow-lg transition-transform active:scale-95">
+                                        {currentQIdx < 4 ? '下一題 ➔' : '查看成績 ➔'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 掛載 React 應用程式
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

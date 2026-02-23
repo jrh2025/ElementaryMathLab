@@ -110,5 +110,14 @@ window.MATH_TOOLS_DATA = [
     "link": "9nine.html",
     "icon": "BrickWall",
     "color": "blue"
+  },
+  {
+    "id": "tool_1771819660111",
+    "title": "除法探險家(三年級)",
+    "grade": "三年級",
+    "description": "三年級「素養導向除法學習平台」。涵蓋視覺圖解、互動拖曳建模、情境沙盒命題，及結合程序化生成(PCG)的動態素養挑戰。透過智能UX引導學生由具體操作邁向抽象列式，降低認知負荷，深化數學建模邏輯。",
+    "link": "division_3g.html",
+    "icon": "Divide",
+    "color": "indigo"
   }
 ];
