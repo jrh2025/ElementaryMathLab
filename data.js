@@ -119,5 +119,14 @@ window.MATH_TOOLS_DATA = [
     "link": "division_3g.html",
     "icon": "Divide",
     "color": "indigo"
+  },
+  {
+    "id": "tool_1771902313157",
+    "title": "除法探險家(四年級)_餘數的命運決定",
+    "grade": "四年級",
+    "description": "讓四年級生掌握「餘數的命運（進一與捨去法）」。\n以電腦代算與全鍵盤導航減輕運算負擔；結合資訊降噪與多步動態題庫訓練邏輯；並導入鷹架重測機制，答錯時以提示引導反思。徹底協助學童擺脫死板計算，專注培養解決生活情境的數學決策力！",
+    "link": "division_4g.html",
+    "icon": "Divide",
+    "color": "rose"
   }
 ];

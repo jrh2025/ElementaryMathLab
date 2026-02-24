@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>除法探險家(四年級) - 餘數的命運決定 | 國小數學互動教學實驗室</title>
+
+    <!-- 載入 React, ReactDOM, Babel, Tailwind -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* 擴充自訂動畫 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .animate-slide-in {
+            animation: slideInRight 0.4s ease-out forwards;
+        }
+
+        @keyframes bounce-subtle {
+
+            0%,
+            100% {
+                transform: translateY(-5%);
+            }
+
+            50% {
+                transform: translateY(0);
+            }
+        }
+
+        .animate-bounce-subtle {
+            animation: bounce-subtle 2s infinite;
+        }
+
+        @keyframes pulse-subtle {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.02);
+            }
+        }
+
+        .animate-pulse {
+            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* 隱藏原生捲軸 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            overflow: hidden;
+        }
+
+        /* 玻璃擬態背景 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 font-sans antialiased h-screen w-screen">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // ==========================================
+        // 共用 UX 工具：方向鍵與 Enter 鍵的無縫欄位切換
+        // ==========================================
+        const handleKeyNavigation = (e) => {
+            const isSelect = e.target.tagName.toLowerCase() === 'select';
+            const isButton = e.target.tagName.toLowerCase() === 'button';
+
+            // 1. 若為下拉選單，保留上下左右鍵的原生選項切換功能，僅用 Enter 跳至下一格
+            if (isSelect && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                return;
+            }
+
+            // 2. 若為按鈕，保留 Enter 與空白鍵的原生點擊觸發功能
+            if (isButton && (e.key === 'Enter' || e.key === ' ')) {
+                return;
+            }
+
+            let direction = 0;
+            if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                direction = 1;
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                direction = -1;
+            }
+
+            if (direction !== 0) {
+                e.preventDefault(); // 阻止原生的數值增減或游標位移
+
+                const container = e.target.closest('.focus-container') || document.body;
+                const focusableStr = 'input:not([disabled]), select:not([disabled]), button:not([disabled])';
+                const elements = Array.from(container.querySelectorAll(focusableStr));
+                const index = elements.indexOf(e.target);
+
+                if (direction === 1 && index > -1 && index < elements.length - 1) {
+                    elements[index + 1].focus();
+                } else if (direction === -1 && index > 0) {
+                    elements[index - 1].focus();
+                }
+            }
+        };
+
+        // ==========================================
+        // 1. 資料庫與設定 (Data & Configuration for 4th Grade)
+        // ==========================================
+        const MISSIONS = [
+            {
+                id: 1, type: 'partitive', fate: 'roundUp', title: '任務一：校外教學搭車 (進一法)',
+                story: [
+                    { text: '學校舉辦校外教學，共有 ', isNoise: false }, { text: '250 位學生', isNoise: false, isKey: true }, { text: '參加。', isNoise: false },
+                    { text: '今天天氣很好，大家都帶了零食。', isNoise: true },
+                    { text: '如果', isNoise: false }, { text: '每 8 人搭乘一輛小巴士', isNoise: false, highlight: true }, { text: '，', isNoise: false },
+                    { text: '請問', isNoise: false }, { text: '至少要叫幾輛小巴士', isNoise: false, highlight: true }, { text: '才夠？', isNoise: false },
+                ],
+                total: 250, divisor: 8, quotient: 31, remainder: 2, finalAns: 32,
+                itemEmoji: '👨‍🎓', containerEmoji: '🚌', itemUnit: '人', containerUnit: '輛',
+                fateQuestion: '算出來剩下 2 個人，這 2 個人可以丟在路邊不搭車嗎？',
+                fateAction: '不行，他們也要搭車！所以必須多叫 1 輛車。',
+                calcHint: '31 + 1 = 32'
+            },
+            {
+                id: 2, type: 'quotitive', fate: 'truncate', title: '任務二：包裝精美禮物 (捨去法)',
+                story: [
+                    { text: '文具店有一捲長 ', isNoise: false }, { text: '100 公分的絲帶', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '這捲絲帶是紅色的，售價 50 元。', isNoise: true },
+                    { text: '店員想要包裝禮物，', isNoise: false }, { text: '每 30 公分可以做成一個蝴蝶結', isNoise: false, highlight: true }, { text: '。', isNoise: false },
+                    { text: '請問這捲絲帶', isNoise: false }, { text: '最多可以做成幾個', isNoise: false, highlight: true }, { text: '完整的蝴蝶結？', isNoise: false },
+                ],
+                total: 100, divisor: 30, quotient: 3, remainder: 10, finalAns: 3,
+                itemEmoji: '🎀', containerEmoji: '🎁', itemUnit: '公分', containerUnit: '個',
+                fateQuestion: '算出來剩下 10 公分的絲帶，這 10 公分夠不夠再做一個完整的蝴蝶結？',
+                fateAction: '不夠！所以剩下的絲帶只能捨棄不用。',
+                calcHint: '維持 3 個'
+            },
+            {
+                id: 3, type: 'partitive', fate: 'roundUp', title: '任務三：露營分配帳篷 (進一法)',
+                story: [
+                    { text: '童軍團有 ', isNoise: false }, { text: '135 位隊員', isNoise: false, isKey: true }, { text: '要去露營。', isNoise: false },
+                    { text: '每個隊員都帶了睡袋和手電筒。', isNoise: true },
+                    { text: '規定', isNoise: false }, { text: '每 6 人睡一頂帳篷', isNoise: false, highlight: true }, { text: '，', isNoise: false },
+                    { text: '為了讓大家都', isNoise: false }, { text: '有地方睡', isNoise: false, highlight: true }, { text: '，請問要準備幾頂帳篷？', isNoise: false },
+                ],
+                total: 135, divisor: 6, quotient: 22, remainder: 3, finalAns: 23,
+                itemEmoji: '🏕️', containerEmoji: '⛺', itemUnit: '人', containerUnit: '頂',
+                fateQuestion: '剩下的 3 個人沒有帳篷睡怎麼辦？',
+                fateAction: '必須再多搭 1 頂帳篷給他們！',
+                calcHint: '22 + 1 = 23'
+            },
+            {
+                id: 4, type: 'quotitive', fate: 'truncate', title: '任務四：購買限量圖書 (捨去法)',
+                story: [
+                    { text: '圖書館獲得了 ', isNoise: false }, { text: '500 元的補助金', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '館長今年 50 歲，非常喜歡看書。', isNoise: true },
+                    { text: '他想購買一套科學百科，', isNoise: false }, { text: '每一本要 120 元', isNoise: false, highlight: true }, { text: '。', isNoise: false },
+                    { text: '請問這筆錢', isNoise: false }, { text: '最多可以買幾本', isNoise: false, highlight: true }, { text: '百科全書？', isNoise: false },
+                ],
+                total: 500, divisor: 120, quotient: 4, remainder: 20, finalAns: 4,
+                itemEmoji: '🪙', containerEmoji: '📚', itemUnit: '元', containerUnit: '本',
+                fateQuestion: '買了 4 本後剩下 20 元，這 20 元夠不夠再買一本 120 元的書？',
+                fateAction: '錢不夠了！只能買 4 本，剩下的錢收起來。',
+                calcHint: '維持 4 本'
+            },
+            {
+                id: 5, type: 'quotitive', fate: 'truncate', title: '任務五：超級採購 (捨去法)',
+                story: [
+                    { text: '學校撥了 ', isNoise: false }, { text: '1500 元的經費', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '這筆經費是家長會特別贊助的。', isNoise: true },
+                    { text: '體育老師要買躲避球，', isNoise: false }, { text: '每顆躲避球 180 元', isNoise: false, highlight: true }, { text: '。', isNoise: false },
+                    { text: '請問這些錢', isNoise: false }, { text: '最多可以買幾顆', isNoise: false, highlight: true }, { text: '躲避球？', isNoise: false },
+                ],
+                total: 1500, divisor: 180, quotient: 8, remainder: 60, finalAns: 8,
+                itemEmoji: '💰', containerEmoji: '🏐', itemUnit: '元', containerUnit: '顆',
+                fateQuestion: '買了 8 顆後剩下 60 元，這 60 元夠不夠再買一顆 180 元的躲避球？',
+                fateAction: '不夠！所以剩下的錢只能存起來，不能再買。',
+                calcHint: '維持 8 顆'
+            },
+            {
+                id: 6, type: 'partitive', fate: 'roundUp', title: '任務六：蘋果大出貨 (進一法)',
+                story: [
+                    { text: '果園今年大豐收，總共採收了 ', isNoise: false }, { text: '845 顆蘋果', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '果園裡還有種植橘子和水蜜桃。', isNoise: true },
+                    { text: '農夫要把它們裝箱，', isNoise: false }, { text: '每 36 顆裝成一箱', isNoise: false, highlight: true }, { text: '。', isNoise: false },
+                    { text: '為了把蘋果', isNoise: false }, { text: '全部都運送出去', isNoise: false, highlight: true }, { text: '，至少需要準備幾個紙箱？', isNoise: false },
+                ],
+                total: 845, divisor: 36, quotient: 23, remainder: 17, finalAns: 24,
+                itemEmoji: '🍎', containerEmoji: '📦', itemUnit: '顆', containerUnit: '個',
+                fateQuestion: '裝滿 23 箱後，還剩下 17 顆蘋果，這 17 顆蘋果可以不賣嗎？',
+                fateAction: '不行，全部都要出貨！所以這 17 顆也需要用 1 個紙箱裝起來。',
+                calcHint: '23 + 1 = 24'
+            },
+            {
+                id: 7, type: 'quotitive', fate: 'truncate', title: '任務七：分裝鮮奶 (捨去法)',
+                story: [
+                    { text: '牧場今天生產了 ', isNoise: false }, { text: '2500 毫升的鮮奶', isNoise: false, isKey: true }, { text: '。', isNoise: false },
+                    { text: '牧場裡養了 50 頭健康的乳牛。', isNoise: true },
+                    { text: '工人要將鮮奶分裝到瓶子裡，', isNoise: false }, { text: '每個瓶子可以裝 350 毫升', isNoise: false, highlight: true }, { text: '。', isNoise: false },
+                    { text: '請問這些鮮奶', isNoise: false }, { text: '最多可以裝滿幾瓶', isNoise: false, highlight: true }, { text: '？', isNoise: false },
+                ],
+                total: 2500, divisor: 350, quotient: 7, remainder: 50, finalAns: 7,
+                itemEmoji: '🥛', containerEmoji: '🍼', itemUnit: '毫升', containerUnit: '瓶',
+                fateQuestion: '裝滿 7 瓶後，剩下 50 毫升的鮮奶，這 50 毫升能算作「裝滿」的一瓶嗎？',
+                fateAction: '不能！因為題目問的是「裝滿」，所以剩下的鮮奶不能算作一瓶。',
+                calcHint: '維持 7 瓶'
+            },
+            {
+                id: 8, type: 'partitive', fate: 'roundUp', title: '任務八：大型晚宴桌數 (進一法)',
+                story: [
+                    { text: '社區舉辦歲末大型晚宴，共有 ', isNoise: false }, { text: '450 位賓客', isNoise: false, isKey: true }, { text: '報名。', isNoise: false },
+                    { text: '晚宴的菜色非常豐富，共有 10 道佳餚。', isNoise: true },
+                    { text: '餐廳的圓桌', isNoise: false }, { text: '每桌可以坐 12 人', isNoise: false, highlight: true }, { text: '。', isNoise: false },
+                    { text: '為了讓所有賓客都', isNoise: false }, { text: '有位子坐', isNoise: false, highlight: true }, { text: '，主辦單位至少要訂幾桌？', isNoise: false },
+                ],
+                total: 450, divisor: 12, quotient: 37, remainder: 6, finalAns: 38,
+                itemEmoji: '🧑‍🤝‍🧑', containerEmoji: '🍽️', itemUnit: '人', containerUnit: '桌',
+                fateQuestion: '安排了 37 桌後，還剩下 6 位賓客，這 6 位賓客可以站著吃飯嗎？',
+                fateAction: '不行，大家都要有位子坐！所以必須為他們多訂 1 桌。',
+                calcHint: '37 + 1 = 38'
+            }
+        ];
+
+        // 隨機題庫生成資料 (採用專屬函數生成流暢且符合語意的句子)
+        const PCG_DATA = {
+            roundUp: [
+                {
+                    subject: '物流司機', itemNoun: '貨物', totalMin: 150, totalMax: 600, divMin: 15, divMax: 40,
+                    unitItem: '箱', unitContainer: '趟', containerName: '卡車',
+                    getStep1: (t) => [`物流公司有 ${t} 箱貨物需要運送。`],
+                    getStep2: (p1, p2) => [`物流公司原本有 ${p1} 箱貨物，`, `後來又接到 ${p2} 箱的訂單。`],
+                    getStep3: (p1, p2, p3) => [`物流公司早上收到 ${p1} 箱貨物，`, `下午收到 ${p2} 箱，`, `晚上又追加了 ${p3} 箱。`],
+                    getRule: (d) => `如果一趟卡車最多只能載 ${d} 箱貨物。`,
+                    kw: '至少要載幾趟才載得完'
+                },
+                {
+                    subject: '老師', itemNoun: '學生', totalMin: 80, totalMax: 300, divMin: 6, divMax: 15,
+                    unitItem: '名', unitContainer: '組', containerName: '組別',
+                    getStep1: (t) => [`學校有 ${t} 名學生要進行戶外闖關。`],
+                    getStep2: (p1, p2) => [`四年級原本有 ${p1} 名學生參加，`, `後來三年級又加入了 ${p2} 名學生。`],
+                    getStep3: (p1, p2, p3) => [`甲班有 ${p1} 名學生，`, `乙班有 ${p2} 名學生，`, `丙班有 ${p3} 名學生要一起參與活動。`],
+                    getRule: (d) => `規定每 ${d} 名學生必須分成一組。`,
+                    kw: '至少要分幾組才能讓每個人都有組別'
+                },
+                {
+                    subject: '果農', itemNoun: '蘋果', totalMin: 300, totalMax: 900, divMin: 25, divMax: 50,
+                    unitItem: '顆', unitContainer: '個', containerName: '紙箱',
+                    getStep1: (t) => [`果園採收了 ${t} 顆蘋果需要裝箱。`],
+                    getStep2: (p1, p2) => [`果農上午採了 ${p1} 顆蘋果，`, `下午又採了 ${p2} 顆。`],
+                    getStep3: (p1, p2, p3) => [`第一區採了 ${p1} 顆蘋果，`, `第二區採了 ${p2} 顆，`, `第三區採了 ${p3} 顆。`],
+                    getRule: (d) => `每個紙箱最多可以裝 ${d} 顆蘋果。`,
+                    kw: '全部裝完至少需要準備幾個紙箱'
+                }
+            ],
+            truncate: [
+                {
+                    subject: '糕點師傅', itemNoun: '麵粉', totalMin: 500, totalMax: 2000, divMin: 60, divMax: 200,
+                    unitItem: '克', unitContainer: '個', containerName: '蛋糕',
+                    getStep1: (t) => [`糕點師傅準備了 ${t} 克麵粉要烤蛋糕。`],
+                    getStep2: (p1, p2) => [`廚房裡原本有 ${p1} 克麵粉，`, `後來又買了 ${p2} 克。`],
+                    getStep3: (p1, p2, p3) => [`師傅先拿出了 ${p1} 克麵粉，`, `助手又找出了 ${p2} 克，`, `最後又拆了一包 ${p3} 克的麵粉。`],
+                    getRule: (d) => `烤一個完整的蛋糕需要用掉 ${d} 克麵粉。`,
+                    kw: '最多可以烤出幾個完整的蛋糕'
+                },
+                {
+                    subject: '裁縫師', itemNoun: '布料', totalMin: 200, totalMax: 800, divMin: 45, divMax: 100,
+                    unitItem: '公分', unitContainer: '件', containerName: '衣服',
+                    getStep1: (t) => [`裁縫師有 ${t} 公分的布料用來做衣服。`],
+                    getStep2: (p1, p2) => [`倉庫裡有一塊 ${p1} 公分的布料，`, `後來又進貨了 ${p2} 公分。`],
+                    getStep3: (p1, p2, p3) => [`裁縫師找到了三塊布料，`, `分別是 ${p1} 公分、`, `${p2} 公分和 ${p3} 公分。`],
+                    getRule: (d) => `做一件完整的衣服需要剪裁 ${d} 公分的布料。`,
+                    kw: '最多可以做幾件完整的衣服'
+                },
+                {
+                    subject: '小智', itemNoun: '零用錢', totalMin: 300, totalMax: 1500, divMin: 35, divMax: 120,
+                    unitItem: '元', unitContainer: '個', containerName: '文具盒',
+                    getStep1: (t) => [`小智存了 ${t} 元的零用錢要去文具店。`],
+                    getStep2: (p1, p2) => [`小智的撲滿裡有 ${p1} 元，`, `過年時又拿到了 ${p2} 元的紅包。`],
+                    getStep3: (p1, p2, p3) => [`小智第一個月存了 ${p1} 元，`, `第二個月存了 ${p2} 元，`, `第三個月又存了 ${p3} 元。`],
+                    getRule: (d) => `文具店裡一個文具盒賣 ${d} 元。`,
+                    kw: '最多可以買幾個文具盒'
+                }
+            ],
+            // 干擾資訊全部替換為與題目金錢、數量不衝突的敘述
+            noises: [
+                '他的幸運數字是 7。', '旁邊有 3 隻可愛的貓咪在睡覺。', '他今年剛滿 45 歲。',
+                '這件事情預計要花 2 小時才能完成。', '今天早上 8 點下了一場大雨。', '他家裡養了 5 條金魚。',
+                '這棟大樓有 12 層樓高。', '今天的氣溫高達 32 度。', '他昨天跑了 800 公尺的操場。'
+            ]
+        };
+
+        // 單一題目生成器 (支援重測時使用相同配置)
+        const generateSingleQuestion = (level, forcedFateType = null) => {
+            let steps = 1; let noiseCount = 0;
+            if (level === 1) { steps = 1; noiseCount = 1; }
+            else if (level === 2) { steps = 2; noiseCount = 1; }
+            else if (level === 3) { steps = 2; noiseCount = 2; }
+            else if (level === 4) { steps = 3; noiseCount = 2; }
+            else if (level === 5) { steps = 3; noiseCount = 3; }
+
+            const fateType = forcedFateType || (Math.random() > 0.5 ? 'roundUp' : 'truncate');
+            const templatePool = PCG_DATA[fateType];
+            const tmpl = templatePool[Math.floor(Math.random() * templatePool.length)];
+
+            const divisor = Math.floor(Math.random() * (tmpl.divMax - tmpl.divMin)) + tmpl.divMin;
+            const total = Math.floor(Math.random() * (tmpl.totalMax - tmpl.totalMin)) + tmpl.totalMin;
+
+            const quotient = Math.floor(total / divisor);
+            const remainder = total % divisor;
+
+            let finalAns = quotient;
+            if (fateType === 'roundUp' && remainder > 0) finalAns = quotient + 1;
+
+            let storySentences = [];
+            if (steps === 1) {
+                storySentences = tmpl.getStep1(total);
+            } else if (steps === 2) {
+                const p1 = Math.floor(total / 2) + Math.floor(Math.random() * 50);
+                const p2 = total - p1;
+                storySentences = tmpl.getStep2(p1, p2);
+            } else if (steps === 3) {
+                const p1 = Math.floor(total / 3);
+                const p2 = Math.floor(total / 3);
+                const p3 = total - p1 - p2;
+                storySentences = tmpl.getStep3(p1, p2, p3);
+            }
+
+            const shuffledNoises = [...PCG_DATA.noises].sort(() => 0.5 - Math.random());
+            const selectedNoises = shuffledNoises.slice(0, noiseCount);
+
+            let combinedSentences = [...storySentences];
+            for (let noise of selectedNoises) {
+                const insertIdx = Math.floor(Math.random() * (combinedSentences.length + 1));
+                combinedSentences.splice(insertIdx, 0, noise);
+            }
+
+            const ruleText = tmpl.getRule(divisor);
+            const text = combinedSentences.join('') + ruleText + `請問，${tmpl.kw}？`;
+
+            return {
+                id: Date.now() + Math.random(),
+                level, fateType, text, total, divisor, quotient, remainder, finalAns,
+                unitContainer: tmpl.unitContainer, unitItem: tmpl.unitItem, ruleText: ruleText, containerName: tmpl.containerName
+            };
+        };
+
+        // ==========================================
+        // 2. 主應用程式 (App Router & Sidebar Layout)
+        // ==========================================
+        function App() {
+            const [theme, setTheme] = useState('missions');
+
+            const menuItems = [
+                { id: 'guide', icon: '📖', title: '除法秘笈', desc: '進一法與捨去法的觀念' },
+                { id: 'missions', icon: '🎯', title: '任務挑戰', desc: '降噪、計算與餘數判斷' },
+                { id: 'life', icon: '🌍', title: '生活情境', desc: '情境範例與自訂出題機' },
+                { id: 'challenge', icon: '⚔️', title: '素養大挑戰', desc: '綜合情境題驗收' },
+            ];
+
+            return (
+                <div className="flex flex-col md:flex-row h-full w-full bg-slate-100 font-sans text-slate-800 overflow-hidden">
+                    {/* Sidebar */}
+                    <div className="w-full md:w-72 lg:w-80 bg-teal-900 text-white flex flex-col shadow-2xl z-20 flex-shrink-0">
+                        <div className="p-6 bg-teal-950 shadow-md relative overflow-hidden">
+                            <div className="absolute top-0 right-0 opacity-10 text-6xl transform translate-x-4 -translate-y-4">⚖️</div>
+                            <h1 className="text-xl lg:text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500 drop-shadow-sm leading-tight">
+                                餘數的命運決定
+                            </h1>
+                            <p className="text-teal-200 text-xs mt-2 font-bold tracking-wide">四年級 | 除法與素養應用</p>
+                        </div>
+
+                        <nav className="flex-1 overflow-y-auto py-2 md:py-6 flex md:flex-col overflow-x-auto md:overflow-x-hidden hide-scrollbar">
+                            {menuItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setTheme(item.id)}
+                                    className={`flex-shrink-0 md:w-full text-left px-5 lg:px-6 py-4 flex flex-col transition-all border-b-4 md:border-b-0 md:border-l-4 relative group ${theme === item.id
+                                        ? 'bg-teal-800 border-amber-400'
+                                        : 'border-transparent hover:bg-teal-800/60'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <span className="text-2xl drop-shadow-sm">{item.icon}</span>
+                                        <span className={`font-bold text-base lg:text-lg whitespace-nowrap ${theme === item.id ? 'text-white' : 'text-teal-100 group-hover:text-white'}`}>
+                                            {item.title}
+                                        </span>
+                                    </div>
+                                    <span className={`text-xs md:pl-9 hidden md:block ${theme === item.id ? 'text-teal-200' : 'text-teal-300/70 group-hover:text-teal-200'}`}>
+                                        {item.desc}
+                                    </span>
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50">
+                        <header className="glass-panel p-4 md:px-8 md:py-5 shadow-sm z-10 flex items-center border-b border-slate-200 sticky top-0">
+                            <h2 className="text-2xl md:text-3xl font-black text-slate-800 flex items-center gap-3">
+                                <span>{menuItems.find(i => i.id === theme)?.icon}</span>
+                                {menuItems.find(i => i.id === theme)?.title}
+                            </h2>
+                        </header>
+
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
+                            <div key={theme} className="max-w-5xl mx-auto h-full pb-10">
+                                {theme === 'guide' && <ThemeGuide />}
+                                {theme === 'missions' && <ThemeMissions />}
+                                {theme === 'life' && <ThemeLife />}
+                                {theme === 'challenge' && <ThemeChallenge />}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 3. 主題一：除法秘笈 (進一 vs 捨去)
+        // ==========================================
+        function ThemeGuide() {
+            return (
+                <div className="animate-fade-in space-y-8">
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <h2 className="bg-sky-100 text-sky-800 text-2xl font-black p-4 px-6 border-b border-sky-200 flex items-center gap-2">
+                            <span>⬆️</span> 命運一：進一法 (大家都不能少)
+                        </h2>
+                        <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center">
+                            <div className="flex-1">
+                                <p className="text-slate-700 text-lg mb-4 leading-relaxed">
+                                    當題目要求「<span className="font-bold text-red-500">全部都要裝下</span>」或問「<span className="font-bold text-red-500">至少要多少才夠</span>」時，我們必須照顧到餘數。
+                                </p>
+                                <div className="bg-sky-50 p-4 rounded-xl border border-sky-100 mb-4">
+                                    <h4 className="font-bold text-sky-800 mb-2">🎈 情境範例：25 人搭車，1 輛車坐 4 人</h4>
+                                    <p className="font-mono text-lg font-bold text-slate-700">25 ÷ 4 = 6 ... 1</p>
+                                    <p className="text-sm text-slate-600 mt-2">商 6 代表坐滿 6 輛車，餘數 1 代表剩下 1 個人。</p>
+                                </div>
+                                <div className="bg-amber-100 border-l-4 border-amber-500 p-4 rounded-r-xl">
+                                    <p className="font-bold text-amber-900">思考：剩下的 1 個人可以不搭車嗎？</p>
+                                    <p className="text-amber-800 text-sm mt-1">不行！所以必須多叫 1 輛車。答案是 <span className="font-black text-lg">6 + 1 = 7 (輛)</span></p>
+                                </div>
+                            </div>
+                            <div className="text-center w-full md:w-1/3">
+                                <div className="text-6xl mb-4 animate-bounce-subtle">🚐🏃</div>
+                                <span className="inline-block bg-sky-600 text-white font-bold px-4 py-2 rounded-full shadow-md">商 + 1</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <h2 className="bg-pink-100 text-pink-800 text-2xl font-black p-4 px-6 border-b border-pink-200 flex items-center gap-2">
+                            <span>✂️</span> 命運二：捨去法 / 去尾法 (不夠做一個)
+                        </h2>
+                        <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center">
+                            <div className="text-center w-full md:w-1/3 order-2 md:order-1">
+                                <div className="text-6xl mb-4 animate-bounce-subtle">🎀✂️</div>
+                                <span className="inline-block bg-pink-600 text-white font-bold px-4 py-2 rounded-full shadow-md">維持商不變</span>
+                            </div>
+                            <div className="flex-1 order-1 md:order-2">
+                                <p className="text-slate-700 text-lg mb-4 leading-relaxed">
+                                    當題目問「<span className="font-bold text-red-500">最多可以做幾個完整的...</span>」時，如果剩下的材料不夠做成一個完整的成品，我們只能放棄它。
+                                </p>
+                                <div className="bg-pink-50 p-4 rounded-xl border border-pink-100 mb-4">
+                                    <h4 className="font-bold text-pink-800 mb-2">🎈 情境範例：25 公分緞帶，4 公分做一個蝴蝶結</h4>
+                                    <p className="font-mono text-lg font-bold text-slate-700">25 ÷ 4 = 6 ... 1</p>
+                                    <p className="text-sm text-slate-600 mt-2">商 6 代表可以做 6 個，餘數 1 代表剩下 1 公分。</p>
+                                </div>
+                                <div className="bg-slate-100 border-l-4 border-slate-400 p-4 rounded-r-xl">
+                                    <p className="font-bold text-slate-700">思考：剩下的 1 公分夠不夠再做一個蝴蝶結？</p>
+                                    <p className="text-slate-600 text-sm mt-1">不夠！所以只能丟棄或收起來。答案是 <span className="font-black text-lg">6 (個)</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 4. 主題二：任務挑戰
+        // ==========================================
+        function ThemeMissions() {
+            const [currentIdx, setCurrentIdx] = useState(null);
+            const [step, setStep] = useState(0);
+            const [crossedOut, setCrossedOut] = useState([]);
+
+            const startProblem = (idx) => {
+                setCurrentIdx(idx);
+                setCrossedOut(Array(MISSIONS[idx].story.length).fill(false));
+                setStep(1);
+            };
+            const nextStep = () => setStep(s => s + 1);
+
+            if (step === 0) {
+                return (
+                    <div className="animate-fade-in">
+                        <div className="bg-teal-50 p-6 rounded-2xl border border-teal-100 mb-8 flex flex-col md:flex-row gap-4 justify-between items-center shadow-inner">
+                            <div>
+                                <h3 className="text-xl font-bold text-teal-900 mb-2">四年級運算試煉：</h3>
+                                <p className="text-teal-700 font-medium text-sm">先找出關鍵數字，計算商和餘數，最後決定餘數的命運！</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {MISSIONS.map((p, idx) => (
+                                <button key={p.id} onClick={() => startProblem(idx)} className="bg-white p-6 rounded-2xl shadow-sm border-2 border-slate-200 hover:border-teal-500 hover:shadow-lg transition-all text-left flex items-center gap-6 group">
+                                    <div className="text-6xl group-hover:scale-110 transition-transform bg-slate-50 p-4 rounded-2xl">{p.containerEmoji}</div>
+                                    <div className="flex-1">
+                                        <span className={`text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block shadow-inner ${p.fate === 'roundUp' ? 'bg-sky-100 text-sky-800' : 'bg-pink-100 text-pink-800'}`}>
+                                            {p.fate === 'roundUp' ? '進一法' : '捨去法'}
+                                        </span>
+                                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-teal-700 transition-colors">{p.title}</h3>
+                                    </div>
+                                    <div className="text-slate-300 group-hover:text-teal-500 font-bold text-2xl">➔</div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            const problem = MISSIONS[currentIdx];
+
+            return (
+                <div className="flex flex-col h-full animate-fade-in relative pb-10">
+                    <button onClick={() => setStep(0)} className="absolute top-0 right-0 text-slate-400 hover:text-slate-600 font-bold bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm transition-colors z-10 flex items-center gap-1">
+                        <span>✖</span> <span>返回選單</span>
+                    </button>
+
+                    <div className="w-full pt-4">
+                        {step === 1 && <DenoiseStep problem={problem} initialSelections={crossedOut} onComplete={(sel) => { setCrossedOut(sel); nextStep(); }} />}
+                        {step === 2 && <CalculateStep problem={problem} crossedOut={crossedOut} onComplete={nextStep} />}
+                        {step === 3 && <FateDecisionStep problem={problem} crossedOut={crossedOut} onComplete={nextStep} />}
+                        {step === 4 && (
+                            <div className="text-center py-20 animate-fade-in bg-white rounded-3xl shadow-lg border-4 border-amber-300 mt-8 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-amber-50 to-white opacity-50"></div>
+                                <div className="relative z-10">
+                                    <div className="text-8xl mb-6 drop-shadow-md">🏆</div>
+                                    <h2 className="text-4xl font-black text-amber-600 mb-4">判斷正確！任務過關！</h2>
+                                    <p className="text-xl text-slate-600 mb-8 font-medium">你成功掌握了「餘數的命運」！</p>
+                                    <button onClick={() => setStep(0)} className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition-transform active:scale-95">
+                                        挑戰下一個情境
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function ProblemText({ story, crossedOut, interactive = false, onToggle = null }) {
+            return (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border-l-8 border-teal-500 mb-6">
+                    <div className="text-lg md:text-xl leading-relaxed font-medium select-none">
+                        {story.map((part, idx) => {
+                            const isCrossed = crossedOut[idx];
+                            return (
+                                <span key={idx} onClick={() => interactive && onToggle(idx)} className={`
+                                    transition-all duration-200 px-1 py-1 rounded-lg mx-0.5 inline-block mb-1 leading-snug
+                                    ${interactive ? 'cursor-pointer hover:bg-teal-50' : ''}
+                                    ${isCrossed ? 'bg-slate-200 text-slate-400 line-through decoration-red-500 decoration-4 opacity-60' : 'text-slate-800'}
+                                    ${part.highlight && !isCrossed ? 'bg-amber-100 border-b-4 border-amber-400 font-bold' : ''}
+                                    ${part.isKey && !isCrossed ? 'text-teal-800 font-black bg-teal-50 px-2' : ''}
+                                `}>
+                                    {part.text}
+                                </span>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        function DenoiseStep({ problem, initialSelections, onComplete }) {
+            const [selections, setSelections] = useState(initialSelections);
+            const [errorMsg, setErrorMsg] = useState("");
+
+            const toggleSelection = (idx) => {
+                const newSel = [...selections];
+                newSel[idx] = !newSel[idx];
+                setSelections(newSel);
+                setErrorMsg("");
+            };
+
+            const checkAnswers = () => {
+                const isCorrect = problem.story.every((part, idx) => (part.isNoise ? selections[idx] : !selections[idx]));
+                if (isCorrect) onComplete(selections);
+                else setErrorMsg("仔細看喔！請點擊劃掉「與數字計算無關」的干擾資訊！");
+            };
+
+            return (
+                <div className="animate-fade-in mt-4">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span className="bg-slate-800 text-white w-8 h-8 flex items-center justify-center rounded-full text-sm">1</span>
+                        步驟一：資訊降噪 (找出廢話)
+                    </h2>
+                    <ProblemText story={problem.story} crossedOut={selections} interactive={true} onToggle={toggleSelection} />
+                    {errorMsg && <p className="text-red-600 font-bold mb-4 animate-bounce-subtle text-center bg-red-50 py-3 rounded-lg border border-red-200">{errorMsg}</p>}
+                    <div className="focus-container">
+                        <button onKeyDown={handleKeyNavigation} onClick={checkAnswers} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold text-xl py-4 rounded-xl shadow-md transition-transform active:scale-95">確認並進入算式列式 ➔</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function CalculateStep({ problem, crossedOut, onComplete }) {
+            const [vals, setVals] = useState({ v1: '', v2: '', v3: '', v4: '' });
+            const [errorMsg, setErrorMsg] = useState('');
+
+            // 讓電腦幫忙算的功能
+            const autoCalculate = () => {
+                const v1 = parseInt(vals.v1);
+                const v2 = parseInt(vals.v2);
+                if (v1 === problem.total && v2 === problem.divisor) {
+                    setVals({ ...vals, v3: problem.quotient.toString(), v4: problem.remainder.toString() });
+                    setErrorMsg('');
+                } else {
+                    setErrorMsg("請先填寫正確的「被除數」與「除數」，電腦才能幫你算喔！");
+                }
+            };
+
+            const check = () => {
+                const v1 = parseInt(vals.v1); const v2 = parseInt(vals.v2);
+                const v3 = parseInt(vals.v3); const v4 = parseInt(vals.v4) || 0;
+                if (v1 === problem.total && v2 === problem.divisor && v3 === problem.quotient && v4 === problem.remainder) {
+                    onComplete();
+                } else {
+                    if (v1 !== problem.total || v2 !== problem.divisor) setErrorMsg("總數或除數填錯囉！請看題目上標記的數字。");
+                    else setErrorMsg("計算錯誤！請重新計算 商 和 餘數。");
+                }
+            };
+
+            return (
+                <div className="animate-slide-in flex flex-col h-full mt-4">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span className="bg-slate-800 text-white w-8 h-8 flex items-center justify-center rounded-full text-sm">2</span>
+                        步驟二：列出除法算式
+                    </h2>
+                    <ProblemText story={problem.story} crossedOut={crossedOut} />
+
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border-2 border-slate-200 flex flex-col items-center focus-container">
+                        <div className="bg-teal-50 px-6 py-2 rounded-lg mb-8 text-teal-800 font-bold border border-teal-100 flex items-center gap-2">
+                            <span>📝</span> 讀取關鍵資訊，請填寫多位數除法結果：
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 mb-8 text-2xl font-black text-slate-700 w-full">
+                            <div className="flex flex-col items-center">
+                                <input autoFocus type="number" onKeyDown={handleKeyNavigation} value={vals.v1} onChange={e => setVals({ ...vals, v1: e.target.value })} className="w-20 md:w-24 h-16 md:h-20 text-center border-4 border-slate-200 rounded-xl md:rounded-2xl focus:border-teal-500 bg-slate-50 outline-none" />
+                                <span className="text-sm text-slate-500 mt-2 font-bold">被除數</span>
+                            </div>
+                            <span className="mb-6">÷</span>
+                            <div className="flex flex-col items-center">
+                                <input type="number" onKeyDown={handleKeyNavigation} value={vals.v2} onChange={e => setVals({ ...vals, v2: e.target.value })} className="w-20 md:w-24 h-16 md:h-20 text-center border-4 border-slate-200 rounded-xl md:rounded-2xl focus:border-teal-500 bg-slate-50 outline-none" />
+                                <span className="text-sm text-slate-500 mt-2 font-bold">除數</span>
+                            </div>
+                            <span className="mb-6">=</span>
+                            <div className="flex flex-col items-center">
+                                <input type="number" onKeyDown={handleKeyNavigation} value={vals.v3} onChange={e => setVals({ ...vals, v3: e.target.value })} className="w-20 md:w-24 h-16 md:h-20 text-center border-4 border-sky-300 rounded-xl md:rounded-2xl focus:border-sky-500 bg-sky-50 text-sky-700 outline-none" />
+                                <span className="text-sm text-sky-600 mt-2 font-bold">商</span>
+                            </div>
+                            <span className="mb-6 tracking-widest text-slate-400">...</span>
+                            <div className="flex flex-col items-center">
+                                <input type="number" onKeyDown={handleKeyNavigation} value={vals.v4} onChange={e => setVals({ ...vals, v4: e.target.value })} placeholder="0" className="w-20 md:w-24 h-16 md:h-20 text-center border-4 border-pink-300 rounded-xl md:rounded-2xl focus:border-pink-500 bg-pink-50 text-pink-600 outline-none" />
+                                <span className="text-sm font-bold text-pink-600 mt-2">餘數</span>
+                            </div>
+                        </div>
+
+                        {errorMsg && <p className="text-red-500 font-bold mb-6 bg-red-50 px-4 py-3 rounded-lg border border-red-200 shadow-sm">{errorMsg}</p>}
+
+                        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto mt-2">
+                            <button onKeyDown={handleKeyNavigation} onClick={autoCalculate} className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-xl py-3 px-8 rounded-full shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2">
+                                <span>💻</span> 讓電腦幫我算
+                            </button>
+                            <button onKeyDown={handleKeyNavigation} onClick={check} className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xl py-3 px-16 rounded-full shadow-md transition-transform active:scale-95 flex items-center justify-center">
+                                檢查算式 ➔
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function FateDecisionStep({ problem, crossedOut, onComplete }) {
+            const [finalAns, setFinalAns] = useState('');
+            const [errorMsg, setErrorMsg] = useState('');
+            const [showHint, setShowHint] = useState(false);
+
+            const isRoundUp = problem.fate === 'roundUp';
+
+            const check = () => {
+                if (parseInt(finalAns) === problem.finalAns) {
+                    onComplete();
+                } else {
+                    setErrorMsg("不對喔！請仔細想一想餘數的命運。");
+                    setShowHint(true);
+                }
+            };
+
+            return (
+                <div className="animate-slide-in flex flex-col h-full mt-4">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span className="bg-amber-500 text-white w-8 h-8 flex items-center justify-center rounded-full text-sm shadow-md">3</span>
+                        步驟三：餘數的命運決定！
+                    </h2>
+
+                    {/* 需求2: 保留題目，方便對照 */}
+                    <ProblemText story={problem.story} crossedOut={crossedOut} />
+
+                    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-md border-2 border-amber-300 flex flex-col items-center focus-container relative overflow-hidden">
+
+                        {/* 算式回顧 */}
+                        <div className="bg-slate-100 px-6 py-4 rounded-xl w-full text-center border border-slate-200 mb-6">
+                            <p className="text-sm text-slate-500 font-bold mb-1">剛剛的計算結果：</p>
+                            <p className="font-mono text-2xl font-black text-slate-800">
+                                {problem.total} ÷ {problem.divisor} = {problem.quotient} <span className="text-sm text-slate-500 mx-1">({problem.containerUnit})</span> ... <span className="text-pink-600 bg-pink-100 px-2 rounded">{problem.remainder}</span> <span className="text-sm text-slate-500">({problem.itemUnit})</span>
+                            </p>
+                        </div>
+
+                        {/* 情境對話框 */}
+                        <div className="flex w-full gap-4 items-start mb-6 bg-amber-50 p-6 rounded-2xl border border-amber-200 shadow-inner">
+                            <div className="text-5xl bg-white p-2 rounded-full shadow-sm">{problem.itemEmoji}</div>
+                            <div className="flex-1">
+                                <h4 className="font-black text-amber-900 text-lg mb-2">關鍵提問：</h4>
+                                <p className="text-lg text-amber-800 font-medium leading-relaxed">
+                                    {problem.fateQuestion}
+                                </p>
+                                {showHint && (
+                                    <div className="mt-4 p-3 bg-white rounded-lg border-l-4 border-amber-400 animate-fade-in text-slate-700 font-bold text-sm">
+                                        💡 提示：{problem.fateAction}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* 最終決策 */}
+                        <div className="flex flex-col items-center justify-center gap-4 w-full pt-6 border-t border-slate-100 mt-2">
+                            <span className="text-xl font-bold text-slate-700">所以，根據題目情境，最終答案是：</span>
+
+                            {isRoundUp ? (
+                                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 bg-sky-50 px-6 py-4 rounded-2xl border-2 border-sky-200 mt-2 w-full max-w-2xl">
+                                    <span className="text-xl font-bold text-sky-800">進一法列式：</span>
+                                    <span className="text-3xl font-black text-slate-700">{problem.quotient}</span>
+                                    <span className="text-3xl font-black text-sky-600">+</span>
+                                    <span className="text-3xl font-black text-sky-600">1</span>
+                                    <span className="text-3xl font-black text-slate-400">=</span>
+                                    <div className="flex items-center gap-2">
+                                        <input autoFocus type="number" onKeyDown={handleKeyNavigation} value={finalAns} onChange={e => setFinalAns(e.target.value)} className="w-24 p-3 border-4 border-amber-300 rounded-xl text-center text-2xl font-black focus:border-amber-500 bg-white outline-none shadow-inner text-amber-900" />
+                                        <span className="text-xl font-bold text-slate-600">{problem.containerUnit}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 bg-pink-50 px-6 py-4 rounded-2xl border-2 border-pink-200 mt-2 w-full max-w-2xl">
+                                    <span className="text-xl font-bold text-pink-800">捨去法列式：</span>
+                                    <span className="text-xl font-bold text-slate-500">維持原本的商</span>
+                                    <span className="text-3xl font-black text-slate-700">{problem.quotient}</span>
+                                    <span className="text-3xl font-black text-slate-400">=</span>
+                                    <div className="flex items-center gap-2">
+                                        <input autoFocus type="number" onKeyDown={handleKeyNavigation} value={finalAns} onChange={e => setFinalAns(e.target.value)} className="w-24 p-3 border-4 border-amber-300 rounded-xl text-center text-2xl font-black focus:border-amber-500 bg-white outline-none shadow-inner text-amber-900" />
+                                        <span className="text-xl font-bold text-slate-600">{problem.containerUnit}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {errorMsg && <p className="text-red-500 font-bold mt-6 bg-red-50 px-4 py-2 rounded-lg">{errorMsg}</p>}
+
+                        <button onKeyDown={handleKeyNavigation} onClick={check} className="mt-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xl py-4 px-16 rounded-full shadow-lg transition-transform active:scale-95 w-full md:w-auto">
+                            送出最終答案！
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 5. 主題三：生活情境 (動態範例 & 出題機)
+        // ==========================================
+        function ThemeLife() {
+            const [mode, setMode] = useState('read'); // 'read' or 'create'
+
+            return (
+                <div className="animate-fade-in focus-container">
+                    <div className="flex justify-center gap-4 mb-8 bg-white p-2 rounded-full shadow-sm border border-slate-200 w-max mx-auto">
+                        <button onKeyDown={handleKeyNavigation} onClick={() => setMode('read')} className={`px-6 py-3 rounded-full font-bold transition-all ${mode === 'read' ? 'bg-amber-500 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-100'}`}>
+                            📖 閱讀情境範例
+                        </button>
+                        <button onKeyDown={handleKeyNavigation} onClick={() => setMode('create')} className={`px-6 py-3 rounded-full font-bold transition-all ${mode === 'create' ? 'bg-amber-500 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-100'}`}>
+                            ✍️ 小小出題家
+                        </button>
+                    </div>
+                    {mode === 'read' ? <LifeScenarios /> : <LifeProblemBuilder />}
+                </div>
+            );
+        }
+
+        // 5-1. 生活情境：動態範例
+        function LifeScenarios() {
+            const scenarios = [
+                {
+                    type: 'roundUp', title: '【進一法】搭乘遊覽車', icon: '🚌',
+                    desc: '學校有 250 位師生要參加戶外教學，一輛遊覽車最多只能坐 40 人。為了讓大家都能去，總共需要叫幾輛車？',
+                    calc: '250 ÷ 40 = 6 ... 10',
+                    explainCalc: '商數 6 代表可以坐滿 6 輛車。餘數 10 代表還剩下 10 個人沒有位子。',
+                    fateQuestion: '這剩下的 10 個人可以不去戶外教學嗎？',
+                    fateAction: '不行，大家都要去！所以必須為他們多叫 1 輛車。',
+                    finalAns: '6 + 1 = 7 (輛)'
+                },
+                {
+                    type: 'truncate', title: '【捨去法】採購筆記本', icon: '📓',
+                    desc: '老師獲得了 500 元的班級經費，一本筆記本賣 120 元。請問這筆經費最多可以買幾本筆記本當作獎品？',
+                    calc: '500 ÷ 120 = 4 ... 20',
+                    explainCalc: '商數 4 代表可以買 4 本。餘數 20 代表還剩下 20 元。',
+                    fateQuestion: '剩下的 20 元夠不夠再買一本 120 元的筆記本？',
+                    fateAction: '不夠！所以剩下的錢只能存起來。',
+                    finalAns: '維持 4 (本)'
+                },
+                {
+                    type: 'roundUp', title: '【進一法】裝箱出貨', icon: '📦',
+                    desc: '果農採收了 845 顆頂級蘋果，規定每 36 顆裝成一個禮盒出貨。為了把蘋果全部運送出去，至少需要準備幾個紙箱？',
+                    calc: '845 ÷ 36 = 23 ... 17',
+                    explainCalc: '商數 23 代表可以裝滿 23 個紙箱。餘數 17 代表還剩下 17 顆蘋果沒裝。',
+                    fateQuestion: '剩下的 17 顆蘋果可以不賣嗎？',
+                    fateAction: '不行，頂級蘋果全部都要出貨！所以這 17 顆也需要用 1 個新紙箱裝起來。',
+                    finalAns: '23 + 1 = 24 (箱)'
+                },
+                {
+                    type: 'truncate', title: '【捨去法】鮮奶裝瓶', icon: '🍼',
+                    desc: '牧場今天生產了 2500 毫升的鮮奶，工人要將鮮奶分裝到瓶子裡，每個瓶子規定要裝滿 350 毫升。最多可以裝滿幾瓶？',
+                    calc: '2500 ÷ 350 = 7 ... 50',
+                    explainCalc: '商數 7 代表可以裝滿 7 瓶。餘數 50 代表還剩下 50 毫升的鮮奶。',
+                    fateQuestion: '剩下的 50 毫升能算作「裝滿」的一瓶嗎？',
+                    fateAction: '不能，因為規定一定要裝滿 350 毫升。所以這 50 毫升不能算進完整的瓶數裡。',
+                    finalAns: '維持 7 (瓶)'
+                }
+            ];
+
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
+                    {scenarios.map((sc, i) => <ScenarioCard key={i} scenario={sc} />)}
+                </div>
+            );
+        }
+
+        function ScenarioCard({ scenario }) {
+            const [step, setStep] = useState(0);
+            const isRoundUp = scenario.type === 'roundUp';
+
+            return (
+                <div className={`bg-white rounded-3xl p-6 border-4 shadow-sm flex flex-col ${isRoundUp ? 'border-sky-200' : 'border-pink-200'} transition-all`}>
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="text-5xl">{scenario.icon}</div>
+                        <h3 className={`text-xl font-black ${isRoundUp ? 'text-sky-800' : 'text-pink-800'}`}>{scenario.title}</h3>
+                    </div>
+
+                    <p className="text-slate-700 text-lg mb-6 leading-relaxed font-medium min-h-[80px]">
+                        {scenario.desc}
+                    </p>
+
+                    <div className="flex-1 flex flex-col gap-4 mb-6">
+                        {step >= 1 && (
+                            <div className={`p-4 rounded-xl border animate-slide-in ${isRoundUp ? 'bg-sky-50 border-sky-100' : 'bg-pink-50 border-pink-100'}`}>
+                                <p className="font-mono text-xl font-black text-slate-800 text-center mb-2">{scenario.calc}</p>
+                                <p className="text-slate-600 text-sm font-medium">{scenario.explainCalc}</p>
+                            </div>
+                        )}
+                        {step >= 2 && (
+                            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 animate-slide-in">
+                                <p className="font-bold text-amber-900 mb-1">🤔 思考：{scenario.fateQuestion}</p>
+                                <p className="text-amber-800 text-sm">{scenario.fateAction}</p>
+                            </div>
+                        )}
+                        {step >= 3 && (
+                            <div className={`p-4 rounded-xl text-center border-2 animate-slide-in ${isRoundUp ? 'bg-sky-600 border-sky-700' : 'bg-pink-600 border-pink-700'}`}>
+                                <span className="text-white font-medium">最終答案：</span>
+                                <span className="text-white font-black text-2xl mx-2 tracking-widest">{scenario.finalAns}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-auto text-center border-t border-slate-100 pt-4">
+                        {step === 0 && <button onKeyDown={handleKeyNavigation} onClick={() => setStep(1)} className={`w-full font-bold py-3 rounded-xl text-white shadow-md active:scale-95 transition-transform ${isRoundUp ? 'bg-sky-500 hover:bg-sky-600' : 'bg-pink-500 hover:bg-pink-600'}`}>1. 進行計算 ➔</button>}
+                        {step === 1 && <button onKeyDown={handleKeyNavigation} onClick={() => setStep(2)} className={`w-full font-bold py-3 rounded-xl text-white shadow-md active:scale-95 transition-transform ${isRoundUp ? 'bg-sky-600 hover:bg-sky-700' : 'bg-pink-600 hover:bg-pink-700'}`}>2. 思考餘數命運 ➔</button>}
+                        {step === 2 && <button onKeyDown={handleKeyNavigation} onClick={() => setStep(3)} className={`w-full font-bold py-3 rounded-xl text-white shadow-md active:scale-95 transition-transform ${isRoundUp ? 'bg-sky-700 hover:bg-sky-800' : 'bg-pink-700 hover:bg-pink-800'}`}>3. 確認最終答案 ✅</button>}
+                        {step === 3 && <button onKeyDown={handleKeyNavigation} onClick={() => setStep(0)} className="text-slate-400 font-bold hover:text-slate-600 text-sm underline">重新看一次</button>}
+                    </div>
+                </div>
+            );
+        }
+
+        // 5-2. 生活情境：自訂出題機
+        function LifeProblemBuilder() {
+            const [total, setTotal] = useState('');
+            const [divisor, setDivisor] = useState('');
+            const [fateType, setFateType] = useState('roundUp');
+
+            const roundUpContexts = [
+                { name: '學生搭巴士', unitItem: '人', containerName: '車', unitContainer: '輛', emoji: '🚌' },
+                { name: '蘋果裝箱子', unitItem: '顆', containerName: '箱子', unitContainer: '個', emoji: '📦' },
+                { name: '旅客住客房', unitItem: '人', containerName: '客房', unitContainer: '間', emoji: '🏨' },
+                { name: '童軍分帳篷', unitItem: '人', containerName: '帳篷', unitContainer: '頂', emoji: '⛺' },
+                { name: '工人搭電梯', unitItem: '人', containerName: '電梯', unitContainer: '部', emoji: '🏢' },
+                { name: '雞蛋裝紙盒', unitItem: '顆', containerName: '雞蛋盒', unitContainer: '個', emoji: '🥚' }
+            ];
+            const truncateContexts = [
+                { name: '緞帶做蝴蝶結', unitItem: '公分', containerName: '蝴蝶結', unitContainer: '個', emoji: '🎀' },
+                { name: '麵粉烤蛋糕', unitItem: '克', containerName: '蛋糕', unitContainer: '個', emoji: '🎂' },
+                { name: '零用錢買好書', unitItem: '元', containerName: '書', unitContainer: '本', emoji: '📚' },
+                { name: '經費買躲避球', unitItem: '元', containerName: '躲避球', unitContainer: '顆', emoji: '🏐' },
+                { name: '鮮奶裝瓶子', unitItem: '毫升', containerName: '瓶子', unitContainer: '瓶', emoji: '🍼' },
+                { name: '毛線織圍巾', unitItem: '公尺', containerName: '圍巾', unitContainer: '條', emoji: '🧣' }
+            ];
+
+            const [contextIdx, setContextIdx] = useState(0);
+            const [result, setResult] = useState(null);
+
+            useEffect(() => { setContextIdx(0); setResult(null); }, [fateType]);
+
+            const activeContexts = fateType === 'roundUp' ? roundUpContexts : truncateContexts;
+            const currentContext = activeContexts[contextIdx];
+
+            const calculate = () => {
+                const t = parseInt(total); const d = parseInt(divisor);
+                if (!t || !d || t <= 0 || d <= 0) return alert('請輸入大於 0 的正確數字！');
+                if (d > t) return alert('條件數字不能大於總數量喔！');
+
+                const q = Math.floor(t / d);
+                const r = t % d;
+                let finalAns = q;
+                if (fateType === 'roundUp' && r > 0) finalAns = q + 1;
+
+                setResult({ q, r, finalAns, t, d });
+            };
+
+            return (
+                <div className="bg-white p-8 rounded-3xl shadow-sm border-2 border-slate-200">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2"><span>⚙️</span> 電腦出題機：看看餘數的變化</h2>
+
+                    <div className="space-y-6 bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200">
+
+                        <div className="flex flex-wrap items-center gap-4 text-lg">
+                            <label className="font-bold text-slate-600">步驟 1：選擇情境類型</label>
+                            <select onKeyDown={handleKeyNavigation} value={fateType} onChange={e => setFateType(e.target.value)} className="p-3 border-2 rounded-xl font-bold bg-white text-indigo-800 outline-none focus:border-indigo-500 shadow-sm">
+                                <option value="roundUp">需要「全部裝完」(進一法)</option>
+                                <option value="truncate">需要「完整成品」(捨去法)</option>
+                            </select>
+
+                            <select onKeyDown={handleKeyNavigation} value={contextIdx} onChange={e => setContextIdx(Number(e.target.value))} className="p-3 border-2 rounded-xl font-bold bg-white outline-none focus:border-indigo-500 shadow-sm">
+                                {activeContexts.map((ctx, idx) => <option key={idx} value={idx}>{ctx.emoji} {ctx.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 text-lg border-t border-slate-200 pt-6">
+                            <label className="font-bold text-slate-600">步驟 2：輸入數字</label>
+                            <span>總共有</span>
+                            <input autoFocus type="number" onKeyDown={handleKeyNavigation} value={total} onChange={e => { setTotal(e.target.value); setResult(null); }} className="w-24 p-2 border-2 rounded-lg text-center font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="總數" />
+                            <span className="font-bold text-slate-700">{currentContext.unitItem}</span>
+
+                            <span>，每</span>
+                            <input type="number" onKeyDown={handleKeyNavigation} value={divisor} onChange={e => { setDivisor(e.target.value); setResult(null); }} className="w-24 p-2 border-2 rounded-lg text-center font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="條件" />
+                            <span className="font-bold text-slate-700">{currentContext.unitItem}</span>
+                            <span>為一{currentContext.unitContainer}{currentContext.containerName}。</span>
+                        </div>
+
+                        <div className="w-full text-center pt-4">
+                            <button onKeyDown={handleKeyNavigation} onClick={calculate} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-3 px-12 rounded-xl shadow-md transition-transform active:scale-95">送出給電腦算</button>
+                        </div>
+                    </div>
+
+                    {result && (
+                        <div className="mt-8 bg-slate-800 text-white p-8 rounded-3xl animate-slide-in shadow-xl relative overflow-hidden">
+                            <div className="absolute -right-10 -bottom-10 opacity-20 text-[150px]">{currentContext.emoji}</div>
+                            <h3 className="text-xl font-bold text-amber-400 mb-6 flex items-center gap-2 relative z-10"><span>💻</span> 電腦解析報告：</h3>
+
+                            <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 mb-6 relative z-10">
+                                <p className="font-mono text-2xl font-black text-center tracking-widest">
+                                    {result.t} ÷ {result.d} = <span className="text-sky-400">{result.q}</span> <span className="text-sm font-sans text-slate-400">({currentContext.unitContainer})</span> ... <span className="text-pink-400">{result.r}</span> <span className="text-sm font-sans text-slate-400">({currentContext.unitItem})</span>
+                                </p>
+                            </div>
+
+                            <div className="space-y-4 relative z-10">
+                                <p className="text-lg flex items-start gap-2">
+                                    <span className="text-slate-400 mt-1">📌</span>
+                                    <span>商代表可以滿 <strong className="text-sky-300">{result.q} {currentContext.unitContainer}</strong>{currentContext.containerName}。餘數代表剩下 <strong className="text-pink-300">{result.r} {currentContext.unitItem}</strong>。</span>
+                                </p>
+                                <div className={`p-4 rounded-xl border-l-4 ${fateType === 'roundUp' ? 'bg-sky-900/50 border-sky-400' : 'bg-pink-900/50 border-pink-400'}`}>
+                                    <p className="font-bold mb-1 text-amber-200">⚖️ 命運判定：</p>
+                                    <p className="text-lg">
+                                        {fateType === 'roundUp'
+                                            ? (result.r > 0 ? `因為要求「全部處理完」，剩下的 ${result.r} ${currentContext.unitItem} 也需要 1 ${currentContext.unitContainer}${currentContext.containerName}，所以要 ${result.q} + 1 = ${result.finalAns}。` : '因為剛剛好分完沒有餘數，所以不需要加 1。')
+                                            : (result.r > 0 ? `因為要求「完整」，剩下的 ${result.r} ${currentContext.unitItem} 不夠做一個新的，只能捨棄。所以維持 ${result.finalAns} ${currentContext.unitContainer}。` : '因為剛剛好分完沒有餘數，沒有剩下材料。')
+                                        }
+                                    </p>
+                                </div>
+                                <p className="text-2xl font-black mt-4 text-center pt-4 border-t border-slate-700">
+                                    最終答案：<span className="text-amber-400 text-3xl mx-2">{result.finalAns}</span> {currentContext.unitContainer}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 6. 主題四：素養大挑戰 (PCG 升級命運選擇與重測機制)
+        // ==========================================
+        function ThemeChallenge() {
+            const [gameState, setGameState] = useState('start');
+            const [questions, setQuestions] = useState([]);
+            const [currentQIdx, setCurrentQIdx] = useState(0);
+            const [score, setScore] = useState(0);
+            const [retryCount, setRetryCount] = useState(0);
+            const [retryState, setRetryState] = useState('none'); // 'none' | 'hint' | 'failed' | 'success'
+
+            // 小幫手算式區狀態
+            const [equations, setEquations] = useState([{ id: Date.now(), v1: '', op: '÷', v2: '' }]);
+            // 包含命運選擇 fateDecision ('addOne' | 'keep')
+            const [ansVals, setAnsVals] = useState({ q: '', r: '', fateDecision: '', final: '' });
+            const [feedback, setFeedback] = useState(null);
+
+            const initQuestions = useCallback(() => {
+                const qs = [];
+                for (let i = 0; i < 5; i++) qs.push(generateSingleQuestion(i + 1));
+                setQuestions(qs); setCurrentQIdx(0); setScore(0); setGameState('playing'); resetRound();
+            }, []);
+
+            const resetRound = () => {
+                setEquations([{ id: Date.now(), v1: '', op: '÷', v2: '' }]);
+                setAnsVals({ q: '', r: '', fateDecision: '', final: '' });
+                setFeedback(null);
+                setRetryCount(0);
+                setRetryState('none');
+            };
+
+            const handleRetry = () => {
+                // 產生同等級、同類型的新題目替換目前的題目
+                const currentQ = questions[currentQIdx];
+                const newQ = generateSingleQuestion(currentQ.level, currentQ.fateType);
+                const newQuestions = [...questions];
+                newQuestions[currentQIdx] = newQ;
+
+                setQuestions(newQuestions);
+                setEquations([{ id: Date.now(), v1: '', op: '÷', v2: '' }]);
+                setAnsVals({ q: '', r: '', fateDecision: '', final: '' });
+                setFeedback(null);
+                setRetryCount(1);
+                setRetryState('none');
+            };
+
+            // 算式小幫手函數
+            const addEquation = () => {
+                setEquations([...equations, { id: Date.now(), v1: '', op: '+', v2: '' }]);
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('.eq-v1-input');
+                    if (inputs.length > 0) inputs[inputs.length - 1].focus();
+                }, 50);
+            };
+            const removeEquation = (idToRemove) => { if (equations.length > 1) setEquations(equations.filter(eq => eq.id !== idToRemove)); };
+            const updateEquation = (id, field, value) => setEquations(equations.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
+
+            const computeResult = (v1, op, v2) => {
+                const n1 = parseInt(v1); const n2 = parseInt(v2);
+                if (isNaN(n1) || isNaN(n2)) return '?';
+                if (op === '+') return n1 + n2;
+                if (op === '-') return n1 - n2;
+                if (op === '×') return n1 * n2;
+                if (op === '÷') {
+                    if (n2 === 0) return '除數不能為 0';
+                    return `商 ${Math.floor(n1 / n2)} 餘 ${n1 % n2}`;
+                }
+                return '?';
+            };
+
+            const submitAnswer = () => {
+                if (feedback) return;
+                const q = questions[currentQIdx];
+                const userQ = parseInt(ansVals.q);
+                const userR = parseInt(ansVals.r) || 0;
+                const userFinal = parseInt(ansVals.final);
+                const userFate = ansVals.fateDecision;
+
+                let isCalcCorrect = (userQ === q.quotient && userR === q.remainder);
+                let isFinalCorrect = (userFinal === q.finalAns);
+
+                // 判斷正確的命運 (若剛好整除餘數為0，不論哪種題型都不需進一)
+                const correctFate = (q.fateType === 'roundUp' && q.remainder > 0) ? 'addOne' : 'keep';
+                let isFateChoiceCorrect = (userFate === correctFate);
+
+                if (isCalcCorrect && isFinalCorrect && isFateChoiceCorrect) {
+                    setFeedback({ ok: true, msg: '太厲害了！計算正確，且餘數判斷完美！' });
+                    setScore(s => s + (retryCount === 0 ? 20 : 10)); // 第一次對得20分，重測對得10分
+                    setRetryState('success');
+                } else {
+                    if (retryCount === 0) {
+                        // 第一次錯誤，給予針對性的詳細提示並讓學生換題重測
+                        let hintMsg = "";
+                        if (!isCalcCorrect) {
+                            hintMsg = `【提示：算式算錯囉】\n📌 經過加總後，確認總數為 ${q.total} ${q.unitItem}，${q.ruleText}\n💡 請用左側的計算機算算看：${q.total} ÷ ${q.divisor} 會得到多少商和餘數呢？`;
+                        } else if (!isFateChoiceCorrect) {
+                            if (q.fateType === 'roundUp') {
+                                hintMsg = `【提示：命運選擇錯囉】\n📌 除法算對了！算出剩下 ${q.remainder} ${q.unitItem}。\n💡 題目要求全部都要處理，剩下的這 ${q.remainder} ${q.unitItem} 不能丟著不管。為了讓大家都顧到，是不是必須要「多準備一${q.unitContainer}${q.containerName}」呢？請再想一想！`;
+                            } else {
+                                hintMsg = `【提示：命運選擇錯囉】\n📌 除法算對了！算出剩下 ${q.remainder} ${q.unitItem}。\n💡 題目要的是「完整的成品」，剩下的這 ${q.remainder} ${q.unitItem} 數量不足，還夠湊成完整的一${q.unitContainer}${q.containerName}嗎？如果不夠，是不是只能忍痛「捨棄」呢？`;
+                            }
+                        } else if (!isFinalCorrect) {
+                            hintMsg = `【提示：最後加法算錯囉】\n📌 觀念完全正確，就差最後一步計算了！你選擇了「${userFate === 'addOne' ? '需要進一 (+1)' : '維持原樣 (捨去)'}」。\n💡 那麼最終答案應該是 ${userFate === 'addOne' ? `${q.quotient} + 1` : `${q.quotient} 不變`}，請仔細檢查一下填入的數字！`;
+                        }
+
+                        setFeedback({ ok: false, msg: `答錯了！\n\n${hintMsg}\n\n不用灰心，系統幫你換一題類似的再試一次！` });
+                        setRetryState('hint');
+                    } else {
+                        // 第二次再錯，給出更加完整且具指導語的詳解
+                        let explain = `還是答錯了喔！沒關係，老師帶著你一步一步來解這題：\n\n`;
+                        explain += `👉 【第一步：確認總數與條件】\n經過前面的加總，總共是 ${q.total} ${q.unitItem}，${q.ruleText}\n\n`;
+                        explain += `👉 【第二步：進行除法計算】\n${q.total} ÷ ${q.divisor} = ${q.quotient} ... ${q.remainder}\n這代表可以湊出完整的 ${q.quotient} ${q.unitContainer}${q.containerName}，並且還剩下 ${q.remainder} ${q.unitItem}。\n\n`;
+
+                        explain += `👉 【第三步：決定餘數的命運】\n`;
+                        if (q.fateType === 'roundUp') {
+                            if (q.remainder > 0) {
+                                explain += `這題是標準的「進一法」情境！因為題目隱含著「全部都要顧到」的意思。雖然只剩下 ${q.remainder} ${q.unitItem}，但它們不能被丟棄，也需要用到 1 ${q.unitContainer}${q.containerName} 來安置。\n\n`;
+                                explain += `📝 【最終結論】\n所以我們要把原本算出的商數加上 1：\n${q.quotient} + 1 = ${q.finalAns} (${q.unitContainer})。正確答案是 ${q.finalAns}！`;
+                            } else {
+                                explain += `這題剛好整除，沒有剩下任何東西 (餘數為 0)。既然沒有剩下，就不需要多準備額外的空間。\n\n`;
+                                explain += `📝 【最終結論】\n維持原來的商數即可，正確答案是 ${q.finalAns} ${q.unitContainer}！`;
+                            }
+                        } else {
+                            if (q.remainder > 0) {
+                                explain += `這題是標準的「捨去法」情境！因為題目要求的是「完整的成品」。剩下的 ${q.remainder} ${q.unitItem} 數量不足以再做成一個完整的${q.unitContainer}${q.containerName}，所以只能捨棄不用。\n\n`;
+                                explain += `📝 【最終結論】\n商數維持不變，正確答案是 ${q.finalAns} ${q.unitContainer}！`;
+                            } else {
+                                explain += `這題剛好整除，沒有剩下任何東西 (餘數為 0)。\n\n`;
+                                explain += `📝 【最終結論】\n剛好用完，維持原來的商數即可，正確答案是 ${q.finalAns} ${q.unitContainer}！`;
+                            }
+                        }
+
+                        setFeedback({ ok: false, msg: explain });
+                        setRetryState('failed');
+                    }
+                }
+            };
+
+            const nextQuestion = () => {
+                if (currentQIdx < 4) { setCurrentQIdx(c => c + 1); resetRound(); }
+                else setGameState('end');
+            };
+
+            if (gameState === 'start') {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in glass-panel rounded-3xl">
+                        <div className="text-8xl md:text-9xl mb-6 drop-shadow-md">⚔️</div>
+                        <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-6">終極試煉：多步運算與裁決</h2>
+                        <div className="text-base md:text-lg text-slate-700 mb-8 max-w-2xl text-left space-y-4 bg-white/60 p-6 rounded-2xl">
+                            <p className="flex gap-2"><span>📌</span> <span>挑戰共 5 題。難度星等越高，代表步驟越多（需先加減）、干擾廢話也越多。</span></p>
+                            <p className="flex gap-2"><span>📌</span> <span><strong>強烈建議：</strong>利用左側的「列式區」！你只要輸入數字和符號，系統會幫你算出加總或商與餘數！</span></p>
+                            <p className="flex gap-2 font-bold text-red-600"><span>📌</span> <span>算完後，請根據情境明確選擇餘數的命運（進一或捨去），並寫出最後答案！</span></p>
+                        </div>
+                        <button onClick={initQuestions} className="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xl md:text-2xl py-4 px-12 rounded-full shadow-xl transition-transform active:scale-95">開始測驗</button>
+                    </div>
+                );
+            }
+
+            if (gameState === 'end') {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in glass-panel rounded-3xl">
+                        <div className="text-[100px] md:text-[120px] mb-6 drop-shadow-lg">{score >= 80 ? '👑' : '💪'}</div>
+                        <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-2">測驗結束！</h2>
+                        <p className="text-xl md:text-2xl text-slate-600 mb-10 font-medium">你的素養裁決總分是：<span className="text-5xl font-black text-amber-500 mx-2">{score}</span> 分</p>
+                        <button onClick={initQuestions} className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xl py-4 px-10 rounded-full shadow-lg transition-transform active:scale-95">再測一次</button>
+                    </div>
+                );
+            }
+
+            const q = questions[currentQIdx];
+
+            return (
+                <div className="animate-fade-in flex flex-col h-full focus-container">
+                    <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-slate-800 text-white font-bold px-4 py-2 rounded-full shadow-sm text-sm">第 {currentQIdx + 1} / 5 題</span>
+                            <span className="bg-amber-100 text-amber-800 font-bold px-4 py-2 rounded-full border border-amber-300 shadow-sm text-sm flex items-center gap-1">
+                                難度：<span className="tracking-widest">{'⭐'.repeat(q.level)}</span>
+                            </span>
+                            {retryCount > 0 && <span className="bg-red-100 text-red-700 font-bold px-3 py-1 rounded-full text-xs">⚠️ 重測題</span>}
+                        </div>
+                        <span className="font-bold text-slate-600 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200 text-sm">分數：{score}</span>
+                    </div>
+
+                    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border-t-8 border-teal-500 mb-6 text-lg md:text-xl leading-relaxed font-medium text-slate-800">
+                        {q.text}
+                    </div>
+
+                    <div className="flex flex-col xl:flex-row gap-6 pb-10">
+                        {/* 左側：算式小幫手區 */}
+                        <div className="bg-sky-50 p-6 rounded-3xl border-2 border-sky-200 flex-1 shadow-inner flex flex-col">
+                            <h3 className="text-xl font-black text-sky-900 mb-4 flex items-center gap-2 border-b border-sky-200 pb-2">
+                                <span>🧮</span> 列式計算區 (電腦幫你算)
+                            </h3>
+
+                            <div className="space-y-4 mb-6">
+                                {equations.map((eq, index) => (
+                                    <div key={eq.id} className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl shadow-sm border border-sky-100">
+                                        <span className="font-black text-sky-300 w-5">{index + 1}.</span>
+                                        <input autoFocus={index === 0} onKeyDown={handleKeyNavigation} type="number" value={eq.v1} onChange={(e) => updateEquation(eq.id, 'v1', e.target.value)} disabled={feedback != null} className="eq-v1-input w-20 md:w-24 p-2 rounded-lg border-2 border-slate-200 focus:border-sky-500 text-center text-lg font-bold bg-slate-50 outline-none" />
+
+                                        <select onKeyDown={handleKeyNavigation} value={eq.op} onChange={(e) => updateEquation(eq.id, 'op', e.target.value)} disabled={feedback != null} className="p-2 rounded-lg border-2 border-slate-200 focus:border-sky-500 text-lg font-bold bg-slate-100 outline-none">
+                                            <option value="+">+</option><option value="-">-</option><option value="×">×</option><option value="÷">÷</option>
+                                        </select>
+
+                                        <input type="number" onKeyDown={handleKeyNavigation} value={eq.v2} onChange={(e) => updateEquation(eq.id, 'v2', e.target.value)} disabled={feedback != null} className="w-20 md:w-24 p-2 rounded-lg border-2 border-slate-200 focus:border-sky-500 text-center text-lg font-bold bg-slate-50 outline-none" />
+
+                                        <span className="font-bold text-xl text-slate-400 mx-1">=</span>
+                                        <div className="bg-sky-100 px-4 py-2 rounded-lg border border-sky-200 min-w-[100px] text-center font-bold text-sky-800 text-lg shadow-inner">
+                                            {computeResult(eq.v1, eq.op, eq.v2)}
+                                        </div>
+                                        {equations.length > 1 && !feedback && (
+                                            <button onClick={() => removeEquation(eq.id)} className="ml-auto text-red-400 hover:text-red-600 font-bold px-2 text-xl transition-colors">✖</button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {!feedback && (
+                                <button onKeyDown={handleKeyNavigation} onClick={addEquation} className="text-sky-700 font-bold hover:text-sky-900 flex items-center justify-center gap-2 bg-sky-200/50 hover:bg-sky-200 px-4 py-3 rounded-xl transition-colors mt-auto border border-dashed border-sky-300">
+                                    <span>➕</span> 新增一步算式
+                                </button>
+                            )}
+                        </div>
+
+                        {/* 右側：作答區 */}
+                        <div className="bg-amber-50 p-6 rounded-3xl border-2 border-amber-200 flex-1 flex flex-col shadow-inner">
+                            <h3 className="text-xl font-black text-amber-900 mb-4 flex items-center gap-2 border-b border-amber-200 pb-2">
+                                <span>🎯</span> 作答與命運判定區
+                            </h3>
+
+                            <div className="bg-white p-6 rounded-2xl border border-amber-100 shadow-sm flex flex-col gap-6 mb-6">
+                                {/* 除法結果 */}
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                    <span className="font-bold text-slate-700">1. 除法結果：</span>
+                                    <div className="flex items-center gap-2">
+                                        <input type="number" onKeyDown={handleKeyNavigation} value={ansVals.q} onChange={e => setAnsVals({ ...ansVals, q: e.target.value })} disabled={feedback != null} className="w-20 p-2 border-b-4 border-slate-300 text-center font-bold text-xl focus:border-sky-400 bg-slate-50 outline-none" placeholder="商" />
+                                        <span className="text-slate-500">...</span>
+                                        <input type="number" onKeyDown={handleKeyNavigation} value={ansVals.r} onChange={e => setAnsVals({ ...ansVals, r: e.target.value })} disabled={feedback != null} className="w-20 p-2 border-b-4 border-slate-300 text-center font-bold text-xl focus:border-pink-400 bg-slate-50 outline-none" placeholder="餘數" />
+                                    </div>
+                                </div>
+
+                                {/* 命運選擇 */}
+                                <div className="border-t border-slate-100 pt-6 flex flex-col items-center">
+                                    <label className="font-black text-amber-900 text-lg mb-4">2. 思考餘數的命運：需要進一嗎？</label>
+                                    <div className="flex flex-wrap justify-center gap-4 mb-4">
+                                        <button
+                                            onKeyDown={handleKeyNavigation}
+                                            onClick={() => setAnsVals({ ...ansVals, fateDecision: 'addOne', final: '' })}
+                                            disabled={feedback != null}
+                                            className={`px-6 py-3 rounded-xl font-bold border-2 transition-all shadow-sm ${ansVals.fateDecision === 'addOne' ? 'bg-sky-500 text-white border-sky-600 scale-105' : 'bg-white text-sky-700 border-sky-200 hover:bg-sky-50'}`}
+                                        >
+                                            ⬆️ 需要進一 (+1)
+                                        </button>
+                                        <button
+                                            onKeyDown={handleKeyNavigation}
+                                            onClick={() => setAnsVals({ ...ansVals, fateDecision: 'keep', final: '' })}
+                                            disabled={feedback != null}
+                                            className={`px-6 py-3 rounded-xl font-bold border-2 transition-all shadow-sm ${ansVals.fateDecision === 'keep' ? 'bg-pink-500 text-white border-pink-600 scale-105' : 'bg-white text-pink-700 border-pink-200 hover:bg-pink-50'}`}
+                                        >
+                                            ✂️ 維持原樣 (捨去)
+                                        </button>
+                                    </div>
+
+                                    {/* 最終列式 */}
+                                    {ansVals.fateDecision === 'addOne' && (
+                                        <div className="flex flex-wrap items-center justify-center gap-3 bg-sky-50 p-4 rounded-xl border border-sky-200 w-full animate-fade-in">
+                                            <span className="font-bold text-sky-800">最後計算：</span>
+                                            <span className="text-2xl font-black text-slate-700">{ansVals.q || '?'}</span>
+                                            <span className="text-2xl font-black text-sky-600">+ 1 =</span>
+                                            <div className="flex items-center gap-2">
+                                                <input type="number" onKeyDown={handleKeyNavigation} value={ansVals.final} onChange={e => setAnsVals({ ...ansVals, final: e.target.value })} disabled={feedback != null} className="w-24 p-2 border-4 border-sky-300 rounded-xl text-center text-xl font-black focus:border-sky-500 bg-white outline-none text-sky-900 shadow-inner" />
+                                                <span className="font-bold text-lg text-slate-700">{q.unitContainer}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {ansVals.fateDecision === 'keep' && (
+                                        <div className="flex flex-wrap items-center justify-center gap-3 bg-pink-50 p-4 rounded-xl border border-pink-200 w-full animate-fade-in">
+                                            <span className="font-bold text-pink-800">維持原本的商：</span>
+                                            <span className="text-2xl font-black text-slate-700">{ansVals.q || '?'}</span>
+                                            <span className="text-2xl font-black text-pink-600">=</span>
+                                            <div className="flex items-center gap-2">
+                                                <input type="number" onKeyDown={handleKeyNavigation} value={ansVals.final} onChange={e => setAnsVals({ ...ansVals, final: e.target.value })} disabled={feedback != null} className="w-24 p-2 border-4 border-pink-300 rounded-xl text-center text-xl font-black focus:border-pink-500 bg-white outline-none text-pink-900 shadow-inner" />
+                                                <span className="font-bold text-lg text-slate-700">{q.unitContainer}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 控制按鈕區 */}
+                            {!feedback ? (
+                                <button onKeyDown={handleKeyNavigation} onClick={submitAnswer} disabled={!ansVals.q || !ansVals.fateDecision || !ansVals.final} className="mt-auto bg-slate-800 disabled:bg-slate-300 hover:bg-slate-900 text-white font-bold text-xl py-4 rounded-xl shadow-md transition-transform active:scale-95">
+                                    確定送出
+                                </button>
+                            ) : (
+                                <div className="mt-auto w-full text-center animate-fade-in flex flex-col">
+                                    <div className={`p-5 rounded-2xl mb-5 text-left font-bold whitespace-pre-wrap border-2 ${feedback.ok ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-50 text-red-800 border-red-300 shadow-inner'}`}>
+                                        {feedback.msg}
+                                    </div>
+
+                                    {retryState === 'hint' ? (
+                                        <button onKeyDown={handleKeyNavigation} onClick={handleRetry} className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xl py-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2">
+                                            <span>🔄</span> 換一題類似的再試一次 ➔
+                                        </button>
+                                    ) : (
+                                        <button onKeyDown={handleKeyNavigation} onClick={nextQuestion} className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xl py-4 rounded-xl shadow-lg transition-transform active:scale-95">
+                                            {currentQIdx < 4 ? '下一題 ➔' : '查看最終成績 🏆'}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 掛載 React 應用程式
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
