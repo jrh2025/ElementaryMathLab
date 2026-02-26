@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小數加減小學堂 | 國小數學互動教學實驗室</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+            touch-action: manipulation;
+            background-color: #f8fafc;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .animate-shake {
+            animation: shake 0.3s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin 3s linear infinite;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes slideRightArc {
+            0% {
+                stroke-dasharray: 100;
+                stroke-dashoffset: 100;
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            100% {
+                stroke-dasharray: 100;
+                stroke-dashoffset: 0;
+                opacity: 1;
+            }
+        }
+
+        .animate-draw-line {
+            animation: slideRightArc 0.6s ease-out forwards;
+        }
+
+        @keyframes bounce-slow {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .animate-bounce-slow {
+            animation: bounce-slow 2s infinite;
+        }
+
+        .strike-through {
+            position: relative;
+            display: inline-block;
+        }
+
+        .strike-through::after {
+            content: '';
+            position: absolute;
+            left: -10%;
+            top: 50%;
+            width: 120%;
+            height: 3px;
+            background-color: #ef4444;
+            transform: rotate(-45deg) scaleX(0);
+            transform-origin: center;
+            transition: transform 0.3s ease-out;
+            opacity: 0.8;
+        }
+
+        .strike-through.active::after {
+            transform: rotate(-45deg) scaleX(1);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes dotPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+            }
+        }
+
+        .dot-pulse {
+            border-radius: 50%;
+            animation: dotPulse 1.5s infinite;
+        }
+
+        .cursor-blink {
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // --- Icons ---
+        const Sparkles = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>;
+        const Trophy = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>;
+        const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>;
+        const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>;
+        const TrendingUp = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size || "24"} height={size || "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>;
+        const Delete = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z" /><line x1="18" y1="9" x2="12" y2="15" /><line x1="12" y1="9" x2="18" y2="15" /></svg>;
+        const InfoIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+
+        // --- Core Configurations & Generators ---
+        const LEVELS_ADD = [
+            { level: 1, label: '入門', desc: '一位小數加法 (無進位)', dec: 1, mix: false, carry: false, threshold: 3 },
+            { level: 2, label: '初級', desc: '二位小數加法 (無進位)', dec: 2, mix: false, carry: false, threshold: 3 },
+            { level: 3, label: '進階', desc: '二位小數加法 (有進位)', dec: 2, mix: false, carry: true, threshold: 3 },
+            { level: 4, label: '中級', desc: '位數不同加法 ', dec: 2, mix: true, carry: false, threshold: 3 },
+            { level: 5, label: '挑戰', desc: '位數不同加法 (有進位)', dec: 2, mix: true, carry: true, threshold: 5 },
+            { level: 6, label: '大師', desc: '三位小數加法 (連續進位)', dec: 3, mix: true, carry: true, threshold: 5 },
+        ];
+
+        const LEVELS_SUB = [
+            { level: 1, label: '入門', desc: '一位小數減法 (無借位)', dec: 1, mix: false, borrow: false, threshold: 3 },
+            { level: 2, label: '初級', desc: '二位小數減法 (無借位)', dec: 2, mix: false, borrow: false, threshold: 3 },
+            { level: 3, label: '進階', desc: '二位小數減法 (有借位)', dec: 2, mix: false, borrow: true, threshold: 3 },
+            { level: 4, label: '中級', desc: '位數不同減法 ', dec: 2, mix: true, borrow: false, threshold: 3 },
+            { level: 5, label: '挑戰', desc: '位數不同減法 (有借位)', dec: 2, mix: true, borrow: true, threshold: 5 },
+            { level: 6, label: '大師', desc: '三位小數減法 (連續借位)', dec: 3, mix: true, borrow: true, threshold: 5 },
+        ];
+
+        const NUM_GRID_COLS = 8;
+        const COL_LABELS = ['百位', '十位', '個位', '小數點', '十分位', '百分位', '千分位', '萬分位'];
+        const FIXED_DECIMAL_COL = 3;
+
+        const getDisplayString = (numInt, dec, paddedIndices) => {
+            let str = numInt.toString();
+            while (str.length <= dec) str = '0' + str;
+
+            if (dec === 0) return str;
+
+            let intPart = str.slice(0, str.length - dec);
+            let decPart = str.slice(str.length - dec);
+
+            let finalStr = intPart + '.';
+            for (let i = 0; i < dec; i++) {
+                if (!paddedIndices.includes(dec - 1 - i)) {
+                    finalStr += decPart[i];
+                }
+            }
+            if (finalStr.endsWith('.')) finalStr = finalStr.slice(0, -1);
+            return finalStr;
+        };
+
+        const generateMathProblem = (op, config) => {
+            let tPad = [], bPad = [];
+            const intCols = 2;
+            const cols = config.dec + intCols;
+
+            let attempts = 0;
+            let valid = false;
+
+            while (!valid && attempts < 500) {
+                attempts++;
+                let tDigits = [], bDigits = [];
+                let hasCarryOrBorrow = false;
+
+                for (let i = 0; i < cols; i++) {
+                    let t, b;
+                    if (op === 'add') {
+                        if (i === cols - 1) {
+                            if (Math.random() > 0.4) { t = Math.floor(Math.random() * 9) + 1; b = Math.floor(Math.random() * (10 - t)); }
+                            else { t = 0; b = 0; }
+                        } else {
+                            if (config.carry) {
+                                t = Math.floor(Math.random() * 9) + 1; b = Math.floor(Math.random() * 9) + 1;
+                                if (t + b >= 10) hasCarryOrBorrow = true;
+                            } else {
+                                t = Math.floor(Math.random() * 8) + 1; b = Math.floor(Math.random() * (9 - t));
+                            }
+                        }
+                    } else {
+                        if (i === cols - 1) {
+                            if (Math.random() > 0.4) { t = Math.floor(Math.random() * 8) + 1; b = Math.floor(Math.random() * (t + 1)); }
+                            else { t = 0; b = 0; }
+                        } else {
+                            if (config.borrow) {
+                                if (i < cols - 1 && Math.random() > 0.4) {
+                                    t = Math.floor(Math.random() * 8); b = Math.floor(Math.random() * (9 - t)) + t + 1;
+                                    hasCarryOrBorrow = true;
+                                } else { t = Math.floor(Math.random() * 8) + 1; b = Math.floor(Math.random() * (t + 1)); }
+                            } else { t = Math.floor(Math.random() * 8) + 1; b = Math.floor(Math.random() * (t + 1)); }
+                        }
+                    }
+                    tDigits.push(t); bDigits.push(b);
+                }
+
+                if (op === 'sub') {
+                    if (tDigits[cols - 1] < bDigits[cols - 1]) {
+                        let temp = tDigits[cols - 1]; tDigits[cols - 1] = bDigits[cols - 1]; bDigits[cols - 1] = temp;
+                    }
+                }
+
+                tPad = []; bPad = [];
+                if (config.mix) {
+                    if (Math.random() > 0.5) {
+                        tDigits[0] = 0;
+                        if (op === 'sub' && config.borrow) bDigits[0] = Math.floor(Math.random() * 8) + 1;
+                    } else { bDigits[0] = 0; }
+                }
+
+                for (let i = 0; i < config.dec; i++) {
+                    if (tDigits[i] === 0 && (i === 0 || tPad.includes(i - 1))) { if (!tPad.includes(i)) tPad.push(i); }
+                    if (bDigits[i] === 0 && (i === 0 || bPad.includes(i - 1))) { if (!bPad.includes(i)) bPad.push(i); }
+                }
+
+                if (config.carry && !hasCarryOrBorrow) continue;
+                if (config.borrow && !hasCarryOrBorrow) continue;
+
+                let tInt = parseInt([...tDigits].reverse().join(''), 10);
+                let bInt = parseInt([...bDigits].reverse().join(''), 10);
+
+                if (isNaN(tInt) || isNaN(bInt) || tInt === 0 || bInt === 0) continue;
+                if (op === 'sub' && tInt <= bInt) continue;
+                if (config.dec > 0 && tPad.includes(0) && bPad.includes(0)) continue;
+
+                valid = true;
+
+                const topStr = getDisplayString(tInt, config.dec, tPad);
+                const botStr = getDisplayString(bInt, config.dec, bPad);
+
+                return { topInt: tInt, bottomInt: bInt, expectedInt: op === 'add' ? tInt + bInt : tInt - bInt, dec: config.dec, topStr, botStr };
+            }
+            return { topInt: 520, bottomInt: 134, expectedInt: op === 'add' ? 654 : 386, dec: 2, topStr: '5.2', botStr: op === 'add' ? '1.34' : '1.34' };
+        };
+
+        // --- Components ---
+        const NumberPad = ({ onInput, onDecimal, onDelete, disabled }) => {
+            return (
+                <div className="grid grid-cols-3 gap-3 w-full max-w-sm px-4 pb-6 mt-auto md:mt-0">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                        <button key={num} onClick={() => !disabled && onInput(num)} disabled={disabled}
+                            className="h-14 md:h-16 bg-white border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 rounded-xl text-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
+                            {num}
+                        </button>
+                    ))}
+                    <button onClick={() => !disabled && onDecimal()} disabled={disabled}
+                        className="h-14 md:h-16 bg-yellow-100 border-b-4 border-yellow-300 active:border-b-0 active:translate-y-1 rounded-xl text-3xl font-black text-yellow-700 hover:bg-yellow-200 transition-all shadow-sm">
+                        .
+                    </button>
+                    <button onClick={() => !disabled && onInput(0)} disabled={disabled}
+                        className="h-14 md:h-16 bg-white border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 rounded-xl text-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
+                        0
+                    </button>
+                    <button onClick={() => !disabled && onDelete()} disabled={disabled}
+                        className="h-14 md:h-16 bg-slate-200 border-b-4 border-slate-300 active:border-b-0 active:translate-y-1 rounded-xl text-xl font-bold text-slate-700 hover:bg-slate-300 transition-all shadow-sm flex items-center justify-center">
+                        <Delete size="24" />
+                    </button>
+                </div>
+            );
+        };
+
+        // --- Core Game Engine ---
+        const MathGame = ({ mode, level, onLevelUp, onScore }) => {
+            const [problem, setProblem] = useState(null);
+
+            // Grid State
+            const [gridTop, setGridTop] = useState(Array(NUM_GRID_COLS).fill(''));
+            const [gridBot, setGridBot] = useState(Array(NUM_GRID_COLS).fill(''));
+            const [gridRes, setGridRes] = useState(Array(NUM_GRID_COLS).fill(''));
+
+            // Phase Management
+            const [phase, setPhase] = useState('align'); // 'align', 'calc', 'done'
+            const [alignCursor, setAlignCursor] = useState({ r: 0, c: FIXED_DECIMAL_COL - 1 });
+            const [calcCol, setCalcCol] = useState(-1);
+            const [calcAction, setCalcAction] = useState('sum'); // 'sum', 'carry', 'borrow', 'decimal', 'cross'
+
+            // Calculation Metadata
+            const [carries, setCarries] = useState(Array(NUM_GRID_COLS).fill(''));
+            const [borrowed, setBorrowed] = useState(Array(NUM_GRID_COLS).fill(false));
+            const [received, setReceived] = useState(Array(NUM_GRID_COLS).fill(false));
+            const [crossed, setCrossed] = useState(Array(NUM_GRID_COLS).fill(false));
+
+            // UX State
+            const [feedback, setFeedback] = useState(null);
+            const [shake, setShake] = useState(false);
+            const [streak, setStreak] = useState(0);
+            const [hasError, setHasError] = useState(false);
+            const [targetBorrowCol, setTargetBorrowCol] = useState(null);
+
+            const startNew = useCallback(() => {
+                const config = mode === 'add' ? LEVELS_ADD.find(l => l.level === level) : LEVELS_SUB.find(l => l.level === level);
+                const p = generateMathProblem(mode, config);
+                setProblem(p);
+
+                setGridTop(Array(NUM_GRID_COLS).fill(''));
+                setGridBot(Array(NUM_GRID_COLS).fill(''));
+                setGridRes(Array(NUM_GRID_COLS).fill(''));
+                setCarries(Array(NUM_GRID_COLS).fill(''));
+                setBorrowed(Array(NUM_GRID_COLS).fill(false));
+                setReceived(Array(NUM_GRID_COLS).fill(false));
+                setCrossed(Array(NUM_GRID_COLS).fill(false));
+
+                setPhase('align');
+                setAlignCursor({ r: 0, c: FIXED_DECIMAL_COL - 1 });
+                setHasError(false);
+                setFeedback({ type: 'info', msg: '請對照上方的「定位標示」，將數字正確填入格子中！(可使用方向鍵移動)' });
+            }, [level, mode]);
+
+            useEffect(() => { startNew(); }, [startNew]);
+
+            const triggerShake = () => { setShake(true); setTimeout(() => setShake(false), 500); };
+
+            // --- Alignment Phase Logic ---
+            const handleAlignInput = (char) => {
+                const isTop = alignCursor.r === 0;
+                const setGrid = isTop ? setGridTop : setGridBot;
+                const grid = isTop ? [...gridTop] : [...gridBot];
+
+                grid[alignCursor.c] = char.toString();
+                setGrid(grid);
+
+                if (alignCursor.c < NUM_GRID_COLS - 1) {
+                    setAlignCursor({ r: alignCursor.r, c: alignCursor.c + 1 });
+                }
+            };
+
+            const handleAlignDelete = () => {
+                const isTop = alignCursor.r === 0;
+                const setGrid = isTop ? setGridTop : setGridBot;
+                const grid = isTop ? [...gridTop] : [...gridBot];
+
+                if (grid[alignCursor.c] !== '') {
+                    grid[alignCursor.c] = '';
+                    setGrid(grid);
+                } else if (alignCursor.c > 0) {
+                    grid[alignCursor.c - 1] = '';
+                    setGrid(grid);
+                    setAlignCursor({ r: alignCursor.r, c: alignCursor.c - 1 });
+                }
+            };
+
+            const verifyAlignment = () => {
+                const topFirstIdx = gridTop.findIndex(c => c !== '');
+                const topLastIdx = gridTop.findLastIndex(c => c !== '');
+                const botFirstIdx = gridBot.findIndex(c => c !== '');
+                const botLastIdx = gridBot.findLastIndex(c => c !== '');
+
+                const cleanTStr = topFirstIdx !== -1 ? gridTop.slice(topFirstIdx, topLastIdx + 1).join('') : '';
+                const cleanBStr = botFirstIdx !== -1 ? gridBot.slice(botFirstIdx, botLastIdx + 1).join('') : '';
+
+                if (cleanTStr !== problem.topStr) {
+                    setFeedback({ type: 'error', msg: `上方數字輸入錯誤或位置不連續！請重新確認題目數字。` });
+                    triggerShake(); return;
+                }
+                if (cleanBStr !== problem.botStr) {
+                    setFeedback({ type: 'error', msg: `下方數字輸入錯誤或位置不連續！請重新確認題目數字。` });
+                    triggerShake(); return;
+                }
+
+                const isTopAligned = problem.topStr.includes('.')
+                    ? gridTop[FIXED_DECIMAL_COL] === '.'
+                    : topLastIdx === FIXED_DECIMAL_COL - 1;
+
+                const isBotAligned = problem.botStr.includes('.')
+                    ? gridBot[FIXED_DECIMAL_COL] === '.'
+                    : botLastIdx === FIXED_DECIMAL_COL - 1;
+
+                if (!isTopAligned || !isBotAligned) {
+                    setFeedback({ type: 'error', msg: "沒有對齊！有小數點的請對齊「小數點」，只有整數的請將個位數對齊「個位」。" });
+                    triggerShake(); return;
+                }
+
+                setPhase('calc');
+
+                let startC = Math.max(topLastIdx, botLastIdx);
+                if (gridTop[startC] === '.' || gridBot[startC] === '.') {
+                    startC--;
+                }
+
+                if (mode === 'add') {
+                    setCalcAction('sum');
+                    setCalcCol(startC);
+                    setFeedback({ type: 'success', msg: "對齊得非常完美！現在從最右邊開始計算吧！" });
+                } else {
+                    checkSubtractionNeedsBorrow(startC, [...gridTop]);
+                }
+            };
+
+            // --- Calculation Engine Setup ---
+
+            // 取得下一個需要被刪除的 0（同時包含末位0與前導0的掃描）
+            const getNextUncrossedZero = (currentRes, currentCrossed) => {
+                // 1. 檢查小數末位的 0 (從右向左掃描)
+                const dotIdx = currentRes.indexOf('.');
+                if (dotIdx !== -1) {
+                    for (let i = NUM_GRID_COLS - 1; i > dotIdx; i--) {
+                        if (currentRes[i] === '0') {
+                            if (!currentCrossed[i]) return i;
+                        } else if (currentRes[i] !== '') {
+                            break;
+                        }
+                    }
+                }
+                // 2. 檢查整數高位的前導 0 (從左向右掃描，不包含個位數 index = FIXED_DECIMAL_COL - 1)
+                for (let i = 0; i <= FIXED_DECIMAL_COL - 2; i++) {
+                    if (currentRes[i] === '0') {
+                        if (!currentCrossed[i]) return i;
+                    } else if (currentRes[i] !== '') {
+                        break;
+                    }
+                }
+                return -1;
+            };
+
+            const moveToNextCalcColumn = (currentCol, updatedCarries = carries, updatedRes = gridRes) => {
+                let nextCol = currentCol - 1;
+
+                if (nextCol === FIXED_DECIMAL_COL) {
+                    if (gridTop[nextCol] === '.' || gridBot[nextCol] === '.') {
+                        setCalcCol(FIXED_DECIMAL_COL);
+                        setCalcAction('decimal');
+                        setFeedback({ type: 'info', msg: '遇到小數點了！請點擊黃色的「.」放下來！' });
+                        return;
+                    } else {
+                        nextCol--;
+                    }
+                }
+
+                let hasTasksLeft = false;
+
+                for (let i = 0; i <= nextCol; i++) {
+                    if ((gridTop[i] && gridTop[i] !== '.') || (gridBot[i] && gridBot[i] !== '.')) {
+                        hasTasksLeft = true;
+                    }
+                    if (updatedCarries[i]) hasTasksLeft = true;
+                    if (received[i]) hasTasksLeft = true;
+                }
+
+                if (!hasTasksLeft) {
+                    const targetCrossIndex = getNextUncrossedZero(updatedRes, crossed);
+
+                    if (targetCrossIndex !== -1) {
+                        setCalcAction('cross');
+                        setCalcCol(targetCrossIndex);
+                        setFeedback({ type: 'info', msg: '計算完成！請把沒有意義的 0 點擊刪除！' });
+                        return;
+                    }
+
+                    finishProblem();
+                } else {
+                    setCalcCol(nextCol);
+                    if (mode === 'add') {
+                        setCalcAction('sum');
+                        setFeedback({ type: 'success', msg: '很好！繼續算下一位。' });
+                    } else {
+                        checkSubtractionNeedsBorrow(nextCol, null);
+                    }
+                }
+            };
+
+            // --- Addition Logic ---
+            const processAdditionInput = (num) => {
+                if (calcAction === 'decimal') {
+                    setFeedback({ type: 'error', msg: '現在要點小數點喔！請按「.」' }); triggerShake(); return;
+                }
+                if (calcAction === 'cross') {
+                    setFeedback({ type: 'error', msg: '請用滑鼠點擊答案區，把不需要的 0 刪除！' }); triggerShake(); return;
+                }
+
+                const tVal = parseInt(gridTop[calcCol]) || 0;
+                const bVal = parseInt(gridBot[calcCol]) || 0;
+                const cVal = parseInt(carries[calcCol]) || 0;
+                const expectedSum = tVal + bVal + cVal;
+                const expectedDigit = expectedSum % 10;
+                const expectedCarryOut = Math.floor(expectedSum / 10);
+
+                if (calcAction === 'sum') {
+                    if (num === expectedDigit) {
+                        const newRes = [...gridRes];
+                        newRes[calcCol] = num.toString();
+                        setGridRes(newRes);
+
+                        if (expectedCarryOut > 0) {
+                            setCalcAction('carry');
+                            setFeedback({ type: 'success', msg: `答對了！寫 ${expectedDigit} 進 1，點擊上方黃色的圈圈填入進位！` });
+                        } else {
+                            moveToNextCalcColumn(calcCol, carries, newRes);
+                        }
+                    } else {
+                        setFeedback({ type: 'error', msg: '加錯囉！再算一次看看？' }); triggerShake(); setHasError(true); setStreak(0);
+                    }
+                } else if (calcAction === 'carry') {
+                    if (num === 1) {
+                        let targetCarryCol = calcCol - 1;
+                        if (targetCarryCol === FIXED_DECIMAL_COL) targetCarryCol--;
+
+                        const newCarries = [...carries];
+                        newCarries[targetCarryCol] = '1';
+                        setCarries(newCarries);
+
+                        moveToNextCalcColumn(calcCol, newCarries, gridRes);
+                    } else {
+                        setFeedback({ type: 'error', msg: '進位通常是 1 喔！' }); triggerShake(); setHasError(true); setStreak(0);
+                    }
+                }
+            };
+
+            // --- Subtraction Logic ---
+            const getEffectiveTopValue = (col, currentGridTop) => {
+                const gTop = currentGridTop || gridTop;
+                let val = parseInt(gTop[col]) || 0;
+                if (borrowed[col]) val -= 1;
+                if (received[col]) val += 10;
+                return val;
+            };
+
+            const checkSubtractionNeedsBorrow = (col, currentGridTop) => {
+                const tVal = getEffectiveTopValue(col, currentGridTop);
+                const bVal = parseInt(gridBot[col]) || 0;
+
+                if (tVal < bVal) {
+                    setCalcAction('borrow');
+                    setCalcCol(col);
+                    setFeedback({ type: 'error', msg: '不夠減！請點擊上方左側的數字來「借位」！' });
+                } else {
+                    setCalcAction('calc');
+                    setCalcCol(col);
+                    setFeedback({ type: 'success', msg: '很好！繼續算下一位。' });
+                }
+            };
+
+            const handleBorrowClick = (clickCol) => {
+                if (phase !== 'calc' || calcAction !== 'borrow') return;
+
+                let expectBorrowTarget = targetBorrowCol !== null ? targetBorrowCol : calcCol - 1;
+                if (expectBorrowTarget === FIXED_DECIMAL_COL) expectBorrowTarget--;
+
+                if (clickCol !== expectBorrowTarget) return;
+
+                const val = getEffectiveTopValue(clickCol);
+                if (val > 0) {
+                    const newBorrowed = [...borrowed];
+                    const newReceived = [...received];
+
+                    newBorrowed[clickCol] = true;
+
+                    let curr = clickCol + 1;
+                    while (curr <= calcCol) {
+                        if (curr === FIXED_DECIMAL_COL) {
+                            curr++;
+                            continue;
+                        }
+                        newReceived[curr] = true;
+                        if (curr < calcCol) {
+                            newBorrowed[curr] = true;
+                        }
+                        curr++;
+                    }
+
+                    setBorrowed(newBorrowed);
+                    setReceived(newReceived);
+
+                    if (targetBorrowCol !== null) {
+                        setTargetBorrowCol(null);
+                        setCalcAction('calc');
+                        setFeedback({ type: 'success', msg: `連續借位成功！現在最右邊可以減了！` });
+                    } else {
+                        setCalcAction('calc');
+                        setFeedback({ type: 'success', msg: `借位成功！現在夠減了！` });
+                    }
+                } else {
+                    let nextTarget = clickCol - 1;
+                    if (nextTarget === FIXED_DECIMAL_COL) nextTarget--;
+                    setTargetBorrowCol(nextTarget);
+                    setFeedback({ type: 'error', msg: `這裡是 0 不能借！請繼續點擊更左邊的數字借位。` });
+                    triggerShake();
+                }
+            };
+
+            const processSubtractionInput = (num) => {
+                if (calcAction === 'decimal') { setFeedback({ type: 'error', msg: '現在要點小數點喔！請按「.」' }); triggerShake(); return; }
+                if (calcAction === 'borrow') { setFeedback({ type: 'error', msg: '不夠減！請點擊上方左側數字借位。' }); triggerShake(); return; }
+                if (calcAction === 'cross') { setFeedback({ type: 'error', msg: '請用滑鼠點擊答案區，刪除多餘的 0！' }); triggerShake(); return; }
+
+                const tVal = getEffectiveTopValue(calcCol);
+                const bVal = parseInt(gridBot[calcCol]) || 0;
+
+                if (tVal < bVal) {
+                    setCalcAction('borrow'); setFeedback({ type: 'error', msg: '不夠減！請先借位。' }); triggerShake(); setHasError(true); setStreak(0); return;
+                }
+
+                if (num === tVal - bVal) {
+                    const newRes = [...gridRes];
+                    newRes[calcCol] = num.toString();
+                    setGridRes(newRes);
+                    moveToNextCalcColumn(calcCol, carries, newRes);
+                } else {
+                    setFeedback({ type: 'error', msg: '減錯囉！再算一次看看？' }); triggerShake(); setHasError(true); setStreak(0);
+                }
+            };
+
+            // --- Global Input Handler ---
+            const handleInput = (num) => {
+                if (phase === 'done' || !problem) return;
+                if (phase === 'align') { handleAlignInput(num); return; }
+                if (mode === 'add') processAdditionInput(num); else processSubtractionInput(num);
+            };
+
+            const handleDecimal = () => {
+                if (phase === 'done' || !problem) return;
+                if (phase === 'align') { handleAlignInput('.'); return; }
+
+                if (calcAction === 'decimal') {
+                    const newRes = [...gridRes];
+                    newRes[calcCol] = '.';
+                    setGridRes(newRes);
+                    moveToNextCalcColumn(calcCol, carries, newRes);
+                } else if (calcAction === 'cross') {
+                    setFeedback({ type: 'error', msg: '現在請用滑鼠點擊答案區，把不需要的 0 刪除喔！' }); triggerShake();
+                } else {
+                    setFeedback({ type: 'error', msg: '還沒到小數點的位置喔！' }); triggerShake();
+                }
+            };
+
+            const handleCrossOut = (idx) => {
+                if (phase !== 'calc' || calcAction !== 'cross') return;
+
+                const targetCrossIndex = getNextUncrossedZero(gridRes, crossed);
+
+                if (idx === targetCrossIndex) {
+                    const newCrossed = [...crossed];
+                    newCrossed[idx] = true;
+                    setCrossed(newCrossed);
+
+                    const furtherTarget = getNextUncrossedZero(gridRes, newCrossed);
+
+                    if (furtherTarget !== -1) {
+                        setCalcCol(furtherTarget);
+                        setFeedback({ type: 'info', msg: '還有多餘的 0 喔，請繼續點擊刪除！' });
+                    } else {
+                        setCalcCol(-1);
+                        setFeedback({ type: 'success', msg: '太棒了！這才是最簡潔的答案。' });
+                        setTimeout(() => finishProblem(), 800);
+                    }
+                } else {
+                    setFeedback({ type: 'error', msg: '請點擊發光提示的 0 進行刪除喔！' });
+                    triggerShake();
+                }
+            };
+
+            const finishProblem = () => {
+                setPhase('done');
+                onScore(10);
+                if (!hasError) {
+                    const nStreak = streak + 1;
+                    setStreak(nStreak);
+                    const threshold = mode === 'add' ? LEVELS_ADD.find(l => l.level === level).threshold : LEVELS_SUB.find(l => l.level === level).threshold;
+                    if (nStreak >= threshold) {
+                        setFeedback({ type: 'success', msg: '太棒了！連續答對，準備升級！' });
+                        setTimeout(() => onLevelUp(), 1500);
+                    } else {
+                        setFeedback({ type: 'success', msg: `完美！連勝 ${nStreak} 題！按 Enter 下一題。` });
+                    }
+                } else {
+                    setFeedback({ type: 'success', msg: '完成了！下次試著一次答對喔！按 Enter 下一題。' });
+                }
+            };
+
+            useEffect(() => {
+                const handleKey = (e) => {
+                    if (phase === 'align') {
+                        if (e.key === 'ArrowRight') setAlignCursor(p => ({ r: p.r, c: Math.min(NUM_GRID_COLS - 1, p.c + 1) }));
+                        if (e.key === 'ArrowLeft') setAlignCursor(p => ({ r: p.r, c: Math.max(0, p.c - 1) }));
+                        if (e.key === 'ArrowUp') setAlignCursor(p => ({ r: Math.max(0, p.r - 1), c: p.c }));
+                        if (e.key === 'ArrowDown') setAlignCursor(p => ({ r: Math.min(1, p.r + 1), c: p.c }));
+                    }
+                    if (e.key >= '0' && e.key <= '9') handleInput(parseInt(e.key));
+                    if (e.key === '.') handleDecimal();
+                    if (e.key === 'Backspace') {
+                        if (phase === 'align') handleAlignDelete();
+                    }
+                    if (e.key === 'Delete') {
+                        if (phase === 'align') {
+                            const isTop = alignCursor.r === 0;
+                            const setGrid = isTop ? setGridTop : setGridBot;
+                            const grid = isTop ? [...gridTop] : [...gridBot];
+                            grid[alignCursor.c] = '';
+                            setGrid(grid);
+                        }
+                    }
+                    if (e.key === 'Enter') {
+                        if (phase === 'align') verifyAlignment();
+                        else if (phase === 'done') startNew();
+                    }
+                };
+                window.addEventListener('keydown', handleKey);
+                return () => window.removeEventListener('keydown', handleKey);
+            });
+
+            if (!problem) return null;
+
+            const renderGridRow = (rowType, gridData) => {
+                return Array.from({ length: NUM_GRID_COLS }).map((_, c) => {
+                    const char = gridData[c];
+                    const isDot = char === '.';
+
+                    let bgClass = "bg-slate-50 border-slate-200";
+                    let textClass = "text-slate-800";
+                    let content = char;
+                    let onClick = null;
+
+                    if (phase === 'align') {
+                        const isActive = alignCursor.r === (rowType === 'top' ? 0 : 1) && alignCursor.c === c;
+                        onClick = () => setAlignCursor({ r: rowType === 'top' ? 0 : 1, c });
+
+                        if (isActive) {
+                            bgClass = "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-200 shadow-sm cursor-text";
+                            content = char || <span className="w-1 h-6 bg-yellow-500 inline-block cursor-blink"></span>;
+                        } else {
+                            bgClass = "bg-white border-slate-300 hover:bg-slate-100 cursor-pointer shadow-inner";
+                        }
+                    } else if (phase === 'calc' || phase === 'done') {
+                        bgClass = char ? "bg-white border-transparent" : "bg-transparent border-transparent";
+
+                        if (mode === 'sub' && rowType === 'top') {
+                            const showStrike = borrowed[c];
+                            if (showStrike) {
+                                textClass = "text-slate-300 strike-through active";
+                            }
+
+                            let canClick = false;
+                            let expectBorrowTarget = targetBorrowCol !== null ? targetBorrowCol : calcCol - 1;
+                            if (expectBorrowTarget === FIXED_DECIMAL_COL) expectBorrowTarget--;
+
+                            if (calcAction === 'borrow' && c === expectBorrowTarget && (gridTop[c] || received[c]) && gridTop[c] !== '.') {
+                                canClick = true;
+                                bgClass = "bg-yellow-50 ring-2 ring-yellow-400 animate-pulse cursor-pointer rounded-lg";
+                            }
+                            onClick = canClick ? () => handleBorrowClick(c) : null;
+                        }
+                    }
+
+                    if (rowType === 'res') {
+                        const isFocus = phase === 'calc' && (calcAction === 'sum' || calcAction === 'calc') && calcCol === c;
+                        const isCrossFocus = phase === 'calc' && calcAction === 'cross' && calcCol === c && !crossed[c];
+                        const isDecimalFocus = phase === 'calc' && calcAction === 'decimal' && calcCol === c;
+
+                        if (shake && (isFocus || isCrossFocus || isDecimalFocus)) {
+                            bgClass = "bg-red-50 border-red-400 text-red-600 animate-shake";
+                        } else if (isCrossFocus) {
+                            bgClass = "bg-yellow-50 border-yellow-400 ring-4 ring-yellow-400 scale-105 shadow-lg cursor-pointer animate-pulse text-slate-900";
+                            onClick = () => handleCrossOut(c);
+                        } else if (crossed[c]) {
+                            bgClass = "bg-slate-50 border-slate-200";
+                            textClass = "text-slate-300 strike-through active";
+                        } else if (char) {
+                            bgClass = "bg-white border-slate-300 shadow-inner";
+                        } else if (isFocus) {
+                            bgClass = "bg-yellow-50 border-yellow-400 ring-4 ring-yellow-100 scale-105 shadow-lg";
+                            content = <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping" />;
+                        } else if (isDecimalFocus) {
+                            bgClass = "bg-transparent border-transparent";
+                            content = <div className="absolute w-4 h-4 bg-yellow-400 dot-pulse bottom-2"></div>;
+                        } else {
+                            bgClass = "bg-slate-50 border-slate-100";
+                        }
+                    }
+
+                    const containerWidth = "w-10 md:w-14";
+
+                    let expectedCarryUICol = calcCol - 1;
+                    if (expectedCarryUICol === FIXED_DECIMAL_COL) expectedCarryUICol--;
+
+                    return (
+                        <div key={`${rowType}-${c}`} className={`relative flex flex-col items-center justify-end h-14 md:h-16 ${containerWidth}`}>
+
+                            {/* 減法借位動態效果UI (分離退位標記) */}
+                            {mode === 'sub' && rowType === 'top' && (phase === 'calc' || phase === 'done') && (
+                                <div className="absolute -top-10 flex justify-center w-full pointer-events-none z-20">
+                                    {(() => {
+                                        const hasRec = received[c];
+                                        const isLent = borrowed[c];
+                                        if (!hasRec && !isLent) return null;
+
+                                        const origStr = gridTop[c];
+                                        const origVal = parseInt(origStr) || 0;
+                                        const isZero = origStr === '0' || origStr === '';
+
+                                        if (hasRec && isLent) {
+                                            if (isZero) {
+                                                return <div className="text-xl font-bold text-rose-500 bg-white rounded-full px-2 border border-rose-100 animate-pop-in shadow-sm">9</div>;
+                                            } else {
+                                                return (
+                                                    <div className="flex items-center gap-0.5 translate-x-1">
+                                                        <div className="text-[11px] md:text-xs bg-slate-50 rounded-full w-5 h-5 flex items-center justify-center border border-slate-300 text-slate-500 font-bold shadow-sm z-10 mb-0.5">
+                                                            {origVal - 1}
+                                                        </div>
+                                                        <div className="text-lg md:text-xl font-bold text-rose-500 bg-white rounded-full px-1 border border-rose-100 animate-pop-in shadow-sm z-20">
+                                                            10
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                        } else if (hasRec && !isLent) {
+                                            return <div className="text-xl font-bold text-rose-500 bg-white rounded-full px-1 border border-rose-100 animate-pop-in shadow-sm">10</div>;
+                                        } else if (!hasRec && isLent) {
+                                            return <div className="text-xl font-bold text-rose-500 bg-white rounded-full px-2 border border-rose-100 animate-pop-in shadow-sm">{origVal - 1}</div>;
+                                        }
+                                    })()}
+                                </div>
+                            )}
+
+                            {/* 減法借位畫線動畫 */}
+                            {mode === 'sub' && rowType === 'top' && borrowed[c] && (
+                                <svg className="absolute top-[-15px] left-0 w-[220%] h-14 pointer-events-none z-10 overflow-visible">
+                                    <defs><marker id={`arr-${c}`} markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#f59e0b" /></marker></defs>
+                                    <path d="M 15 25 Q 35 5 70 25" fill="none" stroke="#f59e0b" strokeWidth="2" markerEnd={`url(#arr-${c})`} className="animate-draw-line" />
+                                </svg>
+                            )}
+
+                            {/* 加法進位圈圈UI */}
+                            {mode === 'add' && rowType === 'top' && (
+                                <div className="absolute -top-8 w-full flex justify-center z-20">
+                                    {carries[c] ? (
+                                        <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm bg-indigo-100 border-2 border-indigo-200 text-indigo-600 shadow-sm animate-pop-in">
+                                            {carries[c]}
+                                        </div>
+                                    ) : (
+                                        phase === 'calc' && calcAction === 'carry' && expectedCarryUICol === c ? (
+                                            <div className="w-6 h-6 rounded-full border-2 border-yellow-400 bg-yellow-50 animate-pulse ring-2 flex items-center justify-center text-yellow-700 font-bold cursor-pointer shadow-md" onClick={() => processAdditionInput(1)}>
+                                                ?
+                                            </div>
+                                        ) : null
+                                    )}
+                                </div>
+                            )}
+
+                            <div onClick={onClick} className={`w-full h-full rounded-lg border-2 flex items-center justify-center text-3xl md:text-4xl font-mono font-medium transition-all ${bgClass} ${textClass}`}>
+                                {isDot ? <span className="font-black -translate-y-2">.</span> : content}
+                            </div>
+
+                            {/* 計算位置提示小箭頭 */}
+                            {(phase === 'calc') && rowType === 'res' && (calcCol === c && (calcAction === 'calc' || calcAction === 'sum' || calcAction === 'cross')) && (
+                                <div className="absolute top-full mt-2 flex flex-col items-center z-10">
+                                    <div className={`w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] ${calcAction === 'cross' ? 'border-b-yellow-500' : (mode === 'add' ? 'border-b-indigo-500' : 'border-b-rose-500')} mb-1`}></div>
+                                    <span className={`text-xs font-bold ${calcAction === 'cross' ? 'bg-yellow-100 text-yellow-700' : (mode === 'add' ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-600')} px-2 py-1 rounded-md shadow-sm whitespace-nowrap`}>
+                                        {calcAction === 'cross' ? '點擊刪除' : '算這裡'}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    );
+                });
+            };
+
+            const themeColor = mode === 'add' ? 'indigo' : 'rose';
+
+            return (
+                <div className="flex flex-col items-center w-full max-w-2xl mx-auto">
+
+                    <div className="w-full mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 text-center flex flex-col items-center gap-2">
+                        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">題目</span>
+                        <div className={`text-4xl md:text-5xl font-mono font-black tracking-wider text-${themeColor}-700`}>
+                            {problem.topStr} {mode === 'add' ? '+' : '-'} {problem.botStr} = <span className="text-slate-300">?</span>
+                        </div>
+                    </div>
+
+                    <div className="mb-6 w-full px-4">
+                        <div className={`p-4 rounded-xl flex items-start gap-3 transition-all duration-300 shadow-sm ${feedback?.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : feedback?.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                            {feedback?.type === 'error' ? <AlertCircle className="shrink-0 mt-0.5" /> : <Sparkles className="shrink-0 mt-0.5" />}
+                            <span className="font-medium text-lg leading-relaxed">{feedback?.msg}</span>
+                        </div>
+                    </div>
+
+                    <div className={`bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-200 mb-8 select-none w-full flex flex-col items-center relative transition-all ${phase === 'align' ? 'ring-4 ring-blue-100' : ''}`}>
+
+                        <div className="flex flex-col gap-2 mt-8 md:mt-4 w-full justify-center items-center">
+
+                            {/* 定位標示列 Header */}
+                            <div className="flex gap-1 md:gap-2 justify-end w-full max-w-lg relative pr-4 mb-2">
+                                {COL_LABELS.map((label, i) => (
+                                    <div key={`lbl-${i}`} className={`w-10 md:w-14 text-center text-[10px] md:text-xs font-bold ${i === FIXED_DECIMAL_COL ? 'text-yellow-600 bg-yellow-50 rounded-md py-1' : 'text-slate-400'}`}>
+                                        {label}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex gap-1 md:gap-2 justify-end w-full max-w-lg relative pr-4">
+                                {renderGridRow('top', gridTop)}
+                            </div>
+
+                            <div className="flex gap-1 md:gap-2 justify-end w-full max-w-lg relative pr-4">
+                                <div className={`absolute left-0 bottom-2 text-4xl font-bold text-slate-400`}>{mode === 'add' ? '+' : '-'}</div>
+                                {renderGridRow('bot', gridBot)}
+                            </div>
+
+                            <div className="h-1 bg-slate-800 w-full max-w-lg rounded-full my-3"></div>
+
+                            <div className="flex gap-1 md:gap-2 justify-end w-full max-w-lg relative pr-4">
+                                {renderGridRow('res', gridRes)}
+                            </div>
+
+                        </div>
+
+                        {phase === 'align' && (
+                            <div className="mt-8 w-full max-w-xs">
+                                <button onClick={verifyAlignment} className={`w-full py-4 text-white text-lg font-bold rounded-xl shadow-md transition-all active:scale-95 bg-${themeColor}-600 hover:bg-${themeColor}-700`}>
+                                    對齊完成，開始計算
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {phase === 'done' ? (
+                        <button onClick={startNew} className={`w-full max-w-sm py-4 text-white text-xl font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 bg-${themeColor}-600 hover:bg-${themeColor}-700`}>
+                            <RefreshCw className="animate-spin-slow" /> 下一題 (Enter)
+                        </button>
+                    ) : (
+                        <NumberPad onInput={handleInput} onDecimal={handleDecimal} onDelete={handleAlignDelete} disabled={phase === 'done'} />
+                    )}
+                </div>
+            );
+        };
+
+        function MathPlatformApp() {
+            const [mode, setMode] = useState('add');
+            const [levelAdd, setLevelAdd] = useState(1);
+            const [levelSub, setLevelSub] = useState(1);
+            const [score, setScore] = useState(0);
+
+            const [isCompletedAdd, setIsCompletedAdd] = useState(false);
+            const [isCompletedSub, setIsCompletedSub] = useState(false);
+
+            const activeLevels = mode === 'add' ? LEVELS_ADD : LEVELS_SUB;
+            const currentLevel = mode === 'add' ? levelAdd : levelSub;
+            const setLevel = mode === 'add' ? setLevelAdd : setLevelSub;
+            const isCompleted = mode === 'add' ? isCompletedAdd : isCompletedSub;
+            const setIsCompleted = mode === 'add' ? setIsCompletedAdd : setIsCompletedSub;
+
+            const handleLevelUp = () => {
+                if (currentLevel < 6) {
+                    setLevel(currentLevel + 1);
+                } else {
+                    setIsCompleted(true);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col lg:flex-row">
+                    <div className="w-full lg:w-80 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 p-4 md:p-6 flex flex-col shadow-sm z-20">
+                        <div className="mb-6 flex justify-between items-center lg:block">
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tight">
+                                    小數加減小學堂
+                                </h1>
+                                <p className="text-sm text-slate-500 mt-1">自主排版・直式計算</p>
+                            </div>
+                            <div className="lg:hidden bg-yellow-50 px-3 py-2 rounded-lg border border-yellow-200 flex items-center gap-2">
+                                <Trophy className="w-4 h-4 text-yellow-600" /> <span className="font-black text-yellow-600">{score}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex bg-slate-100 p-1 rounded-xl mb-6 shrink-0">
+                            <button onClick={() => setMode('add')} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${mode === 'add' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                                ➕ 加法特訓
+                            </button>
+                            <button onClick={() => setMode('sub')} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${mode === 'sub' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                                ➖ 減法挑戰
+                            </button>
+                        </div>
+
+                        <div className="flex lg:flex-col gap-2 flex-nowrap overflow-x-auto lg:overflow-y-auto mb-4 pb-2 lg:pb-0 scrollbar-hide flex-1">
+                            {activeLevels.map((l) => (
+                                <button key={l.level} onClick={() => { setLevel(l.level); setIsCompleted(false); }}
+                                    className={`text-left px-4 py-3 rounded-xl transition-all border relative overflow-hidden shrink-0 min-w-[140px] lg:min-w-0 ${currentLevel === l.level && !isCompleted ? (mode === 'add' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-rose-50 border-rose-400 ring-1 ring-rose-400') : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                    <div className={`font-bold relative z-10 ${currentLevel === l.level && !isCompleted ? (mode === 'add' ? 'text-indigo-800' : 'text-rose-800') : 'text-slate-700'}`}>
+                                        Level {l.level}: {l.label}
+                                    </div>
+                                    <div className={`text-xs mt-1 relative z-10 ${currentLevel === l.level && !isCompleted ? (mode === 'add' ? 'text-indigo-600' : 'text-rose-600') : 'text-slate-500'} hidden lg:block`}>
+                                        {l.desc}
+                                    </div>
+                                    {currentLevel === l.level && !isCompleted && <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-10"><TrendingUp size="40" /></div>}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* 新增：左側下方簡易使用與過關說明 */}
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-4 lg:mt-auto mb-4 shrink-0 text-slate-600 text-xs leading-relaxed hidden lg:block">
+                            <div className="font-bold flex items-center gap-1.5 text-slate-700 mb-2 text-sm">
+                                <InfoIcon className="w-4 h-4 text-blue-500" /> 使用與過關說明
+                            </div>
+                            <ul className="list-disc pl-4 space-y-1.5 mb-3">
+                                <li><span className="font-medium text-slate-700">對齊排版：</span>將橫式題目填入下方，務必精準對齊小數點或個位數。</li>
+                                <li><span className="font-medium text-slate-700">直式計算：</span>由右至左計算，可點擊上方數字進行進/借位操作。</li>
+                                <li><span className="font-medium text-slate-700">化簡答案：</span>計算完成後，需手動點擊刪除無意義的前後綴 <span className="font-mono text-red-500">0</span>。</li>
+                            </ul>
+                            <div className="bg-blue-50/70 p-2.5 rounded-lg border border-blue-100 mt-2">
+                                <span className="font-bold text-blue-700 block mb-0.5">🏆 晉級條件</span>
+                                每個關卡連續答對 3~5 題即可自動晉級，通過 Level 6 即可全破通關！
+                            </div>
+                        </div>
+
+                        <div className="hidden lg:flex bg-yellow-50 p-4 rounded-xl border border-yellow-200 items-center justify-between shrink-0">
+                            <div className="flex items-center gap-2 text-yellow-700 font-bold">
+                                <Trophy className="w-5 h-5" /> 總積分
+                            </div>
+                            <div className="text-3xl font-black text-yellow-600">{score}</div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col items-center justify-start lg:justify-center p-4 py-6 bg-slate-50 relative overflow-y-auto">
+                        {isCompleted ? (
+                            <div className="flex flex-col items-center justify-center p-8 md:p-12 bg-white rounded-3xl shadow-xl border-2 border-yellow-300 text-center animate-pop-in max-w-lg w-full mt-10 lg:mt-0">
+                                <Trophy className="w-32 h-32 text-yellow-500 mb-6 animate-bounce-slow" />
+                                <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4 tracking-tight">🎉 恭喜通關！</h2>
+                                <p className="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed">
+                                    你已經完成了<span className={`font-bold mx-1 ${mode === 'add' ? 'text-indigo-600' : 'text-rose-600'}`}>{mode === 'add' ? '小數加法' : '小數減法'}</span>的所有挑戰關卡！<br /><span className="text-sm mt-2 block">這證明你對小數點對齊與直式計算已經非常熟練！</span>
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4 w-full">
+                                    <button onClick={() => { setIsCompleted(false); setLevel(1); }} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-lg font-bold rounded-2xl transition-all shadow-sm active:scale-95">
+                                        再次挑戰
+                                    </button>
+                                    <button onClick={() => { setMode(mode === 'add' ? 'sub' : 'add'); setIsCompletedAdd(false); setIsCompletedSub(false); }} className={`flex-1 py-4 text-white text-lg font-bold rounded-2xl transition-all shadow-md active:scale-95 ${mode === 'add' ? 'bg-rose-500 hover:bg-rose-600' : 'bg-indigo-500 hover:bg-indigo-600'}`}>
+                                        {mode === 'add' ? '前往減法 ➡️' : '前往加法 ➡️'}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <MathGame key={`${mode}-${currentLevel}`} mode={mode} level={currentLevel} onLevelUp={handleLevelUp} onScore={s => setScore(prev => prev + s)} />
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MathPlatformApp />);
+    </script>
+</body>
+
+</html>

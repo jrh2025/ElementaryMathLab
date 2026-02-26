@@ -128,5 +128,14 @@ window.MATH_TOOLS_DATA = [
     "link": "division_4g.html",
     "icon": "Divide",
     "color": "rose"
+  },
+  {
+    "id": "tool_1772082858357",
+    "title": "小數加減小學堂",
+    "grade": "四年級",
+    "description": "透過「自主排版對齊」、「標準直式運算引導」、「退位/進位拆解提示」以及「答案化簡（刪除無意義零）」等完整流程，協助學生建立紮實的小數位值概念與直式計算能力。",
+    "link": "decimal_addition_subtraction.html",
+    "icon": "MoreHorizontal",
+    "color": "indigo"
   }
 ];
