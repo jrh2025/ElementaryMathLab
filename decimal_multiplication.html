@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小數乘法小學堂 | 國小數學互動教學實驗室</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            margin: 0;
+            padding: 0;
+        }
+
+        .font-nunito {
+            font-family: 'Nunito', sans-serif;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-8px);
+            }
+
+            40% {
+                transform: translateX(8px);
+            }
+
+            60% {
+                transform: translateX(-8px);
+            }
+
+            80% {
+                transform: translateX(8px);
+            }
+        }
+
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes bounce-slow {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .animate-bounce-slow {
+            animation: bounce-slow 2s infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin 3s linear infinite;
+        }
+
+        .cell-input::-webkit-outer-spin-button,
+        .cell-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 隱藏原生 focus 樣式，改用 Tailwind utilities 處理 */
+        .cell-input:focus {
+            outline: none;
+        }
+
+        /* 網格紙背景裝飾 */
+        .bg-grid-pattern {
+            background-image: linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center overflow-x-hidden">
+
+    <div id="root" class="w-full min-h-screen"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons ---
+        const Sparkles = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>;
+        const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>;
+        const Trophy = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>;
+        const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>;
+        const TrendingUp = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size || "24"} height={size || "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>;
+        const InfoIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+
+        // --- Configurations ---
+        const LEVELS_MULT = [
+            { level: 1, label: '入門', desc: '一位小數 × 一位整數', threshold: 3 },
+            { level: 2, label: '初級', desc: '二位小數 × 一位整數', threshold: 3 },
+            { level: 3, label: '進階', desc: '一位小數 × 一位小數', threshold: 3 },
+            { level: 4, label: '中級', desc: '二位小數 × 一位小數', threshold: 3 },
+            { level: 5, label: '挑戰', desc: '二位小數 × 二位整數', threshold: 5 },
+            { level: 6, label: '大師', desc: '二位小數 × 二位小數', threshold: 5 },
+        ];
+        const COLS = 9;
+
+        // --- Utility Functions ---
+        const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        const getDecPlaces = (str) => str.includes('.') ? str.split('.')[1].length : 0;
+
+        const generateQuestion = (level) => {
+            let n1, n2;
+            if (level === 1) {
+                n1 = `0.${rand(1, 9)}`; n2 = `${rand(2, 9)}`;
+            } else if (level === 2) {
+                n1 = `0.${rand(1, 9)}${rand(1, 9)}`; n2 = `${rand(2, 9)}`;
+            } else if (level === 3) {
+                n1 = `${rand(1, 9)}.${rand(1, 9)}`; n2 = `0.${rand(1, 9)}`;
+            } else if (level === 4) {
+                n1 = `${rand(1, 9)}.${rand(1, 9)}${rand(1, 9)}`; n2 = `${rand(1, 9)}.${rand(1, 9)}`;
+            } else if (level === 5) {
+                n1 = `${rand(1, 9)}.${rand(1, 9)}${rand(1, 9)}`; n2 = `${rand(1, 9)}${rand(1, 9)}`;
+            } else {
+                // Level 6: 2 dec * 2 dec (e.g., 3.14 * 2.71)
+                n1 = `${rand(1, 9)}.${rand(1, 9)}${rand(1, 9)}`; n2 = `${rand(1, 9)}.${rand(1, 9)}${rand(1, 9)}`;
+            }
+            return { num1: n1, num2: n2 };
+        };
+
+        // 依據對齊位置生成純數字的目標網格（剔除小數點，讓小數點由外部懸浮渲染）
+        const buildExpectedGrid = (n1, n2, alignCol = COLS - 1) => {
+            let grid = [];
+
+            const rightAlign = (str, shiftRight = 0) => {
+                const row = Array(COLS).fill('');
+                const startCol = alignCol - shiftRight - str.length + 1;
+                for (let i = 0; i < str.length; i++) {
+                    if (startCol + i >= 0 && startCol + i < COLS) {
+                        row[startCol + i] = str[i];
+                    }
+                }
+                return row;
+            };
+
+            const s1 = n1.replace('.', '');
+            const s2 = n2.replace('.', '');
+
+            grid.push(rightAlign(s1));
+            grid.push(rightAlign(s2));
+
+            if (s2.length > 1) {
+                let sum = 0;
+                for (let i = s2.length - 1; i >= 0; i--) {
+                    const d = parseInt(s2[i]);
+                    let p = (d * parseInt(s1)).toString();
+                    if (d === 0) p = '0'.repeat(s1.length);
+                    grid.push(rightAlign(p, s2.length - 1 - i));
+                    sum += d * parseInt(s1) * Math.pow(10, s2.length - 1 - i);
+                }
+                let sumStr = sum.toString();
+                const decPlaces = getDecPlaces(n1) + getDecPlaces(n2);
+                // 補足前導 0 確保小數點有足夠的位置點下 (例 0.3 * 0.2 = 0.06，sum為6，補成 006)
+                while (sumStr.length <= decPlaces) {
+                    sumStr = '0' + sumStr;
+                }
+                grid.push(rightAlign(sumStr));
+            } else {
+                let sumStr = (parseInt(s1) * parseInt(s2)).toString();
+                const decPlaces = getDecPlaces(n1) + getDecPlaces(n2);
+                while (sumStr.length <= decPlaces) {
+                    sumStr = '0' + sumStr;
+                }
+                grid.push(rightAlign(sumStr));
+            }
+            return grid;
+        };
+
+        const getCrossableZeros = (rowArr, decPos) => {
+            let crossable = [];
+            if (decPos === null) return crossable;
+
+            // 右側多餘的 0
+            for (let i = COLS - 1; i > decPos; i--) {
+                if (rowArr[i] === '0') crossable.push(i);
+                else if (rowArr[i] !== '') break;
+            }
+            // 左側多餘的 0 (開頭的 0，但保留緊貼小數點的那個 0)
+            let firstDigitIdx = rowArr.findIndex(c => c !== '');
+            if (firstDigitIdx !== -1) {
+                for (let i = firstDigitIdx; i < decPos; i++) {
+                    if (rowArr[i] === '0') crossable.push(i);
+                    else if (rowArr[i] !== '') break;
+                }
+            }
+            return crossable;
+        };
+
+        // --- Inner Game Component ---
+        const MultiplicationGame = ({ level, onLevelUp, onScore }) => {
+            const [streak, setStreak] = useState(0);
+            // phase 包含: setup -> align -> calc -> simplify -> done
+            const [phase, setPhase] = useState('setup');
+            const [question, setQuestion] = useState(null);
+
+            const [expectedGrid, setExpectedGrid] = useState([]);
+            const [userGrid, setUserGrid] = useState([]);
+            const [alignCol, setAlignCol] = useState(COLS - 1);
+
+            // 分別記錄上下數字及答案的小數點位置
+            const [alignTopDecPos, setAlignTopDecPos] = useState(null);
+            const [alignBotDecPos, setAlignBotDecPos] = useState(null);
+            const [decimalPos, setDecimalPos] = useState(null);
+
+            const [feedback, setFeedback] = useState(null);
+            const [errorShake, setErrorShake] = useState(false);
+            const [crossedOut, setCrossedOut] = useState([]);
+            const [showLevelUp, setShowLevelUp] = useState(false);
+
+            const phaseRef = useRef('setup');
+
+            const initGame = (preserveStreak = true) => {
+                const q = generateQuestion(level);
+                setQuestion(q);
+                const expected = buildExpectedGrid(q.num1, q.num2, COLS - 1);
+                setExpectedGrid(expected);
+                setUserGrid(expected.map(row => row.map(() => '')));
+
+                setPhase('align');
+                setCrossedOut([]);
+                setAlignTopDecPos(null);
+                setAlignBotDecPos(null);
+                setDecimalPos(null);
+                setAlignCol(COLS - 1);
+                setFeedback({ type: 'info', msg: '步驟一：請填寫題目數字，並點擊數字間的空隙標示小數點！(只要最末位上下對齊即可)' });
+
+                if (!preserveStreak) setStreak(0);
+                setErrorShake(false);
+                setShowLevelUp(false);
+            };
+
+            useEffect(() => {
+                initGame(false);
+            }, []);
+
+            // 使用 ref 確保每個階段只觸發一次自動對焦
+            useEffect(() => {
+                if (phase === 'align' && phaseRef.current !== 'align') {
+                    setTimeout(() => document.getElementById('cell-0-4')?.focus(), 100);
+                } else if (phase === 'calc' && phaseRef.current !== 'calc') {
+                    const rightmostCalcCol = expectedGrid[2]?.findLastIndex(c => c !== '') ?? (COLS - 1);
+                    setTimeout(() => document.getElementById(`cell-2-${rightmostCalcCol}`)?.focus(), 100);
+                }
+                phaseRef.current = phase;
+            }, [phase, expectedGrid]);
+
+            const handleInput = (r, c, val) => {
+                if (phase !== 'align' && phase !== 'calc') return;
+                let inputChar = val.slice(-1);
+                // 改為只允許純數字輸入，小數點不能鍵盤輸入
+                if (inputChar !== '' && !/^\d$/.test(inputChar)) return;
+
+                setUserGrid(prev => {
+                    const newGrid = [...prev];
+                    newGrid[r] = [...newGrid[r]];
+                    newGrid[r][c] = inputChar;
+                    return newGrid;
+                });
+
+                if (inputChar !== '') {
+                    if (phase === 'align' && c < COLS - 1) {
+                        setTimeout(() => document.getElementById(`cell-${r}-${c + 1}`)?.focus(), 10);
+                    } else if (phase === 'calc' && c > 0) {
+                        setTimeout(() => document.getElementById(`cell-${r}-${c - 1}`)?.focus(), 10);
+                    }
+                }
+            };
+
+            const handleKeyDown = (e, r, c) => {
+                if (phase !== 'align' && phase !== 'calc') return;
+
+                const maxRow = expectedGrid.length - 1;
+                const maxCol = COLS - 1;
+
+                switch (e.key) {
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (r > 0) document.getElementById(`cell-${r - 1}-${c}`)?.focus();
+                        break;
+                    case 'ArrowDown':
+                    case 'Enter':
+                        e.preventDefault();
+                        if (r < maxRow) document.getElementById(`cell-${r + 1}-${c}`)?.focus();
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        if (c > 0) document.getElementById(`cell-${r}-${c - 1}`)?.focus();
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        if (c < maxCol) document.getElementById(`cell-${r}-${c + 1}`)?.focus();
+                        break;
+                    case 'Backspace':
+                        if ((userGrid[r]?.[c] ?? '') !== '') {
+                            e.preventDefault();
+                            setUserGrid(prev => {
+                                const newGrid = [...prev];
+                                newGrid[r] = [...newGrid[r]];
+                                newGrid[r][c] = '';
+                                return newGrid;
+                            });
+                        } else {
+                            e.preventDefault();
+                            if (phase === 'align' && c > 0) {
+                                document.getElementById(`cell-${r}-${c - 1}`)?.focus();
+                            } else if (phase === 'calc' && c < maxCol) {
+                                document.getElementById(`cell-${r}-${c + 1}`)?.focus();
+                            }
+                        }
+                        break;
+                    case 'Delete':
+                        if ((userGrid[r]?.[c] ?? '') !== '') {
+                            e.preventDefault();
+                            setUserGrid(prev => {
+                                const newGrid = [...prev];
+                                newGrid[r] = [...newGrid[r]];
+                                newGrid[r][c] = '';
+                                return newGrid;
+                            });
+                        }
+                        break;
+                }
+            };
+
+            const triggerError = () => {
+                setErrorShake(true);
+                setStreak(0);
+                setTimeout(() => setErrorShake(false), 500);
+            };
+
+            const handleWin = (currentStreak) => {
+                const newStreak = currentStreak + 1;
+                const threshold = LEVELS_MULT.find(l => l.level === level).threshold;
+
+                setStreak(newStreak);
+                onScore(10);
+
+                if (newStreak >= threshold) {
+                    setShowLevelUp(true);
+                    setTimeout(() => {
+                        onLevelUp();
+                    }, 2000);
+                }
+            };
+
+            const checkSimplifyOrDone = (currentDecPos) => {
+                const lastRow = expectedGrid[expectedGrid.length - 1];
+                const crossables = getCrossableZeros(lastRow, currentDecPos);
+                if (crossables.length === 0) {
+                    setPhase('done');
+                    handleWin(streak);
+                    setFeedback({ type: 'success', msg: '計算與小數點皆完全正確！挑戰成功，恭喜過關！' });
+                } else {
+                    setPhase('simplify');
+                    setFeedback({ type: 'info', msg: '計算與小數點正確！最後一步：請點擊劃掉答案中無意義的 0。' });
+                }
+            };
+
+            const handleCheck = () => {
+                if (phase === 'align') {
+                    const s1 = question.num1.replace('.', '');
+                    const s2 = question.num2.replace('.', '');
+                    const topStrUser = (userGrid[0] ?? []).join('');
+                    const botStrUser = (userGrid[1] ?? []).join('');
+
+                    const topLastIdx = (userGrid[0] ?? []).findLastIndex(c => c !== '');
+                    const botLastIdx = (userGrid[1] ?? []).findLastIndex(c => c !== '');
+
+                    if (topStrUser === '' || botStrUser === '') {
+                        triggerError();
+                        setFeedback({ type: 'error', msg: '請填寫題目數字！' });
+                        return;
+                    }
+
+                    if (topStrUser !== s1 || botStrUser !== s2) {
+                        triggerError();
+                        setFeedback({ type: 'error', msg: '數字輸入錯誤！請重新確認題目數字（不需要在格子內輸入小數點）。' });
+                        return;
+                    }
+
+                    if (topLastIdx !== botLastIdx) {
+                        triggerError();
+                        setFeedback({ type: 'error', msg: '沒有對齊！請確保「被乘數」與「乘數」的最末位上下對齊。' });
+                        return;
+                    }
+
+                    // 檢查題目小數點的點擊位置是否正確
+                    const topExpectedDec = getDecPlaces(question.num1) > 0 ? topLastIdx - getDecPlaces(question.num1) : null;
+                    const botExpectedDec = getDecPlaces(question.num2) > 0 ? botLastIdx - getDecPlaces(question.num2) : null;
+
+                    if (topExpectedDec !== null && alignTopDecPos !== topExpectedDec) {
+                        triggerError();
+                        if (alignTopDecPos === null) setFeedback({ type: 'error', msg: '請點擊上方數字間的空隙，標示被乘數的小數點！' });
+                        else setFeedback({ type: 'error', msg: '被乘數的小數點位置標示錯誤喔！' });
+                        return;
+                    }
+
+                    if (botExpectedDec !== null && alignBotDecPos !== botExpectedDec) {
+                        triggerError();
+                        if (alignBotDecPos === null) setFeedback({ type: 'error', msg: '請點擊下方數字間的空隙，標示乘數的小數點！' });
+                        else setFeedback({ type: 'error', msg: '乘數的小數點位置標示錯誤喔！' });
+                        return;
+                    }
+
+                    // 檢查是否太靠左導致寫不下
+                    let sumStr = (parseInt(s1) * parseInt(s2)).toString();
+                    const decPlaces = getDecPlaces(question.num1) + getDecPlaces(question.num2);
+                    while (sumStr.length <= decPlaces) {
+                        sumStr = '0' + sumStr;
+                    }
+
+                    if (topLastIdx - sumStr.length + 1 < 0) {
+                        triggerError();
+                        setFeedback({ type: 'error', msg: '對齊正確，但太靠左邊了，之後計算會寫不下喔！請把數字整體往右移。' });
+                        return;
+                    }
+
+                    // 進入計算階段：重新生成對齊後的網格
+                    const newExpectedGrid = buildExpectedGrid(question.num1, question.num2, topLastIdx);
+                    setExpectedGrid(newExpectedGrid);
+                    setAlignCol(topLastIdx);
+
+                    setUserGrid(prev => {
+                        return newExpectedGrid.map((row, r) =>
+                            r < 2 ? [...row] : Array(COLS).fill('')
+                        );
+                    });
+
+                    setPhase('calc');
+                    setFeedback({ type: 'success', msg: '對齊與小數點正確！請當作整數完成乘積與加總，並在最後答案處點擊空隙加上「小數點」。' });
+
+                } else if (phase === 'calc') {
+                    let match = true;
+                    for (let r = 2; r < expectedGrid.length; r++) {
+                        for (let c = 0; c < COLS; c++) {
+                            if ((userGrid[r]?.[c] ?? '') !== expectedGrid[r][c]) match = false;
+                        }
+                    }
+
+                    if (match) {
+                        const totalDecPlaces = getDecPlaces(question.num1) + getDecPlaces(question.num2);
+                        const expectedC = totalDecPlaces > 0 ? alignCol - totalDecPlaces : null;
+
+                        // 檢查學生是否正確標示了小數點
+                        if (totalDecPlaces > 0) {
+                            if (decimalPos === null) {
+                                triggerError();
+                                setFeedback({ type: 'info', msg: '數字計算正確！但別忘了標示「小數點」喔！請點擊最後一行數字之間的空隙放置小數點。' });
+                                return;
+                            } else if (decimalPos !== expectedC) {
+                                triggerError();
+                                setFeedback({ type: 'error', msg: '數字計算正確，但小數點位置不對喔！提示：看看題目總共有幾位小數。' });
+                                return;
+                            }
+                        }
+
+                        checkSimplifyOrDone(expectedC);
+                    } else {
+                        triggerError();
+                        setFeedback({ type: 'error', msg: '數字計算有誤！請再仔細檢查每一層的乘積與最後的加總。' });
+                    }
+                }
+            };
+
+            const handleZeroClick = (c) => {
+                if (phase !== 'simplify') return;
+                const r = expectedGrid.length - 1;
+                if (expectedGrid[r][c] !== '0') return;
+
+                const crossables = getCrossableZeros(expectedGrid[r], decimalPos);
+
+                if (crossables.includes(c)) {
+                    if (!crossedOut.includes(c)) {
+                        const newCrossed = [...crossedOut, c];
+                        setCrossedOut(newCrossed);
+                        if (newCrossed.length === crossables.length) {
+                            setPhase('done');
+                            handleWin(streak);
+                            setFeedback({ type: 'success', msg: '無意義的 0 皆已刪除！挑戰成功，恭喜過關！' });
+                        } else {
+                            setFeedback({ type: 'info', msg: '還有無意義的 0 喔，請繼續點擊刪除！' });
+                        }
+                    }
+                } else {
+                    triggerError();
+                    setFeedback({ type: 'error', msg: '這個 0 不能刪除喔！請點擊答案「最前面」或「最後面」無意義的 0。' });
+                }
+            };
+
+            const isCellEnabled = (r) => {
+                if (phase === 'align') return r < 2;
+                if (phase === 'calc') return r >= 2;
+                return false;
+            };
+
+            const getFinalAnswerString = () => {
+                if (!question) return '?';
+                const lastRow = expectedGrid[expectedGrid.length - 1];
+                let ans = '';
+                for (let i = 0; i < COLS; i++) {
+                    if (lastRow[i] !== '' && !crossedOut.includes(i)) {
+                        ans += lastRow[i];
+                    }
+                    if (i === decimalPos && !crossedOut.includes(i) && (getDecPlaces(question.num1) + getDecPlaces(question.num2) > 0)) {
+                        // 只有在小數點後方還有未刪除的數字時，才顯示小數點
+                        const hasRemaining = lastRow.slice(i + 1).some((val, idx) => val !== '' && !crossedOut.includes(i + 1 + idx));
+                        if (hasRemaining) ans += '.';
+                    }
+                }
+                if (ans.endsWith('.')) ans = ans.slice(0, -1);
+                return ans || '0';
+            };
+
+            const threshold = LEVELS_MULT.find(l => l.level === level).threshold;
+
+            // 預先計算出哪些是無意義的 0，用來提供 UI 精準的發光提示
+            const currentCrossables = (phase === 'simplify' || phase === 'done') && expectedGrid.length > 0
+                ? getCrossableZeros(expectedGrid[expectedGrid.length - 1], decimalPos)
+                : [];
+
+            if (!question) return null;
+
+            return (
+                <div className={`flex flex-col items-center w-full max-w-2xl mx-auto ${errorShake ? 'animate-shake' : ''}`}>
+
+                    {/* Header Section */}
+                    <div className="w-full bg-white border-b-[6px] border-blue-500 rounded-xl p-6 mb-6 shadow-md flex justify-between items-center relative">
+                        <div>
+                            <h1 className="text-3xl font-black text-slate-800 tracking-wide mb-1 flex items-center gap-2">📝 小數乘法闖關</h1>
+                            <p className="text-slate-500 font-nunito font-bold text-lg">
+                                Level <span className="text-blue-600 font-black text-xl">{level}</span>
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col items-end">
+                            <div className="flex items-center gap-3">
+                                <span className="text-slate-600 font-bold">連勝進度</span>
+                                <div className="flex gap-2">
+                                    {[...Array(threshold)].map((_, i) => (
+                                        <div key={i} className={`w-10 h-10 rounded-full border-4 flex items-center justify-center font-bold text-lg transition-all duration-300 
+                                        ${i < streak ? 'bg-green-400 border-green-500 text-white scale-110 shadow-md' : 'border-slate-200 text-slate-300 bg-slate-50'}`}>
+                                            {i < streak ? '✓' : i + 1}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 橫式題目區 */}
+                    <div className="w-full bg-white border-2 border-slate-200 rounded-2xl p-6 mb-4 shadow-sm flex items-center justify-center text-4xl font-nunito font-black text-slate-700 tracking-wider">
+                        {question.num1} <span className="mx-4 text-blue-500">×</span> {question.num2} <span className="mx-4 text-blue-500">=</span>
+                        <span className={phase === 'done' ? 'text-green-600 ml-2' : 'text-slate-300 ml-2'}>
+                            {phase === 'done' ? getFinalAnswerString() : '?'}
+                        </span>
+                    </div>
+
+                    {/* 狀態指示橫幅 */}
+                    <div className="mb-6 w-full">
+                        <div className={`px-5 py-4 rounded-xl flex items-start gap-3 transition-all duration-300 shadow-sm border ${feedback?.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : feedback?.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                            {feedback?.type === 'error' ? <AlertCircle className="shrink-0 mt-0.5" /> : <Sparkles className="shrink-0 mt-0.5" />}
+                            <span className="font-medium text-lg leading-relaxed">{feedback?.msg}</span>
+                        </div>
+                    </div>
+
+                    {/* 定位表格區 */}
+                    <div className={`bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-200 mb-8 select-none w-full max-w-3xl flex flex-col items-center relative transition-all duration-300 ${phase === 'align' ? 'ring-4 ring-blue-100' : ''}`}>
+
+                        {expectedGrid.map((row, r) => (
+                            <React.Fragment key={r}>
+                                <div className="flex justify-end mb-2 relative w-full pr-2 md:pr-8">
+
+                                    {r === 1 && (
+                                        <div className="absolute left-2 md:left-8 bottom-3 md:bottom-4 text-slate-400 text-4xl md:text-5xl font-black z-10 pointer-events-none">×</div>
+                                    )}
+
+                                    {row.map((cell, c) => (
+                                        <div key={c} className="relative w-[40px] md:w-[55px] h-[55px] md:h-[70px] mx-[2px] flex items-center justify-center">
+
+                                            {/* r=0 題目小數點點擊區 (Align Phase) */}
+                                            {phase === 'align' && r === 0 && getDecPlaces(question.num1) > 0 && c < COLS - 1 && (
+                                                <div className="absolute -right-[14px] md:-right-[20px] w-[28px] md:w-[40px] h-full z-20 cursor-pointer flex items-end justify-center group pb-3" onClick={() => setAlignTopDecPos(c)}>
+                                                    <div className={`w-3 h-3 rounded-full transition-opacity ${alignTopDecPos === c ? 'opacity-0' : 'bg-blue-300 opacity-0 group-hover:opacity-100'}`}></div>
+                                                </div>
+                                            )}
+                                            {/* r=0 顯示小數點 */}
+                                            {r === 0 && ((phase === 'align' && alignTopDecPos === c) || (phase !== 'align' && phase !== 'setup' && getDecPlaces(question.num1) > 0 && c === alignCol - getDecPlaces(question.num1))) && (
+                                                <div className="absolute -right-2 md:-right-2.5 bottom-2 md:bottom-3 text-4xl md:text-5xl font-black z-10 pointer-events-none text-blue-600">.</div>
+                                            )}
+
+                                            {/* r=1 題目小數點點擊區 (Align Phase) */}
+                                            {phase === 'align' && r === 1 && getDecPlaces(question.num2) > 0 && c < COLS - 1 && (
+                                                <div className="absolute -right-[14px] md:-right-[20px] w-[28px] md:w-[40px] h-full z-20 cursor-pointer flex items-end justify-center group pb-3" onClick={() => setAlignBotDecPos(c)}>
+                                                    <div className={`w-3 h-3 rounded-full transition-opacity ${alignBotDecPos === c ? 'opacity-0' : 'bg-blue-300 opacity-0 group-hover:opacity-100'}`}></div>
+                                                </div>
+                                            )}
+                                            {/* r=1 顯示小數點 */}
+                                            {r === 1 && ((phase === 'align' && alignBotDecPos === c) || (phase !== 'align' && phase !== 'setup' && getDecPlaces(question.num2) > 0 && c === alignCol - getDecPlaces(question.num2))) && (
+                                                <div className="absolute -right-2 md:-right-2.5 bottom-2 md:bottom-3 text-4xl md:text-5xl font-black z-10 pointer-events-none text-blue-600">.</div>
+                                            )}
+
+                                            <input
+                                                id={`cell-${r}-${c}`}
+                                                type="text"
+                                                inputMode="decimal"
+                                                maxLength={1}
+                                                value={userGrid[r]?.[c] ?? ''}
+                                                onChange={(e) => handleInput(r, c, e.target.value)}
+                                                onKeyDown={(e) => handleKeyDown(e, r, c)}
+                                                disabled={!isCellEnabled(r) && !(phase === 'simplify' && r === expectedGrid.length - 1 && expectedGrid[r][c] === '0')}
+                                                readOnly={phase === 'done' || phase === 'simplify'}
+                                                className={`w-full h-full text-center text-3xl md:text-4xl font-nunito font-bold rounded-lg border-2 transition-all duration-200 cell-input
+                                                ${isCellEnabled(r) ? 'bg-white border-slate-300 text-slate-800 focus:bg-yellow-50 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 shadow-inner' : 'bg-slate-50 border-transparent text-slate-700'}
+                                                ${phase === 'simplify' && r === expectedGrid.length - 1 && currentCrossables.includes(c) && !crossedOut.includes(c) ? 'cursor-pointer bg-red-50 hover:bg-red-100 border-red-400 ring-2 ring-red-300 animate-pulse shadow-sm' : ''}
+                                            `}
+                                                onClick={() => {
+                                                    if (phase === 'simplify') handleZeroClick(c);
+                                                }}
+                                            />
+
+                                            {/* 標示答案小數點位置的互動觸發區 (僅在 Calc Phase 提供點擊) */}
+                                            {phase === 'calc' && r === expectedGrid.length - 1 && c < COLS - 1 && (
+                                                <div
+                                                    className="absolute -right-[14px] md:-right-[20px] w-[28px] md:w-[40px] h-full z-20 cursor-pointer flex items-end justify-center group pb-3"
+                                                    onClick={() => setDecimalPos(c)}
+                                                >
+                                                    {/* 滑鼠懸浮時的小圓點提示 */}
+                                                    <div className={`w-3 h-3 rounded-full transition-opacity ${decimalPos === c ? 'opacity-0' : 'bg-blue-300 opacity-0 group-hover:opacity-100'}`}></div>
+                                                </div>
+                                            )}
+
+                                            {/* 完成放置的答案小數點 */}
+                                            {((phase === 'calc' && decimalPos === c) || phase === 'simplify' || phase === 'done') && r === expectedGrid.length - 1 && decimalPos === c && (
+                                                <div className="absolute -right-2 md:-right-2.5 bottom-2 md:bottom-3 text-4xl md:text-5xl font-black z-10 pointer-events-none text-blue-600">.</div>
+                                            )}
+
+                                            {/* 刪除線 */}
+                                            {r === expectedGrid.length - 1 && crossedOut.includes(c) && (
+                                                <div className="absolute top-1/2 -left-2 -right-2 h-[4px] md:h-[6px] bg-red-500 transform -rotate-45 z-20 rounded-full shadow-sm pointer-events-none opacity-90"></div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* 分隔線 */}
+                                {r === 1 && (
+                                    <div className="w-full h-1 md:h-1.5 bg-slate-800 rounded-full my-3"></div>
+                                )}
+                                {r === expectedGrid.length - 2 && expectedGrid.length > 3 && (
+                                    <div className="w-full h-1 md:h-1.5 bg-slate-800 rounded-full my-3"></div>
+                                )}
+                            </React.Fragment>
+                        ))}
+
+                        {/* 內嵌按鈕 / 提示 */}
+                        {phase === 'align' && (
+                            <div className="mt-8 w-full max-w-sm">
+                                <button onClick={handleCheck} className="w-full py-4 text-white text-xl font-bold rounded-xl shadow-md transition-all active:scale-95 bg-blue-600 hover:bg-blue-700">
+                                    對齊完成，開始計算
+                                </button>
+                            </div>
+                        )}
+                        {phase === 'calc' && (
+                            <div className="mt-8 w-full max-w-sm flex flex-col items-center gap-3">
+                                <span className="text-slate-500 text-sm font-bold">記得在下方答案區點出小數點喔！</span>
+                                <button onClick={handleCheck} className="w-full py-4 text-white text-xl font-bold rounded-xl shadow-md transition-all active:scale-95 bg-indigo-500 hover:bg-indigo-600">
+                                    檢查計算結果
+                                </button>
+                            </div>
+                        )}
+                        {phase === 'simplify' && (
+                            <div className="mt-8 w-full max-w-sm text-center text-rose-500 text-lg font-bold animate-pulse">
+                                👆 請點擊上方發紅光的 0 將其刪除
+                            </div>
+                        )}
+                        {phase === 'done' && (
+                            <div className="mt-8 w-full max-w-sm">
+                                <button onClick={() => initGame(true)} className="w-full py-4 text-white text-xl font-bold rounded-xl shadow-md transition-all active:scale-95 bg-green-500 hover:bg-green-600 flex justify-center items-center gap-3">
+                                    <RefreshCw className="animate-spin-slow w-6 h-6" /> 下一題 (Enter)
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Level Up 彈窗 */}
+                    {showLevelUp && (
+                        <div className="fixed inset-0 bg-slate-900/60 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+                            <div className="bg-white p-12 rounded-3xl shadow-2xl flex flex-col items-center transform animate-bounce">
+                                <div className="text-6xl mb-4">🌟</div>
+                                <h2 className="text-4xl font-black text-blue-600 mb-2">Level Up!</h2>
+                                <p className="text-xl text-slate-600 font-bold">難度升級，準備迎接新挑戰！</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- Main Application Wrapper with Sidebar ---
+        const DecimalMultiplicationApp = () => {
+            const [level, setLevel] = useState(1);
+            const [score, setScore] = useState(0);
+            const [isCompleted, setIsCompleted] = useState(false);
+
+            const handleLevelUp = () => {
+                if (level < 6) {
+                    setLevel(prev => prev + 1);
+                } else {
+                    setIsCompleted(true);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col lg:flex-row w-full">
+                    {/* 側邊導覽列 Sidebar */}
+                    <div className="w-full lg:w-80 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 p-4 md:p-6 flex flex-col shadow-sm z-20">
+                        <div className="mb-6 flex justify-between items-center lg:block">
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tight">
+                                    小數乘法小學堂
+                                </h1>
+                                <p className="text-sm text-slate-500 mt-1">靠右對齊・直式計算</p>
+                            </div>
+                            <div className="lg:hidden bg-yellow-50 px-3 py-2 rounded-lg border border-yellow-200 flex items-center gap-2">
+                                <Trophy className="w-4 h-4 text-yellow-600" /> <span className="font-black text-yellow-600">{score}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex bg-blue-50 p-1 rounded-xl mb-6 shrink-0">
+                            <div className="flex-1 py-2 text-center rounded-lg font-bold text-sm transition-all bg-white text-blue-600 shadow-sm">
+                                ✖️ 乘法特訓
+                            </div>
+                        </div>
+
+                        <div className="flex lg:flex-col gap-2 flex-nowrap overflow-x-auto lg:overflow-y-auto mb-4 pb-2 lg:pb-0 scrollbar-hide flex-1">
+                            {LEVELS_MULT.map((l) => (
+                                <button key={l.level} onClick={() => { setLevel(l.level); setIsCompleted(false); }}
+                                    className={`text-left px-4 py-3 rounded-xl transition-all border relative overflow-hidden shrink-0 min-w-[140px] lg:minw-0 ${level === l.level && !isCompleted ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                    <div className={`font-bold relative z-10 ${level === l.level && !isCompleted ? 'text-blue-800' : 'text-slate-700'}`}>
+                                        Level {l.level}: {l.label}
+                                    </div>
+                                    <div className={`text-xs mt-1 relative z-10 ${level === l.level && !isCompleted ? 'text-blue-600' : 'text-slate-500'} hidden lg:block`}>
+                                        {l.desc}
+                                    </div>
+                                    {level === l.level && !isCompleted && <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-10"><TrendingUp size="40" /></div>}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* 簡易使用與過關說明 */}
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-4 lg:mt-auto mb-4 shrink-0 text-slate-600 text-xs leading-relaxed hidden lg:block">
+                            <div className="font-bold flex items-center gap-1.5 text-slate-700 mb-2 text-sm">
+                                <InfoIcon className="w-4 h-4 text-blue-500" /> 使用與過關說明
+                            </div>
+                            <ul className="list-disc pl-4 space-y-1.5 mb-3">
+                                <li><span className="font-medium text-slate-700">對齊排版：</span>將題目數字填入網格，確保兩數<span className="text-blue-600 font-bold">最末位上下對齊</span>，並點擊數字空隙標示小數點。</li>
+                                <li><span className="font-medium text-slate-700">直式計算：</span>進入計算後，請當作整數計算各層部分乘積。點擊最後一行數字間的空隙，正確標出小數點後，再點擊檢查。</li>
+                                <li><span className="font-medium text-slate-700">化簡答案：</span>最後需手動點擊刪除前後端無意義的 <span className="font-mono text-red-500">0</span>。</li>
+                            </ul>
+                            <div className="bg-blue-50/70 p-2.5 rounded-lg border border-blue-100 mt-2">
+                                <span className="font-bold text-blue-700 block mb-0.5">🏆 晉級條件</span>
+                                每個關卡連續答對指定題數（3~5題）即可自動晉級，通過 Level 6 即可全破通關！
+                            </div>
+                        </div>
+
+                        <div className="hidden lg:flex bg-yellow-50 p-4 rounded-xl border border-yellow-200 items-center justify-between shrink-0">
+                            <div className="flex items-center gap-2 text-yellow-700 font-bold">
+                                <Trophy className="w-5 h-5" /> 總積分
+                            </div>
+                            <div className="text-3xl font-black text-yellow-600">{score}</div>
+                        </div>
+                    </div>
+
+                    {/* 主要操作區 Main Content */}
+                    <div className="flex-1 flex flex-col items-center justify-start lg:justify-center p-4 py-6 bg-grid-pattern relative overflow-y-auto">
+                        {isCompleted ? (
+                            <div className="flex flex-col items-center justify-center p-8 md:p-12 bg-white rounded-3xl shadow-xl border-2 border-yellow-300 text-center animate-pop-in max-w-lg w-full mt-10 lg:mt-0">
+                                <Trophy className="w-32 h-32 text-yellow-500 mb-6 animate-bounce-slow" />
+                                <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4 tracking-tight">🎉 恭喜通關！</h2>
+                                <p className="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed">
+                                    你已經完成了<span className="font-bold mx-1 text-blue-600">小數乘法</span>的所有挑戰關卡！<br /><span className="text-sm mt-2 block">這證明你對向右對齊與乘法直式計算已經非常熟練！</span>
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4 w-full">
+                                    <button onClick={() => { setIsCompleted(false); setLevel(1); }} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-lg font-bold rounded-2xl transition-all shadow-sm active:scale-95">
+                                        再次挑戰
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <MultiplicationGame
+                                key={level}
+                                level={level}
+                                onLevelUp={handleLevelUp}
+                                onScore={(s) => setScore(prev => prev + s)}
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DecimalMultiplicationApp />);
+    </script>
+
+</body>
+
+</html>

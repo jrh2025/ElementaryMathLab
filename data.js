@@ -137,5 +137,14 @@ window.MATH_TOOLS_DATA = [
     "link": "decimal_addition_subtraction.html",
     "icon": "MoreHorizontal",
     "color": "indigo"
+  },
+  {
+    "id": "tool_1772764518889",
+    "title": "小數乘法小學堂",
+    "grade": "五年級",
+    "description": "專為國小數學教育量身打造的「小數乘法」前端互動應用程式。有別於傳統的靜態測驗，本系統致力於將「直式乘法」的紙筆運算思維進行數位化與動態化。透過「靠右對齊排版」、「純數字運算與小數點抽離」、「空間化小數點定位」以及「無意義零化簡」等四大核心流程，精準擊破學童在小數乘法中常見的認知盲點，建立嚴謹的數學邏輯基礎。",
+    "link": "decimal_multiplication.html",
+    "icon": "X",
+    "color": "orange"
   }
 ];
