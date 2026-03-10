@@ -146,5 +146,14 @@ window.MATH_TOOLS_DATA = [
     "link": "decimal_multiplication.html",
     "icon": "X",
     "color": "orange"
+  },
+  {
+    "id": "tool_1773129086821",
+    "title": "小數除法小學堂",
+    "grade": "五年級",
+    "description": "小數除法的直式運算具備極高的「空間認知負荷」與「多重規則切換」特性。本系統致力於將「直式長除法」的紙筆運算思維進行高度數位化，透過「除數整數化（小數點平移）」、「商與餘數的雙軌小數點定位」、「全手動動態補零」以及「智慧焦點心流導航」等四大核心機制，精準擊破學童在小數除法中常見的認知盲點，建立嚴謹且具備高度延展性的運算邏輯基礎。",
+    "link": "decimal_division.html",
+    "icon": "Divide",
+    "color": "green"
   }
 ];

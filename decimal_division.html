@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小數除法小學堂 | 互動教學實驗室</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .font-nunito {
+            font-family: 'Nunito', sans-serif;
+        }
+
+        /* 震動動畫 (錯誤提示) */
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-8px);
+            }
+
+            40% {
+                transform: translateX(8px);
+            }
+
+            60% {
+                transform: translateX(-8px);
+            }
+
+            80% {
+                transform: translateX(8px);
+            }
+        }
+
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* 彈出動畫 (通關提示) */
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* 緩慢浮動動畫 (獎盃) */
+        @keyframes bounce-slow {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .animate-bounce-slow {
+            animation: bounce-slow 2s infinite;
+        }
+
+        /* 隱藏原生 focus 樣式與數字上下箭頭 */
+        .cell-input::-webkit-outer-spin-button,
+        .cell-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .cell-input:focus {
+            outline: none;
+        }
+
+        /* 網格紙背景裝飾 */
+        .bg-grid-pattern {
+            background-image: linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 長除法線條設計 */
+        .division-line {
+            border-top: 3px solid #1e293b;
+            border-radius: 2px;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center">
+
+    <div id="root" class="w-full min-h-screen"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons ---
+        const Sparkles = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>;
+        const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>;
+        const Trophy = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>;
+        const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>;
+        const TrendingUp = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size || "24"} height={size || "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>;
+        const InfoIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+        const ArrowRight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>;
+
+        // --- Configurations ---
+        const LEVELS_DIV = [
+            { level: 1, label: '入門', desc: '小數 ÷ 整數', threshold: 3 },
+            { level: 2, label: '初級', desc: '整數 ÷ 小數 (需補零)', threshold: 3 },
+            { level: 3, label: '進階', desc: '小數 ÷ 小數 (同位數)', threshold: 3 },
+            { level: 4, label: '中級', desc: '小數 ÷ 小數 (被除數長)', threshold: 3 },
+            { level: 5, label: '綜合', desc: '二位除數 (被除數為小數)', threshold: 3 },
+            { level: 6, label: '挑戰', desc: '進階平移與補零', threshold: 3 },
+            { level: 7, label: '大師', desc: '持續補零至整除', threshold: 3 },
+            { level: 8, label: '餘數 I', desc: '求商至整數，寫出餘數', threshold: 3 },
+            { level: 9, label: '餘數 II', desc: '求商至小一，寫出餘數', threshold: 3 },
+        ];
+
+        const COLS = 13; // 擴充網格寬度以容納長除法
+
+        // --- Utility Functions ---
+        const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        const getDecPlaces = (str) => str.includes('.') ? str.split('.')[1].length : 0;
+
+        // 偵測陣列中小數點後方無意義的尾部 0，回傳可刪除的索引陣列
+        const getCrossableZeros = (rowArr, decCol) => {
+            let crossable = [];
+            if (decCol === null) return crossable;
+            for (let i = COLS - 1; i > decCol; i--) {
+                if (rowArr[i] === '0') {
+                    crossable.push(i);
+                } else if (rowArr[i] !== '' && rowArr[i] !== undefined) {
+                    break;
+                }
+            }
+            return crossable;
+        };
+
+        const generateQuestion = (level) => {
+            let dividend, divisor;
+            if (level === 1) {
+                // L1: 確保被除數絕對為小數，不會出現整數除以整數的情況
+                let div = rand(2, 6);
+                let ans = rand(11, 49);
+                while ((ans * div) % 10 === 0) {
+                    ans = rand(11, 49);
+                }
+                dividend = (ans * div / 10).toString();
+                divisor = div.toString();
+            } else if (level === 2) {
+                let divInt = rand(2, 9);
+                let k = rand(2, 15);
+                dividend = (k * divInt).toString();
+                divisor = (divInt / 10).toString();
+            } else if (level === 3) {
+                let div = rand(2, 9) / 10;
+                let ans = rand(2, 9);
+                dividend = parseFloat((ans * div).toFixed(1)).toString();
+                divisor = div.toString();
+            } else if (level === 4) {
+                let div = rand(2, 9) / 10;
+                let ans = rand(11, 49) / 10;
+                dividend = parseFloat((ans * div).toFixed(2)).toString();
+                divisor = div.toString();
+            } else if (level === 5) {
+                // L5: 除數為 2 位數，且被除數必須為小數
+                let isDivDecimal = rand(0, 1) === 1;
+                let divInt = rand(11, 99);
+                if (divInt % 10 === 0) divInt += 1;
+                divisor = isDivDecimal ? (divInt / 10).toString() : divInt.toString();
+
+                let qInt;
+                let dividendStr;
+                let valid = false;
+                while (!valid) {
+                    qInt = rand(11, 99);
+                    if (qInt % 10 === 0) qInt += 1;
+                    let q = qInt / 10;
+                    let divVal = parseFloat(divisor);
+                    let divdVal = parseFloat((q * divVal).toFixed(2));
+                    dividendStr = divdVal.toString();
+                    if (dividendStr.includes('.')) {
+                        valid = true;
+                    }
+                }
+                dividend = dividendStr;
+            } else if (level === 6) {
+                let div = rand(2, 9) / 100;
+                let ans = rand(11, 49) * 10;
+                dividend = parseFloat((ans * div).toFixed(3)).toString();
+                divisor = div.toString();
+            } else if (level === 7) {
+                // L7: 持續補零至整除 (確保產生無法立刻除盡，需要手動補零的題目)
+                const divs = [4, 8, 5];
+                let div = divs[rand(0, 2)];
+                let divd = rand(3, 30);
+                while (divd % div === 0) divd = rand(3, 30);
+                if (rand(0, 1) === 1 && divd % 10 !== 0) {
+                    dividend = (divd / 10).toString();
+                } else {
+                    dividend = divd.toString();
+                }
+                divisor = div.toString();
+            } else if (level === 8) {
+                let divInt = rand(11, 49);
+                divisor = (divInt / 10).toString();
+                let qInt = rand(11, 49);
+                let remInt = rand(1, divInt - 1);
+                let calcStr = (divInt * qInt + remInt).toString();
+                dividend = calcStr.slice(0, -1) + '.' + calcStr.slice(-1);
+            } else {
+                let divInt = rand(11, 49);
+                divisor = (divInt / 10).toString();
+                let qInt = rand(111, 499);
+                let remInt = rand(1, divInt - 1);
+                let calcStr = (divInt * qInt + remInt).toString();
+                dividend = calcStr.slice(0, -2) + '.' + calcStr.slice(-2);
+            }
+            return { dividend, divisor };
+        };
+
+        const buildExpectedGrid = (dividendStr, divisorStr, targetQuotientDecPlaces) => {
+            let dec2 = getDecPlaces(divisorStr);
+            let n1Parts = dividendStr.split('.');
+            let n1Int = n1Parts[0];
+            let n1Dec = n1Parts[1] || '';
+
+            let shiftedN1Str = n1Int + n1Dec;
+            let newDecPos = n1Int.length + dec2;
+            while (shiftedN1Str.length < newDecPos) {
+                shiftedN1Str += '0';
+            }
+            if (newDecPos < shiftedN1Str.length) {
+                shiftedN1Str = shiftedN1Str.slice(0, newDecPos) + '.' + shiftedN1Str.slice(newDecPos);
+            }
+
+            let divisorInt = parseInt(divisorStr.replace('.', ''));
+            let dividendCalcStr = shiftedN1Str.replace('.', '');
+            let shiftedN1DecIdx = shiftedN1Str.indexOf('.');
+
+            let initialDividendLength = dividendCalcStr.length;
+
+            let grid = [];
+            let qRow = Array(COLS).fill('');
+            let dRow = Array(COLS).fill('');
+
+            let divStr = divisorInt.toString();
+            for (let i = 0; i < divStr.length; i++) {
+                dRow[2 - divStr.length + 1 + i] = divStr[i];
+            }
+            for (let i = 0; i < dividendCalcStr.length; i++) {
+                dRow[4 + i] = dividendCalcStr[i];
+            }
+
+            grid.push(qRow);
+            grid.push(dRow);
+
+            let rem = 0;
+            let started = false;
+            let hasInitialDecimal = shiftedN1DecIdx !== -1;
+            let onesCol = hasInitialDecimal ? (4 + shiftedN1DecIdx - 1) : (4 + dividendCalcStr.length - 1);
+            let lastRemRow = null;
+
+            let i = 0;
+            let appends = 0;
+            let maxAppends = 6;
+
+            while ((i < dividendCalcStr.length || rem > 0) && appends < maxAppends) {
+                let col = 4 + i;
+
+                if (targetQuotientDecPlaces !== undefined) {
+                    if ((col - onesCol) > targetQuotientDecPlaces) break;
+                }
+
+                if (targetQuotientDecPlaces === undefined) {
+                    let remainingAllZeros = true;
+                    for (let k = i; k < dividendCalcStr.length; k++) {
+                        if (dividendCalcStr[k] !== '0') { remainingAllZeros = false; break; }
+                    }
+                    if (rem === 0 && i < dividendCalcStr.length && remainingAllZeros) {
+                        for (let k = i; k < dividendCalcStr.length; k++) {
+                            qRow[4 + k] = '0';
+                        }
+                        break;
+                    }
+                }
+
+                let digit;
+                if (i < dividendCalcStr.length) {
+                    digit = parseInt(dividendCalcStr[i]);
+                } else {
+                    digit = 0;
+                    dividendCalcStr += '0';
+                    dRow[col] = '0';
+                    appends++;
+                }
+
+                rem = rem * 10 + digit;
+
+                if (lastRemRow) {
+                    lastRemRow[col] = digit.toString();
+                }
+
+                let q = Math.floor(rem / divisorInt);
+
+                if (q > 0 || started || col === onesCol || (started && col > onesCol)) {
+                    started = true;
+                    qRow[col] = q.toString();
+
+                    if (q > 0) {
+                        let sub = q * divisorInt;
+                        let subStr = sub.toString();
+                        let subRow = Array(COLS).fill('');
+
+                        for (let j = 0; j < subStr.length; j++) {
+                            subRow[col - subStr.length + 1 + j] = subStr[j];
+                        }
+
+                        grid.push(subRow);
+                        rem = rem - sub;
+
+                        let remRow = Array(COLS).fill('');
+                        let remStr = rem.toString();
+
+                        if (rem === 0 && targetQuotientDecPlaces === undefined) {
+                            let futureAllZeros = true;
+                            for (let k = i + 1; k < dividendCalcStr.length; k++) {
+                                if (dividendCalcStr[k] !== '0') { futureAllZeros = false; break; }
+                            }
+                            if (i === dividendCalcStr.length - 1 || futureAllZeros) {
+                                remRow[4 + dividendCalcStr.length - 1] = '0';
+                                grid.push(remRow);
+                                lastRemRow = null;
+                            } else {
+                                for (let j = 0; j < remStr.length; j++) {
+                                    remRow[col - remStr.length + 1 + j] = remStr[j];
+                                }
+                                grid.push(remRow);
+                                lastRemRow = remRow;
+                            }
+                        } else {
+                            for (let j = 0; j < remStr.length; j++) {
+                                remRow[col - remStr.length + 1 + j] = remStr[j];
+                            }
+                            grid.push(remRow);
+                            lastRemRow = remRow;
+                        }
+                    } else if (q === 0 && i >= dividendCalcStr.length - 1 && rem === 0 && appends === 0 && targetQuotientDecPlaces === undefined) {
+                        let remRow = Array(COLS).fill('');
+                        remRow[col] = '0';
+                        grid.push(remRow);
+                        lastRemRow = null;
+                    }
+                }
+                i++;
+            }
+
+            let expectedQuotientDecCol = null;
+            if (hasInitialDecimal || appends > 0 || (targetQuotientDecPlaces !== undefined && targetQuotientDecPlaces > 0)) {
+                expectedQuotientDecCol = onesCol;
+            }
+
+            return { grid, expectedQuotientDecCol, shiftedN1Str, initialDividendLength };
+        };
+
+        // --- Inner Game Component ---
+        const DivisionGame = ({ level, onLevelUp, onScore }) => {
+            const [streak, setStreak] = useState(0);
+            const [phase, setPhase] = useState('setup');
+            const [question, setQuestion] = useState(null);
+
+            const [shiftCount, setShiftCount] = useState(0);
+            const [requiredShifts, setRequiredShifts] = useState(0);
+            const [tempDividend, setTempDividend] = useState("");
+            const [tempDivisor, setTempDivisor] = useState("");
+
+            const [expectedGrid, setExpectedGrid] = useState([]);
+            const [userGrid, setUserGrid] = useState([]);
+
+            const [expectedDecCol, setExpectedDecCol] = useState(null);
+            const [userDecCol, setUserDecCol] = useState(null);
+
+            const [initialDividendLength, setInitialDividendLength] = useState(0);
+
+            const [expectedRemDecCol, setExpectedRemDecCol] = useState(null);
+            const [userRemDecCol, setUserRemDecCol] = useState(null);
+
+            const [crossedOut, setCrossedOut] = useState([]);
+
+            const [feedback, setFeedback] = useState(null);
+            const [errorShake, setErrorShake] = useState(false);
+            const [showLevelUp, setShowLevelUp] = useState(false);
+
+            const initGame = (preserveStreak = true) => {
+                const q = generateQuestion(level);
+                setQuestion(q);
+
+                let reqShifts = getDecPlaces(q.divisor);
+                setRequiredShifts(reqShifts);
+                setShiftCount(0);
+                setTempDividend(q.dividend);
+                setTempDivisor(q.divisor);
+
+                if (reqShifts > 0) {
+                    setPhase('shift_decimal');
+                    setFeedback({ type: 'info', msg: '步驟一：除數不能有小數！請點擊下方按鈕，將小數點向右平移化為整數。' });
+                } else {
+                    setPhase('shift_decimal');
+                    setFeedback({ type: 'info', msg: '步驟一：觀察除數。因為除數已經是整數，不需要平移小數點喔！請點擊按鈕直接進入計算。' });
+                }
+
+                if (!preserveStreak) setStreak(0);
+                setErrorShake(false);
+                setShowLevelUp(false);
+                setUserRemDecCol(null);
+                setCrossedOut([]);
+            };
+
+            useEffect(() => {
+                initGame(false);
+            }, [level]);
+
+            const handleShiftTick = () => {
+                if (shiftCount < requiredShifts) {
+                    const newCount = shiftCount + 1;
+                    setShiftCount(newCount);
+
+                    let newDiv = (parseFloat(tempDivisor) * 10).toFixed(requiredShifts - newCount);
+                    if (newDiv.endsWith('.0')) newDiv = newDiv.slice(0, -2);
+                    if (newDiv.endsWith('.')) newDiv = newDiv.slice(0, -1);
+                    setTempDivisor(newDiv);
+
+                    let parts = tempDividend.split('.');
+                    let intPart = parts[0];
+                    let decPart = parts[1] || '';
+                    let newDividendStr;
+
+                    if (decPart.length > 0) {
+                        newDividendStr = intPart + decPart[0];
+                        if (decPart.length > 1) newDividendStr += '.' + decPart.slice(1);
+                    } else {
+                        newDividendStr = intPart + '0';
+                    }
+                    if (newDividendStr.startsWith('0') && !newDividendStr.startsWith('0.') && newDividendStr.length > 1) {
+                        newDividendStr = newDividendStr.slice(1);
+                    }
+                    setTempDividend(newDividendStr);
+
+                    if (newCount === requiredShifts) {
+                        setFeedback({ type: 'success', msg: '平移完成！除數已經變成整數。點擊繼續進入長除法計算。' });
+                    }
+                }
+            };
+
+            const prepareGridPhase = (divd, divs) => {
+                const targetDecPlaces = level === 8 ? 0 : level === 9 ? 1 : undefined;
+                const { grid, expectedQuotientDecCol, initialDividendLength } = buildExpectedGrid(divd, divs, targetDecPlaces);
+
+                const origDecIdx = divd.indexOf('.');
+                const origDecCol = origDecIdx !== -1 ? 4 + origDecIdx - 1 : 4 + divd.length - 1;
+
+                // 強制為最後的餘數列產生前導零，確實驗證學生的補零動作
+                if ((level >= 8) && grid.length > 2) {
+                    const lastRow = grid[grid.length - 1];
+                    let firstDigitCol = -1;
+                    for (let c = 0; c < COLS; c++) {
+                        if (lastRow[c] !== '') { firstDigitCol = c; break; }
+                    }
+                    if (firstDigitCol !== -1 && firstDigitCol > origDecCol) {
+                        for (let c = origDecCol; c < firstDigitCol; c++) {
+                            lastRow[c] = '0';
+                        }
+                    } else if (firstDigitCol === -1) {
+                        lastRow[origDecCol] = '0';
+                    }
+                }
+
+                setExpectedGrid(grid);
+                setExpectedDecCol(expectedQuotientDecCol);
+                setInitialDividendLength(initialDividendLength);
+                setExpectedRemDecCol(origDecCol);
+
+                setUserGrid(grid.map((row, r) => {
+                    if (r === 1) {
+                        return row.map((char, c) => {
+                            // 讓「後續補的 0」保持空白，讓使用者自行填入手動補零
+                            if (c >= 4 + initialDividendLength && char !== '') return '';
+                            return char;
+                        });
+                    }
+                    return Array(COLS).fill('');
+                }));
+                setUserDecCol(null);
+
+                if (expectedQuotientDecCol === null) {
+                    setPhase('calc');
+                    setFeedback({ type: 'success', msg: level >= 8 ? '此題為純整數運算無須商數小數點，請直接開始計算！完成後請點擊最下方標示【餘數小數點】。' : '此題為純整數運算無須商數小數點，請直接開始長除法計算！' });
+                    setTimeout(() => {
+                        const firstCol = grid[2]?.findIndex(val => val !== '');
+                        if (firstCol !== -1 && firstCol !== undefined) {
+                            document.getElementById(`cell-2-${firstCol}`)?.focus();
+                        }
+                    }, 100);
+                } else {
+                    setPhase('align_quotient_decimal');
+                    setFeedback({ type: 'info', msg: '步驟二：請點擊最上方橫線「上面」的空隙，精確對齊並標示【商數的小數點】！' });
+                }
+            };
+
+            // 智慧自動跳轉邏輯 (Smart Auto-Focus - 方向修正版)
+            const handleInput = (r, c, val) => {
+                if (phase !== 'calc') return;
+                let inputChar = val.slice(-1);
+                if (inputChar !== '' && !/^\d$/.test(inputChar)) return;
+
+                setUserGrid(prev => {
+                    const newGrid = prev.map(row => [...row]);
+                    newGrid[r][c] = inputChar;
+                    return newGrid;
+                });
+
+                if (inputChar !== '') {
+                    // 模擬一次更新後的陣列狀態，以準確判斷下一步
+                    const tempGrid = userGrid.map(row => [...row]);
+                    if (!tempGrid[r]) tempGrid[r] = Array(COLS).fill('');
+                    tempGrid[r][c] = inputChar;
+
+                    let nextR = r;
+                    let nextC = c;
+
+                    if (r === 0) {
+                        // 商數列：由左至右書寫，尋找右側下一個空格
+                        let found = false;
+                        for (let j = c + 1; j < COLS; j++) {
+                            if (expectedGrid[r][j] !== '' && tempGrid[r][j] === '') {
+                                nextC = j; found = true; break;
+                            }
+                        }
+                        if (!found) {
+                            // 該商數層打完，自動向下跳轉至最新一層的「乘積列 (r >= 2)」最右側
+                            let targetR = null;
+                            for (let i = 2; i < expectedGrid.length; i += 2) {
+                                let isFilled = true;
+                                for (let j = 0; j < COLS; j++) {
+                                    if (expectedGrid[i][j] !== '' && tempGrid[i][j] === '') {
+                                        isFilled = false; break;
+                                    }
+                                }
+                                if (!isFilled) { targetR = i; break; }
+                            }
+                            if (targetR !== null) {
+                                nextR = targetR;
+                                nextC = expectedGrid[targetR].findLastIndex((val, idx) => val !== '' && tempGrid[targetR][idx] === '');
+                                if (nextC === -1) nextC = c;
+                            } else {
+                                nextC = c;
+                            }
+                        }
+                    } else if (r >= 2 && r % 2 === 0) {
+                        // 乘積列：由右至左計算，自動向「左」尋找下一個空格
+                        let found = false;
+                        for (let j = c - 1; j >= 0; j--) {
+                            if (expectedGrid[r][j] !== '' && tempGrid[r][j] === '') {
+                                nextC = j; found = true; break;
+                            }
+                        }
+                        if (!found) {
+                            // 乘積層完成，跳至下方對應的餘數列 (r + 1) 的最右側
+                            let targetR = r + 1;
+                            if (targetR < expectedGrid.length) {
+                                nextR = targetR;
+                                nextC = expectedGrid[targetR].findLastIndex((val, idx) => val !== '' && tempGrid[targetR][idx] === '');
+                                if (nextC === -1) nextC = c;
+                            }
+                        }
+                    } else if (r >= 3 && r % 2 === 1) {
+                        // 減法餘數列：由右至左計算，自動向「左」尋找下一個空格
+                        let found = false;
+                        for (let j = c - 1; j >= 0; j--) {
+                            if (expectedGrid[r][j] !== '' && tempGrid[r][j] === '') {
+                                nextC = j; found = true; break;
+                            }
+                        }
+                        if (!found) {
+                            // 餘數相減完成，準備再次填商數，自動跳回上方商數列 (r = 0)
+                            nextR = 0;
+                            nextC = expectedGrid[0].findIndex((val, idx) => val !== '' && tempGrid[0][idx] === '');
+                            if (nextC === -1) nextC = c;
+                        }
+                    } else if (r === 1) {
+                        // 被除數列手動補 0：跳轉回最後正在處理的餘數列同一行
+                        let targetR = null;
+                        for (let i = 3; i < expectedGrid.length; i += 2) {
+                            let isFilled = true;
+                            for (let j = 0; j < COLS; j++) {
+                                if (expectedGrid[i][j] !== '' && tempGrid[i][j] === '') {
+                                    isFilled = false; break;
+                                }
+                            }
+                            if (!isFilled) { targetR = i; break; }
+                        }
+                        if (targetR !== null) {
+                            nextR = targetR;
+                            nextC = c;
+                        } else {
+                            nextR = expectedGrid.length - 1;
+                            nextC = c;
+                        }
+                    }
+
+                    setTimeout(() => {
+                        let targetEl = document.getElementById(`cell-${nextR}-${nextC}`);
+                        if (targetEl && !targetEl.disabled && !targetEl.readOnly) {
+                            targetEl.focus();
+                        }
+                    }, 10);
+                }
+            };
+
+            const handleKeyDown = (e, r, c) => {
+                if (phase !== 'calc') return;
+
+                const maxRow = expectedGrid.length - 1;
+                const maxCol = COLS - 1;
+
+                switch (e.key) {
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (r === 2) {
+                            if (c >= 4 + initialDividendLength && expectedGrid[1][c] !== '') {
+                                document.getElementById(`cell-1-${c}`)?.focus();
+                            } else {
+                                document.getElementById(`cell-0-${c}`)?.focus();
+                            }
+                        } else if (r > 2) {
+                            document.getElementById(`cell-${r - 1}-${c}`)?.focus();
+                        } else if (r === 1) {
+                            document.getElementById(`cell-0-${c}`)?.focus();
+                        }
+                        break;
+                    case 'ArrowDown':
+                    case 'Enter':
+                        e.preventDefault();
+                        if (r === 0) {
+                            if (c >= 4 + initialDividendLength && expectedGrid[1][c] !== '') {
+                                document.getElementById(`cell-1-${c}`)?.focus();
+                            } else {
+                                document.getElementById(`cell-2-${c}`)?.focus();
+                            }
+                        } else if (r === 1) {
+                            document.getElementById(`cell-2-${c}`)?.focus();
+                        } else if (r >= 2 && r < maxRow) {
+                            document.getElementById(`cell-${r + 1}-${c}`)?.focus();
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        if (c > 0) document.getElementById(`cell-${r}-${c - 1}`)?.focus();
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        if (c < maxCol) document.getElementById(`cell-${r}-${c + 1}`)?.focus();
+                        break;
+                    case 'Backspace':
+                        if ((userGrid[r]?.[c] ?? '') !== '') {
+                            e.preventDefault();
+                            setUserGrid(prev => {
+                                const newGrid = prev.map(row => [...row]);
+                                newGrid[r][c] = '';
+                                return newGrid;
+                            });
+                        } else {
+                            e.preventDefault();
+                            if (r === 0 || r === 1) {
+                                // 商數或補零：原輸入方向為右，所以 Backspace 往左退
+                                if (c > 0) document.getElementById(`cell-${r}-${c - 1}`)?.focus();
+                            } else if (r >= 2) {
+                                // 乘法與減法：原輸入方向為左，所以 Backspace 往「右」退回上一格
+                                if (c < maxCol) document.getElementById(`cell-${r}-${c + 1}`)?.focus();
+                            }
+                        }
+                        break;
+                    case 'Delete':
+                        if ((userGrid[r]?.[c] ?? '') !== '') {
+                            e.preventDefault();
+                            setUserGrid(prev => {
+                                const newGrid = prev.map(row => [...row]);
+                                newGrid[r][c] = '';
+                                return newGrid;
+                            });
+                        }
+                        break;
+                }
+            };
+
+            const handleZeroClick = (c) => {
+                if (phase !== 'simplify_rem') return;
+                const r = expectedGrid.length - 1;
+                if (userGrid[r][c] !== '0') return;
+
+                const crossables = getCrossableZeros(userGrid[r], expectedRemDecCol);
+                if (crossables.includes(c)) {
+                    if (!crossedOut.includes(c)) {
+                        const newCrossed = [...crossedOut, c];
+                        setCrossedOut(newCrossed);
+                        if (newCrossed.length === crossables.length) {
+                            setPhase('done');
+                            handleWin();
+                            setFeedback({ type: 'success', msg: '無意義的 0 皆已刪除！挑戰成功，恭喜過關！' });
+                        } else {
+                            setFeedback({ type: 'info', msg: '還有無意義的 0 喔，請繼續點擊刪除！' });
+                        }
+                    }
+                } else {
+                    triggerError();
+                    setFeedback({ type: 'error', msg: '這個 0 不能刪除喔！請點擊餘數最末端無意義的 0。' });
+                }
+            };
+
+            const triggerError = () => {
+                setErrorShake(true);
+                setStreak(0);
+                setTimeout(() => setErrorShake(false), 500);
+            };
+
+            const handleWin = () => {
+                const newStreak = streak + 1;
+                const threshold = LEVELS_DIV.find(l => l.level === level).threshold;
+
+                setStreak(newStreak);
+                onScore(10);
+
+                if (newStreak >= threshold) {
+                    setShowLevelUp(true);
+                    setTimeout(() => {
+                        onLevelUp();
+                    }, 2000);
+                }
+            };
+
+            const checkGridCalculations = () => {
+                let match = true;
+                let specificErrorMsg = null;
+
+                // 1. 檢查是否漏補被除數的 0
+                let missingDividendZero = false;
+                for (let c = 4 + initialDividendLength; c < COLS; c++) {
+                    if (expectedGrid[1][c] === '0' && (userGrid[1][c] === '' || userGrid[1][c] === undefined)) {
+                        missingDividendZero = true;
+                        break;
+                    }
+                }
+
+                if (missingDividendZero) {
+                    match = false;
+                    specificErrorMsg = '提示：被除數需要手動補 0 才能繼續除喔！';
+                }
+
+                // 2. 由上而下逐層檢查，找出「第一個」錯誤的步驟
+                if (match) {
+                    for (let r = 0; r < expectedGrid.length; r++) {
+                        if (r === 1) continue; // Row 1 (被除數列) 已在上方檢查過
+
+                        let uRow = userGrid[r] || Array(COLS).fill('');
+                        let eRow = expectedGrid[r];
+
+                        let rowMatch = true;
+                        let uRight = -1;
+                        let eRight = -1;
+                        for (let c = COLS - 1; c >= 0; c--) {
+                            if (uRow[c] !== '' && uRight === -1) uRight = c;
+                            if (eRow[c] !== '' && eRight === -1) eRight = c;
+                        }
+
+                        if (uRight !== eRight) {
+                            if (uRight !== -1 || eRight !== -1) {
+                                rowMatch = false;
+                                if (r >= 3 && r % 2 === 1 && eRight > uRight && eRow[eRight] === '0') {
+                                    specificErrorMsg = '提示：餘數的 0 記得要對齊被除數最後放下來的位數喔！';
+                                }
+                            }
+                        } else if (eRight !== -1) {
+                            for (let c = eRight; c >= 0; c--) {
+                                let uChar = uRow[c];
+                                let eChar = eRow[c];
+
+                                if (uChar === '0' && eChar === '') continue; // 允許學生自己多寫前導 0
+
+                                if (eChar === '0' && (uChar === '' || uChar === undefined)) {
+                                    rowMatch = false;
+                                    // 若是最後一層餘數少了整數補零，給予精準的防呆提醒
+                                    if (r === expectedGrid.length - 1 && level >= 8 && c <= expectedRemDecCol) {
+                                        specificErrorMsg = '提示：餘數的小數點左側沒有數字，必須補 0 喔！';
+                                    }
+                                    break;
+                                }
+
+                                if (uChar !== eChar) {
+                                    rowMatch = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!rowMatch) {
+                            match = false;
+                            if (!specificErrorMsg) { // 如果沒有被上方攔截特殊規則
+                                if (uRight === -1) {
+                                    if (r === 0) specificErrorMsg = '提示：計算尚未完成喔，請填寫最上方的【商數】！';
+                                    else if (r % 2 === 0) specificErrorMsg = `提示：計算尚未完成喔，請填寫第 ${r / 2} 層的【乘積】！`;
+                                    else specificErrorMsg = `提示：計算尚未完成喔，請填寫第 ${(r - 1) / 2} 層的【減法結果】！`;
+                                } else {
+                                    if (r === 0) {
+                                        let hasMissingZero = false;
+                                        let checkBound = Math.max(eRight, uRight);
+                                        checkBound = checkBound === -1 ? COLS - 1 : checkBound;
+                                        for (let c = 0; c <= checkBound; c++) {
+                                            if (eRow[c] === '0' && (uRow[c] === '' || uRow[c] === undefined)) {
+                                                hasMissingZero = true; break;
+                                            }
+                                        }
+                                        if (hasMissingZero) {
+                                            specificErrorMsg = '提示：當數字放下來卻不夠除時，記得要在「商數」補上 0 喔！';
+                                        } else {
+                                            specificErrorMsg = '提示：【商數】計算有誤喔！請檢查是否估算太大或太小了。';
+                                        }
+                                    } else if (r % 2 === 0) {
+                                        specificErrorMsg = `提示：第 ${r / 2} 層的【乘積】錯誤！請檢查商數是否估算正確，或乘法算錯了。`;
+                                    } else {
+                                        specificErrorMsg = `提示：第 ${(r - 1) / 2} 層的【減法】或【數字放下來】有誤！請再仔細檢查。`;
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (match) {
+                    if (level >= 8) {
+                        if (userRemDecCol === null) {
+                            triggerError();
+                            setFeedback({ type: 'info', msg: '數字計算正確！但別忘了在最下方點擊標示【餘數的小數點】（對齊原本被除數灰色的點）。' });
+                            return;
+                        }
+                        if (userRemDecCol !== expectedRemDecCol) {
+                            triggerError();
+                            setFeedback({ type: 'error', msg: '數字計算正確，但餘數的小數點位置不對喔！提示：餘數的小數點要垂直退回對齊「原本未平移」的淺灰色點。' });
+                            return;
+                        }
+
+                        const crossables = getCrossableZeros(userGrid[expectedGrid.length - 1], expectedRemDecCol);
+                        if (crossables.length > 0) {
+                            setPhase('simplify_rem');
+                            setFeedback({ type: 'info', msg: '餘數小數點定位正確！最後一步：請點擊劃掉餘數中最末端無意義的 0。' });
+                            return;
+                        }
+                    }
+
+                    setPhase('done');
+                    handleWin();
+                    setFeedback({ type: 'success', msg: '計算完全正確！挑戰成功，恭喜過關！' });
+                } else {
+                    triggerError();
+                    setFeedback({ type: 'error', msg: specificErrorMsg || '計算有誤！請再仔細檢查每一層的乘積與餘數。' });
+                }
+            };
+
+            const getFinalAnswerString = () => {
+                if (!question) return '?';
+                if (phase !== 'done') return '?';
+                const qRow = expectedGrid[0];
+                let ans = '';
+                let started = false;
+                for (let i = 0; i < COLS; i++) {
+                    if (qRow[i] !== '') {
+                        started = true;
+                        ans += qRow[i];
+                    }
+                    if (started && i === expectedDecCol && expectedDecCol !== null) {
+                        if (qRow.slice(i + 1).some(d => d !== '')) {
+                            ans += '.';
+                        }
+                    }
+                }
+
+                if (level >= 8) {
+                    const divd = parseFloat(question.dividend);
+                    const divs = parseFloat(question.divisor);
+                    const qFloat = parseFloat(ans);
+                    const remFloat = divd - (divs * qFloat);
+
+                    const decPlaceLimit = Math.max(getDecPlaces(question.dividend), getDecPlaces(question.divisor) + getDecPlaces(ans));
+                    const safeRem = remFloat.toFixed(decPlaceLimit);
+
+                    ans += ` \u2026 ${Number(safeRem)}`;
+                }
+
+                return ans;
+            };
+
+            const threshold = LEVELS_DIV.find(l => l.level === level).threshold;
+
+            const currentCrossables = (phase === 'simplify_rem' || phase === 'done') && expectedGrid.length > 0
+                ? getCrossableZeros(userGrid[expectedGrid.length - 1], expectedRemDecCol)
+                : [];
+
+            if (!question) return null;
+
+            return (
+                <div className={`flex flex-col items-center w-full max-w-3xl mx-auto ${errorShake ? 'animate-shake' : ''}`}>
+
+                    {/* Header Section */}
+                    <div className="w-full bg-white border-b-[6px] border-blue-500 rounded-xl p-5 mb-5 shadow-sm flex justify-between items-center relative">
+                        <div>
+                            <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-wide mb-1 flex items-center gap-2">➗ 小數除法闖關</h1>
+                            <p className="text-slate-500 font-nunito font-bold">
+                                Level <span className="text-blue-600 font-black text-xl">{level}</span>
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <div className="flex items-center gap-2">
+                                <span className="text-slate-600 font-bold hidden sm:inline">連勝進度</span>
+                                <div className="flex gap-1.5">
+                                    {[...Array(threshold)].map((_, i) => (
+                                        <div key={i} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 
+                                        ${i < streak ? 'bg-green-400 border-green-500 text-white scale-110 shadow-sm' : 'border-slate-200 text-slate-300 bg-slate-50'}`}>
+                                            {i < streak ? '✓' : i + 1}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 橫式題目區 */}
+                    <div className="w-full bg-white border-2 border-slate-200 rounded-2xl p-5 mb-4 shadow-sm flex items-center justify-center text-3xl md:text-4xl font-nunito font-black text-slate-700 tracking-wider">
+                        {question.dividend} <span className="mx-4 text-blue-500">÷</span> {question.divisor} <span className="mx-4 text-blue-500">=</span>
+                        <span className={phase === 'done' ? 'text-green-600 ml-2' : 'text-slate-300 ml-2 whitespace-nowrap'}>
+                            {getFinalAnswerString()}
+                        </span>
+                    </div>
+
+                    {/* 狀態指示橫幅 */}
+                    <div className="mb-6 w-full">
+                        <div className={`px-5 py-3.5 rounded-xl flex items-start gap-3 transition-all duration-300 shadow-sm border ${feedback?.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : feedback?.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                            {feedback?.type === 'error' ? <AlertCircle className="shrink-0 mt-0.5" /> : <Sparkles className="shrink-0 mt-0.5" />}
+                            <span className="font-medium text-lg leading-relaxed">{feedback?.msg}</span>
+                        </div>
+                    </div>
+
+                    {/* 階段 1: 平移小數點 */}
+                    {phase === 'shift_decimal' && (
+                        <div className="bg-white p-8 md:p-12 rounded-3xl shadow-lg border border-slate-200 mb-8 w-full flex flex-col items-center animate-pop-in">
+                            <div className="text-4xl md:text-6xl font-nunito font-black text-slate-700 flex items-center gap-6 mb-10 tracking-widest">
+                                <div className="relative">
+                                    {tempDividend}
+                                </div>
+                                <span className="text-slate-300">÷</span>
+                                <div className="relative">
+                                    {tempDivisor}
+                                </div>
+                            </div>
+
+                            {shiftCount < requiredShifts ? (
+                                <button onClick={handleShiftTick} className="px-8 py-4 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 text-xl font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center gap-3">
+                                    向右平移一次 <ArrowRight className="w-6 h-6" />
+                                </button>
+                            ) : (
+                                <button onClick={() => prepareGridPhase(question.dividend, question.divisor)} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center gap-3 animate-pulse">
+                                    進入直式計算 <ArrowRight className="w-6 h-6" />
+                                </button>
+                            )}
+                            {requiredShifts > 0 && (
+                                <div className="mt-6 text-slate-400 font-bold">
+                                    已平移: {shiftCount} / {requiredShifts} 次
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 階段 2, 3: 定位與計算 */}
+                    {(phase === 'align_quotient_decimal' || phase === 'calc' || phase === 'simplify_rem' || phase === 'done') && (
+                        <div className="bg-white p-4 md:p-8 rounded-3xl shadow-xl border border-slate-200 mb-8 select-none w-full flex flex-col items-center relative transition-all duration-300 overflow-x-auto">
+
+                            <div className="relative min-w-[max-content] pb-4">
+                                {expectedGrid.map((row, r) => (
+                                    <React.Fragment key={r}>
+                                        <div className="flex relative w-full pr-2">
+                                            {/* Division Bracket */}
+                                            {r === 1 && (
+                                                <div className="absolute left-[135px] md:left-[172px] top-0 bottom-0 w-4 md:w-5 border-l-4 border-t-4 border-slate-800 rounded-tl-2xl z-0 pointer-events-none"></div>
+                                            )}
+                                            {r === 1 && (
+                                                <div className="absolute left-[145px] md:left-[185px] right-0 top-0 h-1 bg-slate-800 z-0 pointer-events-none rounded-r-full"></div>
+                                            )}
+
+                                            {row.map((cell, c) => (
+                                                <div key={c} className="relative w-[40px] md:w-[50px] h-[45px] md:h-[55px] mx-[2px] flex items-center justify-center z-10">
+
+                                                    {/* Quotient Alignment Phase Click Area */}
+                                                    {phase === 'align_quotient_decimal' && r === 0 && expectedDecCol !== null && c === expectedDecCol && (
+                                                        <div
+                                                            className="absolute -right-[12px] md:-right-[16px] w-[24px] md:w-[32px] h-full z-30 cursor-pointer flex items-end justify-center group pb-1"
+                                                            onClick={() => {
+                                                                setUserDecCol(c);
+                                                                setPhase('calc');
+                                                                setFeedback({ type: 'success', msg: level >= 8 ? '商數小數點定位正確！請開始計算，完成後請點擊最下方標示【餘數小數點】。' : '商數小數點定位正確！請開始進行長除法計算。' });
+                                                                setTimeout(() => {
+                                                                    const firstCol = expectedGrid[0].findIndex(val => val !== '');
+                                                                    if (firstCol !== -1) {
+                                                                        document.getElementById(`cell-0-${firstCol}`)?.focus();
+                                                                    }
+                                                                }, 100);
+                                                            }}
+                                                        >
+                                                            <div className="w-3 h-3 md:w-4 md:h-4 bg-blue-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(96,165,250,0.8)]"></div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Quotient Decimal Point (Upgraded to solid visual dot) */}
+                                                    {r === 0 && expectedDecCol !== null && ((phase === 'calc' && userDecCol === c) || ((phase === 'done' || phase === 'simplify_rem') && expectedDecCol === c)) && (
+                                                        <div className="absolute -right-[5px] md:-right-[7px] bottom-[4px] md:bottom-[8px] w-[10px] h-[10px] md:w-[14px] md:h-[14px] bg-blue-600 rounded-full border-[2px] border-white shadow-[0_0_3px_rgba(0,0,0,0.4)] z-50 pointer-events-none"></div>
+                                                    )}
+
+                                                    {/* Shifted Dividend Decimal Point (visual reference) */}
+                                                    {r === 1 && expectedDecCol !== null && expectedDecCol === c && (
+                                                        <div className="absolute -right-[5px] md:-right-[7px] bottom-[4px] md:bottom-[8px] w-[10px] h-[10px] md:w-[14px] md:h-[14px] bg-slate-500 rounded-full border-[2px] border-white shadow-[0_0_3px_rgba(0,0,0,0.4)] z-40 pointer-events-none"></div>
+                                                    )}
+
+                                                    {/* ORIGINAL Dividend Decimal Point (for remainder alignment reference) */}
+                                                    {r === 1 && level >= 8 && expectedRemDecCol === c && expectedRemDecCol !== expectedDecCol && (
+                                                        <div className="absolute -right-[5px] md:-right-[7px] bottom-[4px] md:bottom-[8px] w-[10px] h-[10px] md:w-[14px] md:h-[14px] bg-slate-300 rounded-full border-[2px] border-white shadow-[0_0_2px_rgba(0,0,0,0.2)] z-30 pointer-events-none opacity-80"></div>
+                                                    )}
+
+                                                    {/* Remainder Alignment Click Area (Available during calc phase for level >= 8) */}
+                                                    {phase === 'calc' && r === expectedGrid.length - 1 && level >= 8 && c < COLS - 1 && (
+                                                        <div
+                                                            className="absolute -right-[12px] md:-right-[16px] w-[24px] md:w-[32px] h-full z-30 cursor-pointer flex items-end justify-center group pb-1"
+                                                            onClick={() => setUserRemDecCol(c)}
+                                                        >
+                                                            <div className={`w-3 h-3 md:w-4 md:h-4 bg-red-400 rounded-full shadow-[0_0_10px_rgba(248,113,113,0.8)] transition-opacity ${userRemDecCol === c ? 'opacity-0' : 'opacity-0 group-hover:opacity-70'}`}></div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Remainder Decimal Point (NO auto-padding zeros here anymore, strictly user operated) */}
+                                                    {r === expectedGrid.length - 1 && level >= 8 && (
+                                                        <>
+                                                            {((phase === 'calc' && userRemDecCol === c) || ((phase === 'done' || phase === 'simplify_rem') && expectedRemDecCol === c)) && (
+                                                                <div className="absolute -right-[5px] md:-right-[7px] bottom-[4px] md:bottom-[8px] w-[10px] h-[10px] md:w-[14px] md:h-[14px] bg-red-500 rounded-full border-[2px] border-white shadow-[0_0_3px_rgba(0,0,0,0.4)] z-50 pointer-events-none"></div>
+                                                            )}
+                                                        </>
+                                                    )}
+
+                                                    {/* Input Fields */}
+                                                    {r === 1 ? (
+                                                        (c >= 4 + initialDividendLength && expectedGrid[1][c] !== '') ? (
+                                                            <input
+                                                                id={`cell-${r}-${c}`}
+                                                                type="text"
+                                                                inputMode="decimal"
+                                                                maxLength={1}
+                                                                value={userGrid[r]?.[c] ?? ''}
+                                                                onChange={(e) => handleInput(r, c, e.target.value)}
+                                                                onKeyDown={(e) => handleKeyDown(e, r, c)}
+                                                                disabled={phase !== 'calc'}
+                                                                readOnly={phase === 'done' || phase === 'simplify_rem'}
+                                                                className={`w-full h-full text-center text-2xl md:text-3xl font-nunito font-bold rounded-md border-[2px] transition-all duration-200 cell-input relative z-10
+                                                                ${phase === 'calc' ? 'bg-white border-slate-300 text-slate-800 focus:bg-yellow-50 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200' : 'bg-transparent border-transparent text-slate-700'}
+                                                                ${(userGrid[r]?.[c] ?? '') !== '' && phase === 'calc' ? 'bg-slate-50' : ''}
+                                                                `}
+                                                                placeholder=" "
+                                                            />
+                                                        ) : (
+                                                            <div className={`w-full h-full flex items-center justify-center text-3xl md:text-4xl font-nunito font-bold ${c < 4 ? 'text-blue-800' : 'text-slate-800'}`}>
+                                                                {userGrid[r]?.[c] || ''}
+                                                            </div>
+                                                        )
+                                                    ) : (
+                                                        <input
+                                                            id={`cell-${r}-${c}`}
+                                                            type="text"
+                                                            inputMode="decimal"
+                                                            maxLength={1}
+                                                            value={userGrid[r]?.[c] ?? ''}
+                                                            onChange={(e) => handleInput(r, c, e.target.value)}
+                                                            onKeyDown={(e) => handleKeyDown(e, r, c)}
+                                                            disabled={phase !== 'calc' && !(phase === 'simplify_rem' && r === expectedGrid.length - 1 && userGrid[r][c] === '0')}
+                                                            readOnly={phase === 'done' || phase === 'simplify_rem'}
+                                                            className={`w-full h-full text-center text-2xl md:text-3xl font-nunito font-bold rounded-md border-[2px] transition-all duration-200 cell-input relative z-10
+                                                            ${phase === 'calc' ? 'bg-white border-slate-300 text-slate-800 focus:bg-yellow-50 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200' : 'bg-transparent border-transparent text-slate-700'}
+                                                            ${(userGrid[r]?.[c] ?? '') !== '' && phase === 'calc' ? 'bg-slate-50' : ''}
+                                                            ${phase === 'simplify_rem' && r === expectedGrid.length - 1 && currentCrossables.includes(c) && !crossedOut.includes(c) ? 'cursor-pointer bg-red-50 hover:bg-red-100 border-red-400 ring-2 ring-red-300 animate-pulse shadow-sm' : ''}
+                                                            `}
+                                                            onClick={() => {
+                                                                if (phase === 'simplify_rem') handleZeroClick(c);
+                                                            }}
+                                                        />
+                                                    )}
+
+                                                    {/* 刪除線 (Simplify Phase) */}
+                                                    {r === expectedGrid.length - 1 && crossedOut.includes(c) && (
+                                                        <div className="absolute top-1/2 -left-[2px] -right-[2px] h-[4px] md:h-[6px] bg-red-500 transform -rotate-45 z-20 rounded-full shadow-sm pointer-events-none opacity-90"></div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Horizontal Separator Lines */}
+                                        {r > 1 && r % 2 === 0 && (
+                                            <div className="flex w-full pr-2 mt-1 mb-2 relative">
+                                                <div className="absolute left-[145px] md:left-[185px] right-2 h-0.5 bg-slate-300 rounded-full"></div>
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+
+                            {phase === 'calc' && (
+                                <div className="mt-8 w-full max-w-sm">
+                                    <button onClick={checkGridCalculations} className="w-full py-4 text-white text-xl font-bold rounded-xl shadow-md transition-all active:scale-95 bg-indigo-500 hover:bg-indigo-600">
+                                        檢查計算結果
+                                    </button>
+                                </div>
+                            )}
+                            {phase === 'simplify_rem' && (
+                                <div className="mt-8 w-full max-w-sm text-center text-rose-500 text-lg font-bold animate-pulse">
+                                    👆 請點擊上方發紅光的餘數 0 將其刪除
+                                </div>
+                            )}
+                            {phase === 'done' && (
+                                <div className="mt-8 w-full max-w-sm">
+                                    <button onClick={() => initGame(true)} className="w-full py-4 text-white text-xl font-bold rounded-xl shadow-md transition-all active:scale-95 bg-green-500 hover:bg-green-600 flex justify-center items-center gap-3">
+                                        <RefreshCw className="animate-spin-slow w-6 h-6" /> 下一題
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {showLevelUp && (
+                        <div className="fixed inset-0 bg-slate-900/60 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+                            <div className="bg-white p-10 md:p-16 rounded-3xl shadow-2xl flex flex-col items-center transform animate-bounce">
+                                <div className="text-6xl mb-4">🌟</div>
+                                <h2 className="text-4xl md:text-5xl font-black text-blue-600 mb-3">Level Up!</h2>
+                                <p className="text-xl md:text-2xl text-slate-600 font-bold">難度升級，準備迎接新挑戰！</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const DecimalDivisionApp = () => {
+            const [level, setLevel] = useState(1);
+            const [score, setScore] = useState(0);
+
+            return (
+                <div className="min-h-screen flex flex-col lg:flex-row w-full max-w-7xl mx-auto">
+                    <div className="w-full lg:w-80 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 p-4 md:p-6 flex flex-col shadow-sm z-20 shrink-0">
+                        <div className="mb-6 flex justify-between items-center lg:block">
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tight">
+                                    小數除法小學堂
+                                </h1>
+                                <p className="text-sm text-slate-500 mt-1">小數點平移・階梯對齊</p>
+                            </div>
+                            <div className="lg:hidden bg-yellow-50 px-3 py-2 rounded-lg border border-yellow-200 flex items-center gap-2">
+                                <Trophy className="w-4 h-4 text-yellow-600" /> <span className="font-black text-yellow-600">{score}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex bg-blue-50 p-1 rounded-xl mb-6 shrink-0">
+                            <div className="flex-1 py-2 text-center rounded-lg font-bold text-sm transition-all bg-white text-blue-600 shadow-sm">
+                                ➗ 除法特訓
+                            </div>
+                        </div>
+
+                        <div className="flex lg:flex-col gap-2 flex-nowrap overflow-x-auto lg:overflow-y-auto mb-4 pb-2 lg:pb-0 scrollbar-hide flex-1">
+                            {LEVELS_DIV.map((l) => (
+                                <button key={l.level} onClick={() => setLevel(l.level)}
+                                    className={`text-left px-4 py-3 rounded-xl transition-all border relative overflow-hidden shrink-0 min-w-[140px] lg:minw-0 ${level === l.level ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                    <div className={`font-bold relative z-10 ${level === l.level ? 'text-blue-800' : 'text-slate-700'}`}>
+                                        Level {l.level}: {l.label}
+                                    </div>
+                                    <div className={`text-xs mt-1 relative z-10 ${level === l.level ? 'text-blue-600' : 'text-slate-500'} hidden lg:block`}>
+                                        {l.desc}
+                                    </div>
+                                    {level === l.level && <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-10"><TrendingUp size="40" /></div>}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-4 lg:mt-auto mb-4 shrink-0 text-slate-600 text-xs leading-relaxed hidden lg:block">
+                            <div className="font-bold flex items-center gap-1.5 text-slate-700 mb-2 text-sm">
+                                <InfoIcon className="w-4 h-4 text-blue-500" /> 運算核心法則
+                            </div>
+                            <ul className="list-disc pl-4 space-y-1.5 mb-3">
+                                <li><span className="font-medium text-blue-600">除數整數化：</span>除數不能有小數！向右平移時被除數需同步平移。</li>
+                                <li><span className="font-medium text-blue-600">手動補零：</span>無論是被除數需要延長，或是餘數需要補 0，皆請自行在對應格子手動輸入。</li>
+                                <li><span className="font-medium text-blue-600">餘數定位與化簡：</span>餘數的小數點必須退回與<span className="text-red-500 font-bold">「原本未平移前」</span>的被除數小數點對齊！標記後若有尾部無意義的 0 請點擊刪除。</li>
+                            </ul>
+                        </div>
+
+                        <div className="hidden lg:flex bg-yellow-50 p-4 rounded-xl border border-yellow-200 items-center justify-between shrink-0">
+                            <div className="flex items-center gap-2 text-yellow-700 font-bold">
+                                <Trophy className="w-5 h-5" /> 總積分
+                            </div>
+                            <div className="text-3xl font-black text-yellow-600">{score}</div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col items-center justify-start lg:justify-center p-4 py-6 bg-grid-pattern relative overflow-y-auto">
+                        <DivisionGame
+                            key={level}
+                            level={level}
+                            onLevelUp={() => { if (level < 9) setLevel(level + 1); }}
+                            onScore={(s) => setScore(prev => prev + s)}
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DecimalDivisionApp />);
+    </script>
+</body>
+
+</html>
