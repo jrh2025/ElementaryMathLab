@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐔 雞兔同籠互動學習 🐰</title>
+
+    <!-- Tailwind CSS (用於快速排版與樣式) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & ReactDOM (核心函式庫) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel Standalone (用於在瀏覽器端即時編譯 JSX 語法) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 系統全域動畫定義 -->
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, '微軟正黑體', sans-serif;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen">
+
+    <!-- React 應用程式掛載點 -->
+    <div id="root"></div>
+
+    <!-- 應用程式邏輯區 -->
+    <script type="text/babel">
+        const { useState, useEffect, Fragment } = React;
+
+        // --- SVG 圖示元件 (替換原本的 lucide-react，確保單檔無外部資源依賴) ---
+        const Icon = ({ children, className = "w-6 h-6" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+        const CheckCircle2 = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></Icon>;
+        const XCircle = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></Icon>;
+        const HelpCircle = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></Icon>;
+        const ChevronRight = ({ className }) => <Icon className={className}><polyline points="9 18 15 12 9 6" /></Icon>;
+        const RefreshCw = ({ className }) => <Icon className={className}><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></Icon>;
+        const Award = ({ className }) => <Icon className={className}><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></Icon>;
+        const ArrowRight = ({ className }) => <Icon className={className}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></Icon>;
+        const Lightbulb = ({ className }) => <Icon className={className}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></Icon>;
+        const GitBranch = ({ className }) => <Icon className={className}><line x1="6" y1="3" x2="6" y2="15" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M18 9a9 9 0 0 1-9 9" /></Icon>;
+        const Calculator = ({ className }) => <Icon className={className}><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></Icon>;
+        const Plus = ({ className }) => <Icon className={className}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></Icon>;
+        const Trash2 = ({ className }) => <Icon className={className}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></Icon>;
+
+
+        // --- 工具函數：產生隨機題目 (標準) ---
+        const generateProblem = (minTotal, maxTotal) => {
+            const total = Math.floor(Math.random() * (maxTotal - minTotal + 1)) + minTotal;
+            const rabbits = Math.floor(Math.random() * (total - 1)) + 1; // 至少1隻兔子，1隻雞
+            const chickens = total - rabbits;
+            const legs = chickens * 2 + rabbits * 4;
+            return { total, legs, chickens, rabbits };
+        };
+
+        // --- 工具函數：產生進階變形題目 (第四關) ---
+        const variantTypes = [
+            {
+                type: 'vehicles',
+                icon: '🚗',
+                items: [{ name: '腳踏車', val: 2, unit: '輛' }, { name: '汽車', val: 4, unit: '輛' }],
+                desc: (total, val) => <Fragment>停車場裡有腳踏車和汽車共 {total} 輛，數一數輪子共有 {val} 個。請問腳踏車和汽車各有幾輛？</Fragment>
+            },
+            {
+                type: 'coins',
+                icon: '💰',
+                items: [{ name: '5元硬幣', val: 5, unit: '個' }, { name: '10元硬幣', val: 10, unit: '個' }],
+                desc: (total, val) => <Fragment>小明的撲滿裡有 5 元和 10 元硬幣共 {total} 個，算一算總共有 {val} 元。請問 5 元和 10 元硬幣各有幾個？</Fragment>
+            },
+            {
+                type: 'scoring',
+                icon: '💯',
+                items: [{ name: '答對題數', val: 5, unit: '題' }, { name: '答錯題數', val: -2, unit: '題' }],
+                desc: (total, val) => <Fragment>數學挑戰賽共有 {total} 題，<strong>小華每一題都有作答</strong>。答對一題得 5 分，答錯一題「倒扣」 2 分（也就是算 -2 分喔！），小華最後總共得到 {val} 分。請問他答對和答錯各幾題？</Fragment>
+            },
+            {
+                type: 'tickets',
+                icon: '🎫',
+                items: [{ name: '半票', val: 100, unit: '張' }, { name: '全票', val: 250, unit: '張' }],
+                desc: (total, val) => <Fragment>遊樂園全票一張 250 元，半票一張 100 元。今天某家族共買了 {total} 張票，總共花了 {val} 元。請問全票和半票各買了幾張？</Fragment>
+            }
+        ];
+
+        const generateLevel4Problem = () => {
+            const typeDef = variantTypes[Math.floor(Math.random() * variantTypes.length)];
+            const total = Math.floor(Math.random() * 15) + 10; // 10~24
+
+            let ans1, ans2;
+            if (typeDef.type === 'scoring') {
+                ans1 = Math.floor(Math.random() * (total / 2)) + Math.ceil(total / 2);
+                ans2 = total - ans1;
+            } else {
+                ans1 = Math.floor(Math.random() * (total - 1)) + 1;
+                ans2 = total - ans1;
+            }
+
+            const val = ans1 * typeDef.items[0].val + ans2 * typeDef.items[1].val;
+
+            return {
+                ...typeDef,
+                total,
+                val,
+                ans1,
+                ans2,
+                item1: typeDef.items[0],
+                item2: typeDef.items[1]
+            };
+        };
+
+        // --- 第一關：圖解排排看 ---
+        const Level1 = ({ onComplete }) => {
+            const [problem, setProblem] = useState(generateProblem(3, 6));
+            const [slots, setSlots] = useState(Array(problem.total).fill('empty'));
+
+            const resetLevel = () => {
+                const newProb = generateProblem(3, 6);
+                setProblem(newProb);
+                setSlots(Array(newProb.total).fill('empty'));
+            };
+
+            const toggleSlot = (index) => {
+                const newSlots = [...slots];
+                if (newSlots[index] === 'empty') newSlots[index] = 'chicken';
+                else if (newSlots[index] === 'chicken') newSlots[index] = 'rabbit';
+                else newSlots[index] = 'empty';
+                setSlots(newSlots);
+            };
+
+            const currentTotal = slots.filter(s => s !== 'empty').length;
+            const currentLegs = slots.reduce((acc, curr) => {
+                if (curr === 'chicken') return acc + 2;
+                if (curr === 'rabbit') return acc + 4;
+                return acc;
+            }, 0);
+
+            const isCorrect = currentTotal === problem.total && currentLegs === problem.legs;
+
+            return (
+                <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-green-100">
+                    <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center">
+                        <span className="bg-green-100 p-2 rounded-full mr-3 text-2xl">🧩</span>
+                        第一關：圖解排排看
+                    </h2>
+                    <p className="text-gray-600 mb-6 text-lg">
+                        農場裡雞和兔子<strong className="text-blue-600">共有 {problem.total} 隻</strong>，牠們的腳加起來<strong className="text-red-600">共有 {problem.legs} 隻腳</strong>。
+                        請點擊下方的空位，把雞和兔子放進去，讓總隻數和腳數剛剛好！
+                    </p>
+
+                    <div className="flex flex-wrap justify-center gap-4 mb-8">
+                        {slots.map((slot, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => toggleSlot(idx)}
+                                className={`w-24 h-24 text-5xl flex items-center justify-center rounded-xl border-4 transition-all duration-200 hover:scale-105 ${slot === 'empty' ? 'border-dashed border-gray-300 bg-gray-50' :
+                                        slot === 'chicken' ? 'border-yellow-400 bg-yellow-50 shadow-md' :
+                                            'border-pink-400 bg-pink-50 shadow-md'
+                                    }`}
+                            >
+                                {slot === 'chicken' ? '🐔' : slot === 'rabbit' ? '🐰' : '?'}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex justify-center gap-8 text-xl mb-6">
+                        <div className={`p-4 rounded-xl font-bold transition-colors ${currentTotal === problem.total ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                            目前的隻數：{currentTotal} / {problem.total}
+                        </div>
+                        <div className={`p-4 rounded-xl font-bold transition-colors ${currentLegs === problem.legs ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                            目前的腳數：{currentLegs} / {problem.legs}
+                        </div>
+                    </div>
+
+                    {isCorrect && (
+                        <div className="text-center animate-bounce">
+                            <p className="text-2xl font-bold text-green-600 mb-4">🎉 太棒了！你配對成功了！</p>
+                            <button onClick={onComplete} className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg flex items-center mx-auto transition-colors">
+                                前往下一關 <ArrowRight className="w-5 h-5 ml-2" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 第二關：假設法大挑戰 ---
+        const Level2 = ({ onComplete }) => {
+            const [problem, setProblem] = useState(generateProblem(5, 12));
+            const [assumptionType, setAssumptionType] = useState(null);
+            const [step, setStep] = useState(1);
+            const [inputs, setInputs] = useState({ s1: '', s2: '', s3: '', s4: '', s5: '' });
+            const [feedback, setFeedback] = useState('');
+
+            const handleInputChange = (field, value) => {
+                setInputs(prev => ({ ...prev, [field]: value }));
+                setFeedback('');
+            };
+
+            const checkStep = (currentStep) => {
+                const { total, legs, rabbits, chickens } = problem;
+                let isCorrect = false;
+
+                if (assumptionType === 'chicken') {
+                    switch (currentStep) {
+                        case 1: isCorrect = parseInt(inputs.s1) === total * 2; break;
+                        case 2: isCorrect = parseInt(inputs.s2) === legs - (total * 2); break;
+                        case 3: isCorrect = parseInt(inputs.s3) === 2; break;
+                        case 4: isCorrect = parseInt(inputs.s4) === rabbits; break;
+                        case 5: isCorrect = parseInt(inputs.s5) === chickens; break;
+                        default: break;
+                    }
+                } else {
+                    switch (currentStep) {
+                        case 1: isCorrect = parseInt(inputs.s1) === total * 4; break;
+                        case 2: isCorrect = parseInt(inputs.s2) === (total * 4) - legs; break;
+                        case 3: isCorrect = parseInt(inputs.s3) === 2; break;
+                        case 4: isCorrect = parseInt(inputs.s4) === chickens; break;
+                        case 5: isCorrect = parseInt(inputs.s5) === rabbits; break;
+                        default: break;
+                    }
+                }
+
+                if (isCorrect) {
+                    setFeedback('correct');
+                    setTimeout(() => {
+                        setFeedback('');
+                        if (currentStep < 5) setStep(currentStep + 1);
+                        else setStep(6);
+                    }, 800);
+                } else {
+                    setFeedback('wrong');
+                }
+            };
+
+            const getMnemonic = () => {
+                if (!assumptionType) return null;
+                const steps = assumptionType === 'chicken'
+                    ? ['假設全是雞', '先算雞腳數', '缺了幾隻腳', '缺腳除以二', '即得兔子數']
+                    : ['假設全是兔', '先算兔腳數', '多了幾隻腳', '多腳除以二', '即得雞隻數'];
+
+                return (
+                    <div className="flex justify-between items-center bg-indigo-50 p-3 rounded-lg mb-6 border border-indigo-100 overflow-x-auto">
+                        {steps.map((text, idx) => (
+                            <Fragment key={idx}>
+                                <div className={`text-sm md:text-base font-bold px-2 py-1 rounded whitespace-nowrap transition-colors duration-300 ${step > idx ? 'bg-indigo-500 text-white shadow' : 'text-indigo-300'}`}>
+                                    {text}
+                                </div>
+                                {idx < 4 && <ChevronRight className={`w-4 h-4 flex-shrink-0 ${step > idx ? 'text-indigo-500' : 'text-indigo-200'}`} />}
+                            </Fragment>
+                        ))}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-blue-100">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-bold text-blue-700 flex items-center">
+                            <span className="bg-blue-100 p-2 rounded-full mr-3 text-2xl">📝</span>
+                            第二關：魔法假設法
+                        </h2>
+                        {assumptionType && (
+                            <button onClick={() => setAssumptionType(null)} className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 py-1 px-3 rounded flex items-center">
+                                <RefreshCw className="w-4 h-4 mr-1" /> 重新選擇假設
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-6">
+                        <p className="text-lg font-medium text-blue-900">
+                            題目：農場裡雞和兔子<strong className="text-xl text-blue-600">共有 {problem.total} 隻</strong>，總共<strong className="text-xl text-red-600">有 {problem.legs} 隻腳</strong>。請問雞和兔子各有幾隻？
+                        </p>
+                    </div>
+
+                    {!assumptionType ? (
+                        <div className="py-8 text-center animate-fadeIn">
+                            <h3 className="text-xl font-bold text-slate-700 mb-6 flex justify-center items-center"><GitBranch className="w-6 h-6 mr-2" /> 請選擇你要使用的破關策略：</h3>
+                            <div className="flex flex-col sm:flex-row justify-center gap-6">
+                                <button
+                                    onClick={() => { setAssumptionType('chicken'); setStep(1); }}
+                                    className="bg-yellow-50 hover:bg-yellow-100 border-4 border-yellow-400 p-6 rounded-2xl transition-transform hover:scale-105"
+                                >
+                                    <div className="text-6xl mb-2">🐔</div>
+                                    <div className="text-xl font-bold text-yellow-800">策略一：假設全是雞</div>
+                                </button>
+                                <button
+                                    onClick={() => { setAssumptionType('rabbit'); setStep(1); }}
+                                    className="bg-pink-50 hover:bg-pink-100 border-4 border-pink-400 p-6 rounded-2xl transition-transform hover:scale-105"
+                                >
+                                    <div className="text-6xl mb-2">🐰</div>
+                                    <div className="text-xl font-bold text-pink-800">策略二：假設全是兔</div>
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="animate-fadeIn">
+                            {getMnemonic()}
+                            <div className="space-y-4">
+                                {/* Step 1 */}
+                                <div className={`p-4 rounded-xl transition-all ${step >= 1 ? 'bg-gray-50 border border-gray-200' : 'opacity-50 pointer-events-none'}`}>
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <label className="text-lg text-gray-700">
+                                            <span className="inline-block w-8 h-8 bg-blue-500 text-white rounded-full text-center leading-8 font-bold mr-2">1</span>
+                                            假設全部 {problem.total} 隻都是{assumptionType === 'chicken' ? '雞 (🐔)' : '兔 (🐰)'}，那先算腳數，總共會有幾隻腳？
+                                        </label>
+                                        {step === 1 ? (
+                                            <div className="flex items-center gap-2">
+                                                <input type="number" value={inputs.s1} onChange={e => handleInputChange('s1', e.target.value)} className="w-24 p-2 border-2 border-blue-300 rounded-lg text-center text-lg focus:outline-none focus:border-blue-500" placeholder="?" />
+                                                <button onClick={() => checkStep(1)} className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xl font-bold text-green-600">{inputs.s1} 隻腳</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Step 2 */}
+                                {step >= 2 && (
+                                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-fadeIn">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <label className="text-lg text-gray-700">
+                                                <span className="inline-block w-8 h-8 bg-blue-500 text-white rounded-full text-center leading-8 font-bold mr-2">2</span>
+                                                可是題目說實際有 {problem.legs} 隻腳。這樣比實際情況
+                                                <strong className="text-red-500 mx-1">{assumptionType === 'chicken' ? '缺了' : '多了'}</strong>幾隻腳？
+                                            </label>
+                                            {step === 2 ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input type="number" value={inputs.s2} onChange={e => handleInputChange('s2', e.target.value)} className="w-24 p-2 border-2 border-blue-300 rounded-lg text-center text-lg focus:outline-none focus:border-blue-500" placeholder="?" />
+                                                    <button onClick={() => checkStep(2)} className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xl font-bold text-red-500">{inputs.s2} 隻腳</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 3 */}
+                                {step >= 3 && (
+                                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-fadeIn">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <label className="text-lg text-gray-700">
+                                                <span className="inline-block w-8 h-8 bg-blue-500 text-white rounded-full text-center leading-8 font-bold mr-2">3</span>
+                                                想一想，一隻兔子比一隻雞多幾隻腳？(或者說一隻雞比兔子少幾隻腳？)
+                                            </label>
+                                            {step === 3 ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input type="number" value={inputs.s3} onChange={e => handleInputChange('s3', e.target.value)} className="w-24 p-2 border-2 border-blue-300 rounded-lg text-center text-lg focus:outline-none focus:border-blue-500" placeholder="?" />
+                                                    <button onClick={() => checkStep(3)} className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xl font-bold text-gray-600">{inputs.s3} 隻腳</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 4 */}
+                                {step >= 4 && (
+                                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-fadeIn relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 bg-yellow-300 text-yellow-800 font-bold px-3 py-1 rounded-bl-lg text-sm">口訣：{assumptionType === 'chicken' ? '缺腳除以2' : '多腳除以2'}</div>
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-4">
+                                            <label className="text-lg text-gray-700">
+                                                <span className="inline-block w-8 h-8 bg-blue-500 text-white rounded-full text-center leading-8 font-bold mr-2">4</span>
+                                                把 {assumptionType === 'chicken' ? '缺少的' : '多出來的'} {inputs.s2} 隻腳，每 2 隻分配給一隻動物做替換。<br />
+                                                <span className="text-indigo-600 font-bold ml-10">即得{assumptionType === 'chicken' ? '兔子' : '雞'}數：</span>需要替換出幾隻{assumptionType === 'chicken' ? '兔子(🐰)' : '雞(🐔)'}？
+                                            </label>
+                                            {step === 4 ? (
+                                                <div className="flex items-center gap-2 z-10">
+                                                    <input type="number" value={inputs.s4} onChange={e => handleInputChange('s4', e.target.value)} className="w-24 p-2 border-2 border-blue-300 rounded-lg text-center text-lg focus:outline-none focus:border-blue-500" placeholder="?" />
+                                                    <button onClick={() => checkStep(4)} className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
+                                                </div>
+                                            ) : (
+                                                <span className={`text-xl font-bold z-10 ${assumptionType === 'chicken' ? 'text-pink-600' : 'text-yellow-600'}`}>
+                                                    {assumptionType === 'chicken' ? '兔子' : '雞'}有 {inputs.s4} 隻
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 5 */}
+                                {step >= 5 && (
+                                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-fadeIn">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <label className="text-lg text-gray-700">
+                                                <span className="inline-block w-8 h-8 bg-blue-500 text-white rounded-full text-center leading-8 font-bold mr-2">5</span>
+                                                共有 {problem.total} 隻動物，扣掉已經算出來的 {inputs.s4} 隻{assumptionType === 'chicken' ? '兔子' : '雞'}，<br />
+                                                剩下幾隻是{assumptionType === 'chicken' ? '雞(🐔)' : '兔子(🐰)'}呢？
+                                            </label>
+                                            {step === 5 ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input type="number" value={inputs.s5} onChange={e => handleInputChange('s5', e.target.value)} className="w-24 p-2 border-2 border-blue-300 rounded-lg text-center text-lg focus:outline-none focus:border-blue-500" placeholder="?" />
+                                                    <button onClick={() => checkStep(5)} className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
+                                                </div>
+                                            ) : (
+                                                <span className={`text-xl font-bold ${assumptionType === 'chicken' ? 'text-yellow-600' : 'text-pink-600'}`}>
+                                                    {assumptionType === 'chicken' ? '雞' : '兔子'}有 {inputs.s5} 隻
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Feedback Message */}
+                                {feedback === 'correct' && <div className="text-green-600 font-bold flex items-center justify-center py-2"><CheckCircle2 className="w-5 h-5 mr-2" /> 答對了！繼續下一步！</div>}
+                                {feedback === 'wrong' && <div className="text-red-600 font-bold flex items-center justify-center py-2"><XCircle className="w-5 h-5 mr-2" /> 哎呀，算錯了，再想想看！</div>}
+
+                                {/* Completion */}
+                                {step === 6 && (
+                                    <div className="text-center mt-6 animate-bounce">
+                                        <p className="text-2xl font-bold text-blue-600 mb-4">🎊 太神了！你掌握了{assumptionType === 'chicken' ? '「假設全是雞」' : '「假設全是兔」'}的秘訣！</p>
+                                        <button onClick={onComplete} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg flex items-center mx-auto transition-colors">
+                                            進入最終挑戰 <ArrowRight className="w-5 h-5 ml-2" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 第三關：獨立解題挑戰 (含逐步列式提示) ---
+        const Level3 = ({ onComplete }) => {
+            const [problem, setProblem] = useState(generateProblem(10, 20));
+            const [inputs, setInputs] = useState({ chickens: '', rabbits: '' });
+
+            // 提示系統 State
+            const [hintActive, setHintActive] = useState(false);
+            const [hintStrategy, setHintStrategy] = useState(null); // 'chicken' | 'rabbit'
+            const [hintStep, setHintStep] = useState(1);
+            const [expr, setExpr] = useState({ v1: '', op: '+', v2: '' });
+            const [hintFeedback, setHintFeedback] = useState(null);
+            const [completedHints, setCompletedHints] = useState([]);
+
+            const [status, setStatus] = useState('playing');
+
+            const resetHint = () => {
+                setHintStrategy(null);
+                setHintStep(1);
+                setExpr({ v1: '', op: '+', v2: '' });
+                setHintFeedback(null);
+                setCompletedHints([]);
+            };
+
+            const checkAnswer = () => {
+                if (parseInt(inputs.chickens) === problem.chickens && parseInt(inputs.rabbits) === problem.rabbits) {
+                    setStatus('correct');
+                } else {
+                    setStatus('wrong');
+                }
+            };
+
+            const nextProblem = () => {
+                setProblem(generateProblem(10, 20));
+                setInputs({ chickens: '', rabbits: '' });
+                setHintActive(false);
+                resetHint();
+                setStatus('playing');
+            };
+
+            // 取得當前步驟的文字提示
+            const getHintPrompt = () => {
+                if (hintStrategy === 'chicken') {
+                    switch (hintStep) {
+                        case 1: return "1. 假設全是雞，請列出計算總腳數的算式：";
+                        case 2: return `2. 題目說實際有 ${problem.legs} 隻腳，這樣比假設的腳數「缺了」幾隻腳？`;
+                        case 3: return "3. 想一想，一隻兔子和一隻雞的腳數「相差」幾隻？";
+                        case 4: return "4. 把缺少的腳數「除以」每隻動物的腳差，就能換出幾隻「兔子」？";
+                        case 5: return `5. 共有 ${problem.total} 隻動物，扣掉兔子後，剩下幾隻「雞」？`;
+                        default: return "";
+                    }
+                } else {
+                    switch (hintStep) {
+                        case 1: return "1. 假設全是兔子，請列出計算總腳數的算式：";
+                        case 2: return `2. 題目說實際有 ${problem.legs} 隻腳，這樣比假設的腳數「多了」幾隻腳？`;
+                        case 3: return "3. 想一想，一隻兔子和一隻雞的腳數「相差」幾隻？";
+                        case 4: return "4. 把多出來的腳數「除以」每隻動物的腳差，就能換出幾隻「雞」？";
+                        case 5: return `5. 共有 ${problem.total} 隻動物，扣掉雞隻後，剩下幾隻「兔子」？`;
+                        default: return "";
+                    }
+                }
+            };
+
+            // 驗證學生列出的算式
+            const handleHintCheck = () => {
+                const v1 = parseInt(expr.v1);
+                const v2 = parseInt(expr.v2);
+                const op = expr.op;
+                const { total, legs } = problem;
+                let isCorrect = false;
+                let expectedResult = 0;
+
+                if (isNaN(v1) || isNaN(v2)) {
+                    setHintFeedback('wrong');
+                    return;
+                }
+
+                if (hintStrategy === 'chicken') {
+                    const step1 = total * 2;
+                    const step2 = legs - step1;
+                    const step3 = 2; // 4 - 2
+                    const step4 = step2 / step3;
+                    const step5 = total - step4;
+
+                    if (hintStep === 1) {
+                        isCorrect = op === '×' && ((v1 === total && v2 === 2) || (v1 === 2 && v2 === total));
+                        expectedResult = step1;
+                    } else if (hintStep === 2) {
+                        isCorrect = op === '-' && v1 === legs && v2 === step1;
+                        expectedResult = step2;
+                    } else if (hintStep === 3) {
+                        isCorrect = op === '-' && v1 === 4 && v2 === 2;
+                        expectedResult = step3;
+                    } else if (hintStep === 4) {
+                        isCorrect = op === '÷' && v1 === step2 && v2 === step3;
+                        expectedResult = step4;
+                    } else if (hintStep === 5) {
+                        isCorrect = op === '-' && v1 === total && v2 === step4;
+                        expectedResult = step5;
+                    }
+                } else { // rabbit
+                    const step1 = total * 4;
+                    const step2 = step1 - legs;
+                    const step3 = 2; // 4 - 2
+                    const step4 = step2 / step3;
+                    const step5 = total - step4;
+
+                    if (hintStep === 1) {
+                        isCorrect = op === '×' && ((v1 === total && v2 === 4) || (v1 === 4 && v2 === total));
+                        expectedResult = step1;
+                    } else if (hintStep === 2) {
+                        isCorrect = op === '-' && v1 === step1 && v2 === legs;
+                        expectedResult = step2;
+                    } else if (hintStep === 3) {
+                        isCorrect = op === '-' && v1 === 4 && v2 === 2;
+                        expectedResult = step3;
+                    } else if (hintStep === 4) {
+                        isCorrect = op === '÷' && v1 === step2 && v2 === step3;
+                        expectedResult = step4;
+                    } else if (hintStep === 5) {
+                        isCorrect = op === '-' && v1 === total && v2 === step4;
+                        expectedResult = step5;
+                    }
+                }
+
+                if (isCorrect) {
+                    setHintFeedback('correct');
+                    const textPrompt = getHintPrompt();
+                    setTimeout(() => {
+                        setCompletedHints(prev => [...prev, { text: textPrompt, exprStr: `${v1} ${op} ${v2} = ${expectedResult}` }]);
+                        setHintStep(s => s + 1);
+                        setExpr({ v1: '', op: '+', v2: '' });
+                        setHintFeedback(null);
+                    }, 1200);
+                } else {
+                    setHintFeedback('wrong');
+                }
+            };
+
+            return (
+                <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-purple-100">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-purple-700 flex items-center">
+                            <span className="bg-purple-100 p-2 rounded-full mr-3 text-2xl">🏆</span>
+                            第三關：獨立解題挑戰
+                        </h2>
+                    </div>
+
+                    <div className="bg-purple-50 p-6 rounded-xl border border-purple-200 mb-8 text-center shadow-inner">
+                        <p className="text-2xl font-medium text-purple-900 leading-relaxed">
+                            農場裡雞和兔子<strong className="text-4xl text-purple-600 mx-2">{problem.total}</strong> 隻，<br />
+                            腳的數量總共<strong className="text-4xl text-red-600 mx-2">{problem.legs}</strong> 隻。<br />
+                            請問雞和兔子各有幾隻？
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row justify-center items-center gap-8 mb-8">
+                        <div className="flex flex-col items-center p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-200 w-full md:w-1/3">
+                            <span className="text-6xl mb-4">🐔</span>
+                            <label className="text-xl font-bold text-yellow-800 mb-2">雞的數量</label>
+                            <input
+                                type="number"
+                                value={inputs.chickens}
+                                onChange={e => { setInputs(prev => ({ ...prev, chickens: e.target.value })); setStatus('playing'); }}
+                                className="w-full text-center text-2xl p-3 border-2 border-yellow-300 rounded-xl focus:outline-none focus:border-yellow-500"
+                                placeholder="幾隻？"
+                            />
+                        </div>
+
+                        <div className="flex flex-col items-center p-6 bg-pink-50 rounded-2xl border-2 border-pink-200 w-full md:w-1/3">
+                            <span className="text-6xl mb-4">🐰</span>
+                            <label className="text-xl font-bold text-pink-800 mb-2">兔子的數量</label>
+                            <input
+                                type="number"
+                                value={inputs.rabbits}
+                                onChange={e => { setInputs(prev => ({ ...prev, rabbits: e.target.value })); setStatus('playing'); }}
+                                className="w-full text-center text-2xl p-3 border-2 border-pink-300 rounded-xl focus:outline-none focus:border-pink-500"
+                                placeholder="幾隻？"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center gap-4">
+                        {status !== 'correct' && (
+                            <button onClick={checkAnswer} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg flex items-center transition-transform hover:scale-105">
+                                送出答案 <CheckCircle2 className="w-5 h-5 ml-2" />
+                            </button>
+                        )}
+                        <button onClick={() => { setHintActive(!hintActive); if (!hintActive) resetHint(); }} className="bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-3 px-6 rounded-full text-lg flex items-center transition-colors">
+                            <Lightbulb className={`w-5 h-5 mr-2 ${hintActive ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} /> {hintActive ? '收起提示' : '逐步列式提示'}
+                        </button>
+                    </div>
+
+                    {status === 'correct' && (
+                        <div className="mt-8 text-center animate-fadeIn">
+                            <div className="bg-green-100 text-green-800 p-4 rounded-xl text-xl font-bold inline-block mb-4 border border-green-200">
+                                🎉 答對了！你真的是解題大師！
+                            </div>
+                            <br />
+                            <button onClick={onComplete} className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg flex items-center mx-auto transition-transform hover:scale-105">
+                                進入隱藏關卡：大師挑戰賽！ <ArrowRight className="w-5 h-5 ml-2" />
+                            </button>
+                        </div>
+                    )}
+
+                    {status === 'wrong' && (
+                        <div className="mt-6 text-center text-red-600 font-bold text-lg animate-pulse bg-red-50 py-2 rounded-lg border border-red-100">
+                            ❌ 答案不太對喔，再檢查一下總隻數和腳數加起來對不對？
+                        </div>
+                    )}
+
+                    {/* --- 全新的逐步列式輔助提示區 --- */}
+                    {hintActive && (
+                        <div className="mt-8 p-6 bg-indigo-50 border border-indigo-200 rounded-xl shadow-sm animate-fadeIn">
+                            <div className="flex justify-between items-center border-b border-indigo-200 pb-3 mb-4">
+                                <h4 className="font-bold text-lg text-indigo-900 flex items-center">
+                                    <Lightbulb className="w-6 h-6 mr-2 text-yellow-500 fill-yellow-500" /> 逐步列式小幫手
+                                </h4>
+                                {hintStrategy && (
+                                    <button onClick={resetHint} className="text-sm text-indigo-500 hover:text-indigo-700 font-bold flex items-center">
+                                        <RefreshCw className="w-4 h-4 mr-1" /> 重新選擇策略
+                                    </button>
+                                )}
+                            </div>
+
+                            {!hintStrategy ? (
+                                <div className="text-center py-4">
+                                    <p className="text-lg text-indigo-800 mb-6 font-bold">你想用哪一種策略來列式解題？</p>
+                                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                                        <button onClick={() => setHintStrategy('chicken')} className="bg-yellow-50 hover:bg-yellow-100 border-2 border-yellow-300 text-yellow-800 px-6 py-4 rounded-xl font-bold text-lg transition-transform hover:-translate-y-1 shadow-sm">🐔 策略一：假設全是雞</button>
+                                        <button onClick={() => setHintStrategy('rabbit')} className="bg-pink-50 hover:bg-pink-100 border-2 border-pink-300 text-pink-800 px-6 py-4 rounded-xl font-bold text-lg transition-transform hover:-translate-y-1 shadow-sm">🐰 策略二：假設全是兔</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* 已完成的步驟紀錄 */}
+                                    {completedHints.map((hint, idx) => (
+                                        <div key={idx} className="bg-white p-4 rounded-lg border border-green-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between animate-fadeIn">
+                                            <span className="text-gray-700 font-medium mb-2 md:mb-0 mr-4">{hint.text}</span>
+                                            <span className="bg-green-50 text-green-800 px-4 py-2 rounded font-mono text-lg font-bold whitespace-nowrap border border-green-100">
+                                                {hint.exprStr}
+                                            </span>
+                                        </div>
+                                    ))}
+
+                                    {/* 當前列式輸入區 */}
+                                    {hintStep <= 5 ? (
+                                        <div className="bg-blue-50 p-5 rounded-lg border-2 border-blue-200 animate-fadeIn mt-6">
+                                            <p className="text-lg text-blue-900 font-bold mb-4">{getHintPrompt()}</p>
+                                            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                                                <input
+                                                    type="number"
+                                                    value={expr.v1}
+                                                    onChange={e => { setExpr({ ...expr, v1: e.target.value }); setHintFeedback(null); }}
+                                                    className="w-20 md:w-24 p-2 text-center text-xl border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 font-mono shadow-inner"
+                                                    placeholder="數字"
+                                                />
+                                                <select
+                                                    value={expr.op}
+                                                    onChange={e => { setExpr({ ...expr, op: e.target.value }); setHintFeedback(null); }}
+                                                    className="p-2 text-center text-xl border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white font-mono font-bold cursor-pointer"
+                                                >
+                                                    <option value="+">+</option>
+                                                    <option value="-">-</option>
+                                                    <option value="×">×</option>
+                                                    <option value="÷">÷</option>
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    value={expr.v2}
+                                                    onChange={e => { setExpr({ ...expr, v2: e.target.value }); setHintFeedback(null); }}
+                                                    className="w-20 md:w-24 p-2 text-center text-xl border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 font-mono shadow-inner"
+                                                    placeholder="數字"
+                                                />
+                                                <button
+                                                    onClick={handleHintCheck}
+                                                    disabled={hintFeedback === 'correct'}
+                                                    className={`ml-2 font-bold py-2 px-6 rounded-lg shadow-sm transition-colors text-lg ${hintFeedback === 'correct' ? 'bg-gray-400 text-gray-200 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                                                >
+                                                    計算 =
+                                                </button>
+                                            </div>
+
+                                            {/* 列式回饋 */}
+                                            <div className="min-h-[2rem] mt-3">
+                                                {hintFeedback === 'correct' && <p className="text-green-600 font-bold flex items-center animate-pulse"><CheckCircle2 className="w-5 h-5 mr-2" /> 算式正確！程式正在幫你計算...</p>}
+                                                {hintFeedback === 'wrong' && <p className="text-red-500 font-bold flex items-center animate-bounce"><XCircle className="w-5 h-5 mr-2" /> 算式不太對喔，再根據文字提示想一下要用什麼數字和符號！</p>}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center p-6 bg-yellow-50 border-2 border-yellow-300 rounded-lg animate-fadeIn mt-6 shadow-sm">
+                                            <p className="text-2xl text-yellow-800 font-bold mb-2">🎉 提示步驟全部完成！</p>
+                                            <p className="text-lg text-yellow-700">現在請把計算出來的數量，填入最上方的作答區吧！</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 第四關：大師挑戰賽 (變形題 + 自由計算紙) ---
+        const Level4 = () => {
+            const [problem, setProblem] = useState(generateLevel4Problem());
+            const [inputs, setInputs] = useState({ ans1: '', ans2: '' });
+            const [status, setStatus] = useState('playing');
+            const [score, setScore] = useState(0);
+            const [showHint, setShowHint] = useState(false);
+
+            const [equations, setEquations] = useState([{ id: Date.now(), text: '' }]);
+
+            const handleEqChange = (id, value) => {
+                setEquations(eqs => eqs.map(eq => eq.id === id ? { ...eq, text: value } : eq));
+            };
+
+            const addEquation = () => {
+                setEquations([...equations, { id: Date.now(), text: '' }]);
+            };
+
+            const removeEquation = (id) => {
+                if (equations.length > 1) {
+                    setEquations(equations.filter(eq => eq.id !== id));
+                }
+            };
+
+            // 安全智能解析器
+            const calculateResult = (expr) => {
+                if (!expr || expr.trim() === '') return '';
+                try {
+                    let sanitized = expr.replace(/×/g, '*').replace(/÷/g, '/');
+                    if (!/^[0-9+\-*/().\s]*$/.test(sanitized)) {
+                        return '?';
+                    }
+                    let res = new Function('return ' + sanitized)();
+
+                    if (res === Infinity || res === -Infinity) return '錯誤(除以0)';
+                    if (isNaN(res) || res === undefined) return '?';
+                    return Math.round(res * 100) / 100;
+                } catch (e) {
+                    return '?';
+                }
+            };
+
+            const checkAnswer = () => {
+                if (parseInt(inputs.ans1) === problem.ans1 && parseInt(inputs.ans2) === problem.ans2) {
+                    setStatus('correct');
+                    setScore(s => s + 50);
+                } else {
+                    setStatus('wrong');
+                }
+            };
+
+            const nextProblem = () => {
+                setProblem(generateLevel4Problem());
+                setInputs({ ans1: '', ans2: '' });
+                setEquations([{ id: Date.now(), text: '' }]);
+                setStatus('playing');
+                setShowHint(false);
+            };
+
+            const renderHint = () => {
+                if (!showHint) return null;
+
+                const { total, val, item1, item2, type } = problem;
+
+                const assumedVal = total * item1.val;
+                const diffWord = val > assumedVal ? '少了' : '多了';
+                const diffCalc = val > assumedVal ? `${val} - ${assumedVal}` : `${assumedVal} - ${val}`;
+                const diffVal = Math.abs(val - assumedVal);
+
+                const unitDiffVal = Math.abs(item1.val - item2.val);
+                const unitDiffCalc = item1.val > item2.val
+                    ? `${item1.val} - (${item2.val})`
+                    : `${item2.val} - ${item1.val}`;
+
+                const targetAns = diffVal / unitDiffVal;
+                const remainAns = total - targetAns;
+
+                const unitName = type === 'scoring' ? '題' : type === 'coins' ? '個' : type === 'vehicles' ? '輛' : '張';
+                const valUnit = type === 'scoring' ? '分' : type === 'coins' ? '元' : type === 'vehicles' ? '個輪子' : '元';
+
+                return (
+                    <div className="mt-6 p-6 bg-indigo-50 border-2 border-indigo-200 rounded-2xl shadow-sm animate-fadeIn text-left relative z-10">
+                        <h4 className="font-bold text-xl text-indigo-900 flex items-center mb-4 border-b border-indigo-200 pb-3">
+                            <Lightbulb className="w-6 h-6 mr-2 text-yellow-500 fill-yellow-500" /> 大師解題思路 (假設法)
+                        </h4>
+                        <ul className="space-y-4 text-indigo-800 text-lg">
+                            <li className="flex flex-col sm:flex-row sm:items-baseline gap-2">
+                                <span className="font-bold text-indigo-600 whitespace-nowrap min-w-[120px]">1. 全部假設：</span>
+                                <span>先假設 {total} {unitName}全部都是「{item1.name}」。</span>
+                            </li>
+                            <li className="flex flex-col sm:flex-row sm:items-baseline gap-2">
+                                <span className="font-bold text-indigo-600 whitespace-nowrap min-w-[120px]">2. 算假設值：</span>
+                                <span>那麼總共會有 <code className="bg-white px-2 py-1 rounded-md font-mono font-bold shadow-sm">{total} × {item1.val} = {assumedVal}</code> {valUnit}。</span>
+                            </li>
+                            <li className="flex flex-col sm:flex-row sm:items-baseline gap-2">
+                                <span className="font-bold text-indigo-600 whitespace-nowrap min-w-[120px]">3. 比較差距：</span>
+                                <span>可是題目說實際是 {val} {valUnit}，比我們假設的「<strong className="text-red-500">{diffWord}</strong>」：<code className="bg-white px-2 py-1 rounded-md font-mono font-bold shadow-sm mx-1">{diffCalc} = {diffVal}</code> {valUnit}。</span>
+                            </li>
+                            <li className="flex flex-col sm:flex-row sm:items-baseline gap-2">
+                                <span className="font-bold text-indigo-600 whitespace-nowrap min-w-[120px]">4. 單一差距：</span>
+                                <span>想一想，一個「{item2.name}」和一個「{item1.name}」相差：<code className="bg-white px-2 py-1 rounded-md font-mono font-bold shadow-sm mx-1">{unitDiffCalc} = {unitDiffVal}</code> {valUnit}。</span>
+                            </li>
+                            <li className="flex flex-col sm:flex-row sm:items-baseline gap-2">
+                                <span className="font-bold text-indigo-600 whitespace-nowrap min-w-[120px]">5. 算出一項：</span>
+                                <span>把總差距除以單一差距，就能知道「{item2.name}」的數量：<code className="bg-white px-2 py-1 rounded-md font-mono font-bold shadow-sm mx-1 text-pink-600">{diffVal} ÷ {unitDiffVal} = {targetAns}</code> {unitName}。</span>
+                            </li>
+                            <li className="flex flex-col sm:flex-row sm:items-baseline gap-2">
+                                <span className="font-bold text-indigo-600 whitespace-nowrap min-w-[120px]">6. 算出另一項：</span>
+                                <span>最後用總數扣掉，就知道「{item1.name}」有：<code className="bg-white px-2 py-1 rounded-md font-mono font-bold shadow-sm mx-1 text-yellow-600">{total} - {targetAns} = {remainAns}</code> {unitName}。</span>
+                            </li>
+                        </ul>
+                        <div className="mt-6 p-4 bg-white rounded-xl border border-indigo-100 text-center text-indigo-600 font-bold shadow-sm">
+                            💡 提示：試著將步驟中標示的算式，打字輸入到左上方的「程式輔助計算紙」來驗證看看吧！
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-orange-200 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -mt-10 -mr-10 text-9xl opacity-5">{problem.icon}</div>
+
+                    <div className="flex justify-between items-center mb-6 relative z-10">
+                        <h2 className="text-2xl font-bold text-orange-700 flex items-center">
+                            <span className="bg-orange-100 p-2 rounded-full mr-3 text-2xl">🔥</span>
+                            第四關：大師挑戰賽 (變形題)
+                        </h2>
+                        <div className="bg-orange-100 text-orange-800 font-bold px-4 py-2 rounded-full flex items-center shadow-sm">
+                            <Award className="w-5 h-5 mr-2" /> 大師積分：{score}
+                        </div>
+                    </div>
+
+                    <div className="bg-orange-50 p-6 rounded-xl border border-orange-200 mb-8 shadow-inner relative z-10">
+                        <p className="text-2xl font-medium text-orange-900 leading-relaxed">
+                            {problem.desc(
+                                <strong className="text-3xl text-orange-600 mx-1">{problem.total}</strong>,
+                                <strong className="text-3xl text-red-600 mx-1">{problem.val}</strong>
+                            )}
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row gap-8 mb-8 relative z-10">
+
+                        {/* 左側：自由計算紙 */}
+                        <div className="flex-1 bg-slate-50 rounded-2xl border-2 border-slate-200 p-6 shadow-sm">
+                            <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
+                                <h3 className="text-xl font-bold text-slate-700 flex items-center">
+                                    <Calculator className="w-6 h-6 mr-2 text-indigo-500" /> 程式輔助計算紙
+                                </h3>
+                                <span className="text-sm text-slate-500 hidden sm:block">輸入算式（如 <code className="bg-slate-200 px-1 rounded">(10-2)*5</code>）自動計算</span>
+                            </div>
+
+                            <div className="space-y-3 mb-4">
+                                {equations.map((eq, index) => {
+                                    const result = calculateResult(eq.text);
+                                    return (
+                                        <div key={eq.id} className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm animate-fadeIn">
+                                            <span className="text-slate-400 font-bold w-6">{index + 1}.</span>
+                                            <input
+                                                type="text"
+                                                value={eq.text}
+                                                onChange={e => handleEqChange(eq.id, e.target.value)}
+                                                className="flex-1 min-w-[150px] p-3 text-xl border-2 border-indigo-100 rounded-lg focus:outline-none focus:border-indigo-400 font-mono text-slate-700 tracking-wider shadow-inner"
+                                                placeholder="請輸入算式，例如：(24 - 5) * 2"
+                                            />
+                                            <span className="text-xl font-bold text-slate-600 px-2">=</span>
+                                            <div className={`min-w-[80px] p-3 text-center rounded-lg font-mono font-bold text-2xl border-2 transition-colors ${result === '?' || result === '' ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-green-50 text-green-700 border-green-300 shadow-sm'}`}>
+                                                {result === '' ? '?' : result}
+                                            </div>
+
+                                            <button
+                                                onClick={() => removeEquation(eq.id)}
+                                                className="ml-auto p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30"
+                                                disabled={equations.length === 1}
+                                                title="刪除算式"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                onClick={addEquation}
+                                className="w-full py-3 border-2 border-dashed border-indigo-300 text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors flex justify-center items-center"
+                            >
+                                <Plus className="w-5 h-5 mr-1" /> 新增一行算式
+                            </button>
+                        </div>
+
+                        {/* 右側：作答區 */}
+                        <div className="w-full lg:w-1/3 flex flex-col gap-4">
+                            <div className="bg-white p-5 rounded-2xl border-2 border-orange-200 shadow-sm flex flex-col items-center relative">
+                                <div className="absolute top-2 right-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-md font-bold">{problem.item1.val} {problem.type === 'scoring' ? '分' : problem.type === 'coins' ? '元' : '單位'}</div>
+                                <label className="text-lg font-bold text-slate-700 mb-3">{problem.item1.name}數量</label>
+                                <div className="flex items-center gap-2 w-full">
+                                    <input
+                                        type="number"
+                                        value={inputs.ans1}
+                                        onChange={e => { setInputs(prev => ({ ...prev, ans1: e.target.value })); setStatus('playing'); }}
+                                        className="w-full text-center text-2xl p-3 border-2 border-orange-300 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                                        placeholder={`幾${problem.item1.unit}？`}
+                                    />
+                                    <span className="text-slate-500 font-bold whitespace-nowrap">{problem.item1.unit}</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-5 rounded-2xl border-2 border-orange-200 shadow-sm flex flex-col items-center relative">
+                                <div className="absolute top-2 right-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-md font-bold">{problem.item2.val} {problem.type === 'scoring' ? '分' : problem.type === 'coins' ? '元' : '單位'}</div>
+                                <label className="text-lg font-bold text-slate-700 mb-3">{problem.item2.name}數量</label>
+                                <div className="flex items-center gap-2 w-full">
+                                    <input
+                                        type="number"
+                                        value={inputs.ans2}
+                                        onChange={e => { setInputs(prev => ({ ...prev, ans2: e.target.value })); setStatus('playing'); }}
+                                        className="w-full text-center text-2xl p-3 border-2 border-orange-300 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                                        placeholder={`幾${problem.item2.unit}？`}
+                                    />
+                                    <span className="text-slate-500 font-bold whitespace-nowrap">{problem.item2.unit}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-auto">
+                                {status !== 'correct' && (
+                                    <div className="flex flex-col gap-3">
+                                        <button onClick={checkAnswer} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl text-lg shadow-lg flex justify-center items-center transition-transform hover:scale-105">
+                                            大師送出解答 <CheckCircle2 className="w-5 h-5 ml-2" />
+                                        </button>
+                                        <button onClick={() => setShowHint(!showHint)} className="w-full bg-white border-2 border-orange-200 hover:bg-orange-50 text-orange-700 font-bold py-3 rounded-xl text-lg flex justify-center items-center transition-colors">
+                                            <Lightbulb className={`w-5 h-5 mr-2 ${showHint ? 'text-yellow-500 fill-yellow-500' : 'text-orange-400'}`} /> {showHint ? '收起大師思路' : '需要大師思路提示'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {status === 'wrong' && (
+                                    <div className="mt-3 text-center text-red-600 font-bold animate-pulse bg-red-50 py-2 rounded-lg border border-red-100">
+                                        ❌ 答案不太對喔，再用計算紙檢查看看吧！
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {renderHint()}
+
+                    {status === 'correct' && (
+                        <div className="mt-4 text-center animate-fadeIn bg-orange-50 p-6 rounded-2xl border-2 border-orange-300 shadow-inner">
+                            <div className="text-orange-600 text-2xl font-bold mb-4 flex justify-center items-center">
+                                <Award className="w-8 h-8 mr-2" /> 恭喜大師解開變形題！邏輯超級清楚！
+                            </div>
+                            <button onClick={nextProblem} className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg flex items-center mx-auto transition-transform hover:scale-105">
+                                再來一題變形挑戰 <RefreshCw className="w-5 h-5 ml-2" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 主應用程式 ---
+        const App = () => {
+            const [currentTab, setCurrentTab] = useState(1);
+
+            return (
+                <div className="py-8 px-4 font-sans text-slate-800">
+                    <div className="max-w-5xl mx-auto">
+                        <header className="text-center mb-10">
+                            <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-900 mb-4 tracking-tight drop-shadow-sm">
+                                🐔 雞兔同籠互動學習 🐰
+                            </h1>
+                            <p className="text-lg text-indigo-600 font-medium">從圖解到代數思維，輕鬆破解數學難題！</p>
+                        </header>
+
+                        <div className="flex justify-center mb-8">
+                            <div className="flex bg-white rounded-full shadow-sm border border-slate-200 p-1 flex-wrap justify-center">
+                                {[1, 2, 3, 4].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setCurrentTab(tab)}
+                                        className={`px-4 sm:px-6 py-2 rounded-full font-bold text-sm sm:text-lg transition-all duration-300 m-1 ${currentTab === tab
+                                                ? (tab === 4 ? 'bg-orange-500 text-white shadow-md' : 'bg-indigo-600 text-white shadow-md')
+                                                : 'text-slate-500 hover:bg-slate-100'
+                                            }`}
+                                    >
+                                        {tab === 4 ? '🔥 挑戰關卡' : `第 ${tab} 關`}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <main>
+                            {currentTab === 1 && <Level1 onComplete={() => setCurrentTab(2)} />}
+                            {currentTab === 2 && <Level2 onComplete={() => setCurrentTab(3)} />}
+                            {currentTab === 3 && <Level3 onComplete={() => setCurrentTab(4)} />}
+                            {currentTab === 4 && <Level4 />}
+                        </main>
+
+                        <footer className="text-center mt-12 text-slate-400 text-sm font-medium pb-8">
+                            設計用於國小高年級數學邏輯啟發 | 結合情境化敘述與視覺化策略
+                        </footer>
+                    </div>
+                </div>
+            );
+        };
+
+        // 渲染 React 應用程式
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

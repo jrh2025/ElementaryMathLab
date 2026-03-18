@@ -155,5 +155,14 @@ window.MATH_TOOLS_DATA = [
     "link": "decimal_division.html",
     "icon": "Divide",
     "color": "green"
+  },
+  {
+    "id": "tool_1773801349732",
+    "title": "雞兔同籠互動學習",
+    "grade": "六年級",
+    "description": "透過「鷹架理論 (Scaffolding)」的教學設計，將傳統枯燥的代數問題（雞兔同籠及其變形題）轉化為具象操作、引導式思考到抽象建構的三階段學習歷程，並提供進階變形挑戰，以培養學生的數學建模 (Mathematical Modeling) 能力",
+    "link": "chicken_rabbit.html",
+    "icon": "Rabbit",
+    "color": "green"
   }
 ];
