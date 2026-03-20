@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌲 植樹與間隔問題互動學習 🛤️</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Helvetica Neue', 'Arial', '微軟正黑體', 'sans-serif'],
+                    },
+                    animation: {
+                        fadeIn: 'fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        treeBounce: 'treeBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                        pulseSlow: 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        float: 'float 3s ease-in-out infinite',
+                        mergeHighlight: 'mergeHighlight 1.5s ease-out infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        treeBounce: {
+                            '0%': { transform: 'scale(0)' },
+                            '60%': { transform: 'scale(1.2)' },
+                            '100%': { transform: 'scale(1)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        },
+                        mergeHighlight: {
+                            '0%': { boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.7)' },
+                            '70%': { boxShadow: '0 0 0 15px rgba(16, 185, 129, 0)' },
+                            '100%': { boxShadow: '0 0 0 0 rgba(16, 185, 129, 0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body class="bg-gradient-to-br from-emerald-50 to-teal-100 min-h-screen font-sans selection:bg-emerald-200">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- SVG 圖示元件 ---
+        const Icon = ({ children, className = "w-6 h-6" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+        const CheckCircle2 = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></Icon>;
+        const XCircle = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></Icon>;
+        const ChevronRight = ({ className }) => <Icon className={className}><polyline points="9 18 15 12 9 6" /></Icon>;
+        const RefreshCw = ({ className }) => <Icon className={className}><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></Icon>;
+        const ArrowRight = ({ className }) => <Icon className={className}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></Icon>;
+        const Lightbulb = ({ className }) => <Icon className={className}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></Icon>;
+        const Calculator = ({ className }) => <Icon className={className}><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></Icon>;
+        const Plus = ({ className }) => <Icon className={className}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></Icon>;
+        const Trash2 = ({ className }) => <Icon className={className}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></Icon>;
+        const Fingerprint = ({ className }) => <Icon className={className}><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4" /><path d="M5 19.5C5.5 18 6 15 6 11.5a6 6 0 0 1 12.01-.16" /><path d="M8.2 21a8.3 8.3 0 0 1-.9-2.5" /><path d="M9 16.5a3 3 0 0 1 6 0" /><path d="M15 21c.4-1.2.7-2.5.7-4" /><path d="M12 18v3" /></Icon>;
+        const PlayCircle = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" /></Icon>;
+        const Scissors = ({ className }) => <Icon className={className}><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></Icon>;
+
+        // --- 第一關：圖解情境定義 ---
+        const L1_STAGES = [
+            { id: 'BOTH', name: '兩端都種', type: 'linear', intervals: 4, desc: '長 40 公尺的筆直道路，每 10 公尺種一棵樹。要求【兩端都要種】。' },
+            { id: 'NONE', name: '兩端都不種', type: 'linear', intervals: 4, desc: '同樣 40 公尺的道路，但頭尾已有路燈，所以【兩端都不種】。' },
+            { id: 'ONE', name: '單端種植', type: 'linear', intervals: 4, desc: '道路的起點種樹，終點是涼亭不種樹，這就是【一端種、一端不種】。' },
+            { id: 'BOTH_SIDES', name: '道路兩旁', type: 'both_sides', intervals: 4, desc: '這次要在道路的【兩旁】都種樹，且兩旁都是【兩端都種】！' },
+            { id: 'LOOP', name: '封閉圓形', type: 'loop', intervals: 6, desc: '這是一個周長 60 公尺的圓形花圃，每 10 公尺種一棵樹。注意頭尾會接在一起喔！' }
+        ];
+
+        const Level1 = ({ onComplete }) => {
+            const [stageIdx, setStageIdx] = useState(0);
+            const stage = L1_STAGES[stageIdx];
+
+            const initNodes = () => {
+                if (stage.type === 'both_sides') return Array((stage.intervals + 1) * 2).fill(false);
+                if (stage.type === 'loop') return Array(stage.intervals).fill(false);
+                return Array(stage.intervals + 1).fill(false);
+            };
+            const [planted, setPlanted] = useState(initNodes());
+
+            useEffect(() => { setPlanted(initNodes()); }, [stageIdx]);
+
+            const getExpected = () => {
+                if (stage.id === 'BOTH') return stage.intervals + 1;
+                if (stage.id === 'NONE') return stage.intervals - 1;
+                if (stage.id === 'ONE') return stage.intervals;
+                if (stage.id === 'BOTH_SIDES') return (stage.intervals + 1) * 2;
+                if (stage.id === 'LOOP') return stage.intervals;
+            };
+
+            const expectedCount = getExpected();
+            const currentCount = planted.filter(Boolean).length;
+
+            const isCorrect = () => {
+                if (currentCount !== expectedCount) return false;
+                if (stage.id === 'BOTH' && planted[0] && planted[stage.intervals]) return true;
+                if (stage.id === 'NONE' && !planted[0] && !planted[stage.intervals]) return true;
+                if (stage.id === 'ONE' && ((planted[0] && !planted[stage.intervals]) || (!planted[0] && planted[stage.intervals]))) return true;
+                if (stage.id === 'BOTH_SIDES') return planted[0] && planted[stage.intervals] && planted[stage.intervals + 1] && planted[planted.length - 1];
+                if (stage.id === 'LOOP') return currentCount === expectedCount;
+                return false;
+            };
+
+            const togglePlant = (idx) => {
+                const newP = [...planted];
+                newP[idx] = !newP[idx];
+                setPlanted(newP);
+            };
+
+            const nextStage = () => {
+                if (stageIdx < L1_STAGES.length - 1) setStageIdx(stageIdx + 1);
+                else onComplete();
+            };
+
+            const renderLayout = () => {
+                if (stage.type === 'linear') {
+                    return (
+                        <div className="relative py-12 px-4 max-w-2xl mx-auto my-8">
+                            <div className="absolute top-1/2 left-8 right-8 h-4 bg-slate-300 rounded-full transform -translate-y-1/2"></div>
+                            <div className="flex justify-between items-center relative z-10">
+                                {planted.map((p, i) => (
+                                    <NodeBtn key={i} planted={p} onClick={() => togglePlant(i)} label={`位置 ${i + 1}`} />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+                if (stage.type === 'both_sides') {
+                    const half = stage.intervals + 1;
+                    return (
+                        <div className="relative py-8 px-4 max-w-2xl mx-auto my-8 space-y-12 bg-slate-100 rounded-2xl border-4 border-slate-200">
+                            <div className="relative">
+                                <div className="absolute top-1/2 left-8 right-8 h-2 bg-slate-300 rounded-full transform -translate-y-1/2"></div>
+                                <div className="flex justify-between items-center relative z-10">
+                                    {planted.slice(0, half).map((p, i) => <NodeBtn key={`t-${i}`} planted={p} onClick={() => togglePlant(i)} label="上排" />)}
+                                </div>
+                            </div>
+                            <div className="relative">
+                                <div className="absolute top-1/2 left-8 right-8 h-2 bg-slate-300 rounded-full transform -translate-y-1/2"></div>
+                                <div className="flex justify-between items-center relative z-10">
+                                    {planted.slice(half).map((p, i) => <NodeBtn key={`b-${i}`} planted={p} onClick={() => togglePlant(i + half)} label="下排" />)}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                if (stage.type === 'loop') {
+                    return (
+                        <div className="relative w-64 h-64 md:w-72 md:h-72 mx-auto my-12 animate-fadeIn">
+                            {/* 利用 top, left, right, bottom 百分比固定背景圓形，確保圓心永遠在 50%, 50% 且半徑為 38% (50% - 12%) */}
+                            <div className="absolute top-[12%] left-[12%] right-[12%] bottom-[12%] rounded-full border-[6px] border-slate-200 bg-emerald-50 shadow-inner"></div>
+                            {planted.map((p, i) => {
+                                const angle = (i / stage.intervals) * 2 * Math.PI - Math.PI / 2;
+                                // 節點位置對應半徑 38%，中心 50%
+                                const x = 50 + 38 * Math.cos(angle);
+                                const y = 50 + 38 * Math.sin(angle);
+                                return (
+                                    <div key={i} className="absolute transform -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
+                                        <NodeBtn planted={p} onClick={() => togglePlant(i)} label={`點 ${i + 1}`} />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                }
+            };
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-emerald-100 animate-fadeIn">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-emerald-800 flex items-center">
+                            <span className="bg-emerald-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">🌱</span>
+                            第一關：圖解排排看 ({stageIdx + 1}/{L1_STAGES.length})
+                        </h2>
+                        <span className="bg-emerald-50 text-emerald-600 px-4 py-1 rounded-full font-bold text-sm border border-emerald-200">
+                            情境：{stage.name}
+                        </span>
+                    </div>
+
+                    <p className="text-slate-600 text-lg leading-relaxed bg-slate-50 p-4 rounded-xl border-l-4 border-emerald-400">
+                        {stage.desc}
+                    </p>
+
+                    {renderLayout()}
+
+                    <div className="flex justify-center gap-4 md:gap-8 text-lg md:text-xl mb-6 flex-wrap">
+                        <div className="p-4 rounded-2xl font-bold bg-slate-50 text-slate-700 border border-slate-200 shadow-sm flex items-center">
+                            目標數量：<span className="text-2xl ml-2 text-blue-600">{expectedCount}</span>
+                        </div>
+                        <div className={`p-4 rounded-2xl font-bold transition-all shadow-sm flex items-center ${currentCount === expectedCount ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 scale-105' : 'bg-slate-50 text-slate-700 border border-slate-200'}`}>
+                            目前種植：<span className={`text-2xl ml-2 ${currentCount === expectedCount ? 'text-emerald-600' : 'text-slate-600'}`}>{currentCount}</span>
+                        </div>
+                    </div>
+
+                    <div className="h-20 flex items-center justify-center">
+                        {isCorrect() ? (
+                            <div className="text-center animate-fadeIn w-full flex flex-col md:flex-row items-center justify-center gap-4">
+                                <p className="text-xl font-bold text-emerald-600 bg-emerald-50 px-6 py-2 rounded-full flex items-center shadow-sm">
+                                    <CheckCircle2 className="w-6 h-6 mr-2" /> 完美達成！
+                                </p>
+                                <button onClick={nextStage} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold py-3 px-8 rounded-full shadow-lg flex items-center transition-transform hover:scale-105 active:scale-95">
+                                    {stageIdx < L1_STAGES.length - 1 ? '挑戰下一情境' : '完成圖解，進入公式推導'} <ArrowRight className="w-5 h-5 ml-2" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-slate-400 font-medium animate-pulseSlow flex items-center">
+                                <PlayCircle className="w-5 h-5 mr-2" /> 請點擊畫面上方的虛線圓圈來種樹
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const NodeBtn = ({ planted, onClick, label, className = "", highlight = false }) => (
+            <div className={`flex flex-col items-center z-10 ${className}`}>
+                <button
+                    onClick={onClick}
+                    className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-3xl transition-all duration-300 shadow-md ${planted
+                        ? 'bg-gradient-to-br from-green-300 to-emerald-500 border-2 border-emerald-600 text-white ' + (highlight ? 'animate-mergeHighlight scale-110 z-50' : '')
+                        : 'bg-white border-4 border-dashed border-slate-300 hover:border-emerald-300 hover:bg-emerald-50 text-slate-300 hover:text-emerald-400'
+                        }`}
+                >
+                    {planted ? '🌳' : '+'}
+                </button>
+                <span className="mt-2 text-xs md:text-sm font-bold text-slate-500 bg-white/80 px-1 rounded">{label}</span>
+            </div>
+        );
+
+        // --- 第二關：高度互動推演模型 ---
+        const InteractiveLinear = () => {
+            const intervals = 4;
+            // 中間3個點固定種植，左右兩端由使用者決定
+            const [ends, setEnds] = useState({ left: true, right: true });
+
+            const totalTrees = 3 + (ends.left ? 1 : 0) + (ends.right ? 1 : 0);
+
+            let scenarioName = "";
+            let formula = "";
+            let diff = 0;
+            if (ends.left && ends.right) { scenarioName = "兩端都種"; formula = "+ 1"; diff = 1; }
+            else if (!ends.left && !ends.right) { scenarioName = "兩端都不種"; formula = "- 1"; diff = -1; }
+            else { scenarioName = "一端種一端不種"; formula = "不變"; diff = 0; }
+
+            return (
+                <div className="animate-fadeIn p-4">
+                    <h3 className="text-xl font-bold text-teal-800 mb-2 border-b-2 border-teal-200 pb-2 flex items-center"><Fingerprint className="w-6 h-6 mr-2" /> 實驗一：端點決定加減</h3>
+                    <p className="text-slate-600 mb-6">點擊最左邊或最右邊的樹，觀察情境與公式的變化！（中間樹木為固定）</p>
+
+                    <div className="relative py-12 px-2 max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-inner mb-6">
+                        <div className="absolute top-1/2 left-10 right-10 h-3 bg-slate-200 rounded-full transform -translate-y-1/2"></div>
+                        <div className="flex justify-between items-center relative z-10 px-4">
+                            <NodeBtn planted={ends.left} onClick={() => setEnds({ ...ends, left: !ends.left })} label="起點(可控)" />
+                            <NodeBtn planted={true} onClick={() => { }} label="中間" />
+                            <NodeBtn planted={true} onClick={() => { }} label="中間" />
+                            <NodeBtn planted={true} onClick={() => { }} label="中間" />
+                            <NodeBtn planted={ends.right} onClick={() => setEnds({ ...ends, right: !ends.right })} label="終點(可控)" />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
+                        <div className="bg-teal-50 px-6 py-4 rounded-xl border border-teal-200 text-center flex-1">
+                            <span className="block text-slate-500 text-sm font-bold mb-1">目前情境</span>
+                            <span className="text-2xl font-bold text-teal-700">{scenarioName}</span>
+                        </div>
+                        <div className="text-3xl font-bold text-slate-300 hidden md:block">👉</div>
+                        <div className="bg-emerald-50 px-6 py-4 rounded-xl border border-emerald-200 text-center flex-[2]">
+                            <span className="block text-slate-500 text-sm font-bold mb-1">推導公式</span>
+                            <div className="text-xl font-bold text-slate-700 flex items-center justify-center flex-wrap gap-2">
+                                樹木 <span className="text-emerald-600 text-2xl">{totalTrees}</span> =
+                                間隔 <span className="text-blue-600 text-2xl">{intervals}</span>
+                                <span className="bg-white px-2 py-1 rounded text-rose-600 border border-rose-200 shadow-sm mx-1 text-2xl">{formula}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const InteractiveCut = () => {
+            const totalPoints = 4;
+            // 記錄每個切割點是否被剪斷
+            const [cuts, setCuts] = useState(Array(totalPoints).fill(false));
+
+            const handleCut = (idx) => {
+                const newCuts = [...cuts];
+                newCuts[idx] = !newCuts[idx];
+                setCuts(newCuts);
+            };
+
+            const cutCount = cuts.filter(Boolean).length;
+            const segments = cutCount + 1;
+
+            return (
+                <div className="animate-fadeIn p-4">
+                    <h3 className="text-xl font-bold text-teal-800 mb-2 border-b-2 border-teal-200 pb-2 flex items-center"><Scissors className="w-6 h-6 mr-2" /> 實驗二：剪繩切割觀察</h3>
+                    <p className="text-slate-600 mb-6">點擊剪刀圖示來剪斷繩子。觀察「剪斷次數」與「產生段數」的關係。繩子頭尾本來就斷了，等於「兩端都不種」！</p>
+
+                    <div className="py-12 max-w-3xl mx-auto bg-slate-50 rounded-2xl border border-slate-200 mb-6 px-4">
+                        <div className="flex items-center h-16 relative">
+                            {/* 繪製繩子片段與剪刀 */}
+                            {Array(totalPoints + 1).fill(0).map((_, i) => (
+                                <React.Fragment key={i}>
+                                    {/* 繩子片段 */}
+                                    <div className="flex-1 bg-amber-600 h-8 shadow-inner relative flex items-center justify-center"
+                                        style={{
+                                            borderTopLeftRadius: (i === 0 || cuts[i - 1]) ? '16px' : '0',
+                                            borderBottomLeftRadius: (i === 0 || cuts[i - 1]) ? '16px' : '0',
+                                            borderTopRightRadius: (i === totalPoints || cuts[i]) ? '16px' : '0',
+                                            borderBottomRightRadius: (i === totalPoints || cuts[i]) ? '16px' : '0',
+                                            marginLeft: (i > 0 && cuts[i - 1]) ? '16px' : '0px',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        }}>
+                                        <span className="text-amber-100 font-bold opacity-60">段</span>
+                                    </div>
+
+                                    {/* 剪刀按鈕 (最後一個片段後不需要) */}
+                                    {i < totalPoints && (
+                                        <button
+                                            onClick={() => handleCut(i)}
+                                            className={`absolute z-10 w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all transform hover:scale-110 shadow-lg ${cuts[i] ? 'bg-slate-100 border-slate-300 text-slate-400' : 'bg-rose-500 border-rose-600 text-white hover:bg-rose-600'}`}
+                                            style={{ left: `calc(${(i + 1) * (100 / (totalPoints + 1))}% - 24px)` }}
+                                        >
+                                            <Scissors className={cuts[i] ? "w-5 h-5" : "w-6 h-6"} />
+                                        </button>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="bg-amber-50 px-6 py-4 rounded-xl border border-amber-200 text-center">
+                        <div className="text-xl font-bold text-slate-700 flex items-center justify-center gap-4 flex-wrap">
+                            產生 <span className="text-amber-600 text-3xl">{segments}</span> 段
+                            <span className="text-slate-400">👉</span>
+                            需要剪 <span className="text-rose-600 text-3xl">{cutCount}</span> 次
+                            <span className="bg-white px-3 py-1 rounded text-teal-700 border border-teal-200 shadow-sm ml-2">公式：次數 = 段數 - 1</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const InteractiveLoop = () => {
+            const [bend, setBend] = useState(0); // 0 to 100
+            const nodesCount = 5; // 4 intervals, 5 trees (index 0 to 4)
+
+            // Layout params
+            const width = 600;
+            const height = 300;
+            const lineStartX = 50;
+            const lineEndX = 550;
+            const lineY = 100;
+            const circleCenter = { x: 300, y: 150 };
+            const circleRadius = 90;
+
+            const calculateNodePos = (index) => {
+                // Line position
+                const lineX = lineStartX + (index / (nodesCount - 1)) * (lineEndX - lineStartX);
+                const lineYPos = lineY;
+
+                // Circle position (Start from top, go clockwise)
+                const angle = (index / (nodesCount - 1)) * 2 * Math.PI - Math.PI / 2;
+                const circX = circleCenter.x + circleRadius * Math.cos(angle);
+                const circY = circleCenter.y + circleRadius * Math.sin(angle);
+
+                // Interpolate based on bend (0 to 1)
+                const progress = bend / 100;
+                // Add an ease-in-out curve for smoother bending
+                const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+                return {
+                    x: lineX + (circX - lineX) * ease,
+                    y: lineYPos + (circY - lineYPos) * ease
+                };
+            };
+
+            const nodes = Array(nodesCount).fill(0).map((_, i) => calculateNodePos(i));
+            const isMerged = bend === 100;
+
+            return (
+                <div className="animate-fadeIn p-4">
+                    <h3 className="text-xl font-bold text-teal-800 mb-2 border-b-2 border-teal-200 pb-2 flex items-center">
+                        <Icon className="w-6 h-6 mr-2"><path d="M22 12A10 10 0 1 1 12 2a10 10 0 0 1 10 10z" /><path d="M12 8v4l3 3" /></Icon>
+                        實驗三：封閉圖形變形魔法
+                    </h3>
+                    <p className="text-slate-600 mb-6">拖拉下方滑桿，將一條「兩端都種」的直線彎成圓形。觀察頭尾的樹木發生了什麼事！</p>
+
+                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                        <span className="font-bold text-slate-500">直線</span>
+                        <input
+                            type="range"
+                            min="0" max="100"
+                            value={bend}
+                            onChange={(e) => setBend(parseInt(e.target.value))}
+                            className="flex-1 h-3 bg-teal-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                        />
+                        <span className="font-bold text-teal-600">圓形 (封閉)</span>
+                    </div>
+
+                    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-inner overflow-hidden mb-6 flex justify-center items-center" style={{ height: '300px' }}>
+                        <svg width={width} height={height} className="absolute inset-0 mx-auto pointer-events-none">
+                            {/* Draw connected lines */}
+                            {nodes.map((node, i) => {
+                                if (i === nodesCount - 1) return null;
+                                const nextNode = nodes[i + 1];
+                                return (
+                                    <line
+                                        key={`line-${i}`}
+                                        x1={node.x} y1={node.y}
+                                        x2={nextNode.x} y2={nextNode.y}
+                                        stroke="#cbd5e1" strokeWidth="6" strokeLinecap="round"
+                                    />
+                                );
+                            })}
+                        </svg>
+
+                        {/* Draw HTML Nodes over SVG for UI fidelity */}
+                        <div className="absolute inset-0 mx-auto pointer-events-none" style={{ width: `${width}px` }}>
+                            {nodes.map((node, i) => {
+                                // Hide the last node if fully merged, let node 0 take over
+                                if (isMerged && i === nodesCount - 1) return null;
+
+                                const highlight = isMerged && i === 0;
+                                return (
+                                    <div key={`tree-${i}`} className="absolute transform -translate-x-1/2 -translate-y-1/2" style={{ left: node.x, top: node.y }}>
+                                        <NodeBtn
+                                            planted={true}
+                                            onClick={() => { }}
+                                            label={i === 0 && isMerged ? '起點/終點重疊' : `位置 ${i}`}
+                                            highlight={highlight}
+                                            className="pointer-events-auto"
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className={`px-6 py-4 rounded-xl border text-center transition-all duration-500 ${isMerged ? 'bg-indigo-50 border-indigo-300' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="text-xl font-bold text-slate-700 flex items-center justify-center flex-col md:flex-row gap-2">
+                            {isMerged ? (
+                                <>
+                                    <span className="text-indigo-600 text-2xl flex items-center">✨ 頭尾完美重疊！</span>
+                                    <span className="md:border-l-2 md:border-indigo-200 md:pl-4">原本直線的 +1 被抵銷 👉 <strong>樹木數 = 間隔數</strong></span>
+                                </>
+                            ) : (
+                                <span>目前：直線狀態，樹木尚未重疊 👉 樹木數 = 間隔數 + 1</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Level2 = ({ onComplete }) => {
+            const [activeTab, setActiveTab] = useState('linear');
+
+            const tabs = [
+                { id: 'linear', name: '直線植樹 (加減1)', icon: '📏' },
+                { id: 'cut', name: '剪繩鋸木 (減1)', icon: '✂️' },
+                { id: 'loop', name: '封閉圖形 (不變)', icon: '⭕' }
+            ];
+
+            return (
+                <div className="bg-white p-4 md:p-8 rounded-3xl shadow-xl border border-teal-100 animate-fadeIn">
+                    <h2 className="text-2xl font-bold text-teal-800 mb-6 flex items-center">
+                        <span className="bg-teal-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">🧠</span>
+                        第二關：動態互動沙盒室
+                    </h2>
+
+                    <div className="flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex-shrink-0 px-5 py-3 rounded-xl font-bold transition-all shadow-sm border ${activeTab === tab.id ? 'bg-teal-600 text-white border-teal-700' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                            >
+                                {tab.icon} {tab.name}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="bg-slate-50 rounded-2xl border border-slate-200 min-h-[450px] mb-8 relative overflow-hidden">
+                        {activeTab === 'linear' && <InteractiveLinear />}
+                        {activeTab === 'cut' && <InteractiveCut />}
+                        {activeTab === 'loop' && <InteractiveLoop />}
+                    </div>
+
+                    <div className="text-center">
+                        <button onClick={onComplete} className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-lg flex items-center mx-auto transition-transform hover:-translate-y-1">
+                            已透過操作理解模型，前往實戰！ <ArrowRight className="w-5 h-5 ml-2" />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 第三關：綜合實戰挑戰 (隨機題庫) ---
+        const L3_BANK = [
+            { type: 'BOTH', text: '在長 120 公尺的步道旁設垃圾桶，每 15 公尺設一個，兩端都設，共需幾個？', length: 120, intv: 15, logic: (n) => n + 1, icon: '🗑️' },
+            { type: 'NONE', text: '一條 80 公尺走廊，頭尾已有裝飾，中間每 10 公尺放一盆花，共需幾盆花？', length: 80, intv: 10, logic: (n) => n - 1, icon: '🌸' },
+            { type: 'ONE', text: '馬拉松賽道長 2000 公尺，每 200 公尺設一個補給站（起點不設，終點設），共幾個？', length: 2000, intv: 200, logic: (n) => n, icon: '⛺' },
+            { type: 'SIDES', text: '在長 60 公尺的橋樑「兩側」安裝護欄柱，每隔 5 公尺一根，兩端都裝，共需幾根？', length: 60, intv: 5, logic: (n) => (n + 1) * 2, icon: '🚧' },
+            { type: 'SIDES', text: '在長 100 公尺的道路「兩旁」都要種樹，每隔 20 公尺種一棵，兩端都種，共需幾棵樹？', length: 100, intv: 20, logic: (n) => (n + 1) * 2, icon: '🌳' },
+            { type: 'LOOP', text: '周長 300 公尺的環形跑道，每 25 公尺插一面旗子，共需幾面旗子？', length: 300, intv: 25, logic: (n) => n, icon: '🚩' },
+            { type: 'ONE', text: '一條長 500 公尺的鄉間小路，起點有變電箱不設電線桿，之後每隔 50 公尺設立一根電線桿直到終點，共需幾根？', length: 500, intv: 50, logic: (n) => n, icon: '💡' },
+            { type: 'ONE', text: '長 2400 公尺的公車路線，起點是總站不設站牌，之後每 400 公尺設一個停靠站（包含終點），共幾個站牌？', length: 2400, intv: 400, logic: (n) => n, icon: '🚏' },
+            { type: 'NONE', text: '兩棟大樓相距 90 公尺，在之間的人行道每隔 15 公尺擺放一個大型盆栽，靠近大樓的兩端不擺放，共需幾個？', length: 90, intv: 15, logic: (n) => n - 1, icon: '🌷' },
+            { type: 'NONE', text: '長 150 公尺的巷子，巷口和巷尾已有主要照明，只在巷子中間每隔 30 公尺裝一盞路燈，共需幾盞？', length: 150, intv: 30, logic: (n) => n - 1, icon: '🏮' }
+        ];
+
+        const ProblemVisualizer = ({ prob, intervals }) => {
+            const isSides = prob.type === 'SIDES';
+            const isLoop = prob.type === 'LOOP';
+            const hasMarker = prob.type === 'ONE' || prob.type === 'NONE';
+            const markerIcon = '✖️';
+            const nodeCount = isLoop ? intervals : (intervals + 1);
+
+            const [placed, setPlaced] = useState(() => {
+                if (isSides) return { top: Array(nodeCount).fill(null), bottom: Array(nodeCount).fill(null) };
+                return Array(nodeCount).fill(null);
+            });
+
+            const setNode = (idx, side, value) => {
+                if (isSides) {
+                    setPlaced(prev => {
+                        const newSide = [...prev[side]];
+                        newSide[idx] = value;
+                        return { ...prev, [side]: newSide };
+                    });
+                } else {
+                    setPlaced(prev => {
+                        const newArr = [...prev];
+                        newArr[idx] = value;
+                        return newArr;
+                    });
+                }
+            };
+
+            const toggleNodeClick = (idx, side = null) => {
+                const current = isSides ? placed[side][idx] : placed[idx];
+                if (current === null) {
+                    setNode(idx, side, 'ITEM');
+                } else if (current === 'ITEM') {
+                    if (hasMarker) setNode(idx, side, 'MARKER');
+                    else setNode(idx, side, null);
+                } else {
+                    setNode(idx, side, null);
+                }
+            };
+
+            const countPlaced = () => {
+                if (isSides) return placed.top.filter(v => v === 'ITEM').length + placed.bottom.filter(v => v === 'ITEM').length;
+                return placed.filter(v => v === 'ITEM').length;
+            };
+
+            const handleDragStart = (e, type) => {
+                e.dataTransfer.setData('text/plain', type);
+                e.dataTransfer.effectAllowed = 'copy';
+            };
+
+            const ItemNode = ({ val, onClick, onDrop }) => {
+                let display = '+';
+                let classes = 'bg-slate-50 border-dashed border-slate-300 hover:border-indigo-300 hover:bg-indigo-50 text-slate-300';
+
+                if (val === 'ITEM') {
+                    display = prob.icon;
+                    classes = 'bg-indigo-100 border-indigo-400 scale-110 text-indigo-700 shadow-md';
+                } else if (val === 'MARKER') {
+                    display = markerIcon;
+                    classes = 'bg-rose-50 border-rose-300 scale-110 text-rose-500 opacity-80 shadow-inner';
+                }
+
+                return (
+                    <div
+                        onClick={onClick}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+                        onDrop={onDrop}
+                        className={`w-10 h-10 md:w-12 md:h-12 flex-shrink-0 rounded-full flex items-center justify-center text-xl md:text-2xl transition-all duration-300 border-2 z-10 cursor-pointer ${classes}`}
+                    >
+                        {display}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm flex flex-col h-full">
+                    <div className="flex justify-between items-center mb-4 border-b border-indigo-50 pb-2">
+                        <span className="font-bold text-indigo-800 flex items-center"><PlayCircle className="w-5 h-5 mr-1" /> 動態圖解區</span>
+                        <div className="flex flex-wrap items-center justify-end gap-2 md:gap-3">
+                            <div className="flex gap-2">
+                                <div
+                                    className="flex items-center gap-1 bg-indigo-50 px-2 py-1.5 rounded-lg border border-indigo-200 cursor-grab active:cursor-grabbing hover:bg-indigo-100 transition-colors shadow-sm"
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, 'ITEM')}
+                                    title="拖曳我"
+                                >
+                                    <span className="text-xl md:text-2xl">{prob.icon}</span>
+                                </div>
+                                {hasMarker && (
+                                    <div
+                                        className="flex items-center gap-1 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-200 cursor-grab active:cursor-grabbing hover:bg-rose-100 transition-colors shadow-sm"
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, 'MARKER')}
+                                        title="標記不放置"
+                                    >
+                                        <span className="text-xl md:text-2xl">{markerIcon}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <span className="bg-indigo-50 text-indigo-600 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold border border-indigo-100">
+                                已放：{countPlaced()} 個
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex items-center justify-center min-h-[160px] overflow-x-auto scrollbar-thin scrollbar-thumb-indigo-200">
+                        {!isLoop && !isSides && (
+                            <div className="relative flex justify-between items-center w-max min-w-full px-4 py-6 gap-4">
+                                <div className="absolute left-6 right-6 h-2 bg-slate-200 rounded-full z-0"></div>
+                                {placed.map((val, i) => <ItemNode key={i} val={val} onClick={() => toggleNodeClick(i)} onDrop={(e) => { e.preventDefault(); setNode(i, null, e.dataTransfer.getData('text/plain')); }} />)}
+                            </div>
+                        )}
+
+                        {isSides && (
+                            <div className="flex flex-col gap-8 w-max min-w-full px-4 py-4">
+                                <div className="relative flex justify-between items-center gap-4">
+                                    <div className="absolute left-6 right-6 h-2 bg-slate-200 rounded-full z-0"></div>
+                                    {placed.top.map((val, i) => <ItemNode key={`t-${i}`} val={val} onClick={() => toggleNodeClick(i, 'top')} onDrop={(e) => { e.preventDefault(); setNode(i, 'top', e.dataTransfer.getData('text/plain')); }} />)}
+                                </div>
+                                <div className="relative flex justify-between items-center gap-4">
+                                    <div className="absolute left-6 right-6 h-2 bg-slate-200 rounded-full z-0"></div>
+                                    {placed.bottom.map((val, i) => <ItemNode key={`b-${i}`} val={val} onClick={() => toggleNodeClick(i, 'bottom')} onDrop={(e) => { e.preventDefault(); setNode(i, 'bottom', e.dataTransfer.getData('text/plain')); }} />)}
+                                </div>
+                            </div>
+                        )}
+
+                        {isLoop && (
+                            <div className="relative w-56 h-56 md:w-64 md:h-64 mx-auto my-6">
+                                {/* 背景圓形半徑為 35% (50% - 15%) */}
+                                <div className="absolute top-[15%] left-[15%] right-[15%] bottom-[15%] rounded-full border-4 border-slate-200 z-0"></div>
+                                {placed.map((val, i) => {
+                                    const angle = (i / nodeCount) * 2 * Math.PI - Math.PI / 2;
+                                    const x = 50 + 35 * Math.cos(angle);
+                                    const y = 50 + 35 * Math.sin(angle);
+                                    return (
+                                        <div key={i} className="absolute transform -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
+                                            <ItemNode val={val} onClick={() => toggleNodeClick(i)} onDrop={(e) => { e.preventDefault(); setNode(i, null, e.dataTransfer.getData('text/plain')); }} />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-xs text-slate-400 text-center mt-2">※ 提示：可拖曳上方圖示入內，或直接點擊虛線圓圈切換狀態。</p>
+                </div>
+            );
+        };
+
+        const Level3 = ({ onComplete }) => {
+            const [problems] = useState(() => [...L3_BANK].sort(() => 0.5 - Math.random()).slice(0, 5));
+            const [pIndex, setPIndex] = useState(0);
+            const [inputAns, setInputAns] = useState('');
+            const [status, setStatus] = useState('playing');
+
+            // 計算紙狀態
+            const [equations, setEquations] = useState([{ id: Date.now(), text: '' }]);
+
+            const prob = problems[pIndex];
+            const intervals = prob.length / prob.intv;
+            const correctAns = prob.logic(intervals);
+
+            // 計算紙邏輯
+            const handleEqChange = (id, value) => setEquations(eqs => eqs.map(eq => eq.id === id ? { ...eq, text: value } : eq));
+            const addEquation = () => setEquations([...equations, { id: Date.now(), text: '' }]);
+            const removeEquation = (id) => { if (equations.length > 1) setEquations(equations.filter(eq => eq.id !== id)); };
+            const calculateResult = (expr) => {
+                if (!expr || expr.trim() === '') return '';
+                try {
+                    let sanitized = expr.replace(/×/g, '*').replace(/÷/g, '/');
+                    if (!/^[0-9+\-*/().\s]*$/.test(sanitized)) return '?';
+                    let res = new Function('return ' + sanitized)();
+                    return (res === Infinity || res === -Infinity || isNaN(res)) ? '?' : Math.round(res * 100) / 100;
+                } catch (e) { return '?'; }
+            };
+
+            const handleCheck = () => {
+                if (inputAns.trim() === '') return;
+                if (parseInt(inputAns) === correctAns) setStatus('correct');
+                else setStatus('wrong');
+            };
+
+            const nextP = () => {
+                if (pIndex < problems.length - 1) {
+                    setPIndex(pIndex + 1);
+                    setInputAns('');
+                    setStatus('playing');
+                    setEquations([{ id: Date.now(), text: '' }]); // 重置計算紙
+                } else onComplete();
+            };
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-indigo-100 animate-fadeIn relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 text-9xl opacity-5 pointer-events-none">🎯</div>
+
+                    <h2 className="text-2xl font-bold text-indigo-800 mb-6 flex items-center relative z-10">
+                        <span className="bg-indigo-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">🎯</span>
+                        第三關：基礎實戰測驗 ({pIndex + 1}/{problems.length})
+                    </h2>
+
+                    <div className="bg-indigo-50/80 p-6 md:p-8 rounded-2xl border border-indigo-100 mb-6 relative z-10 shadow-inner">
+                        <p className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed text-center">
+                            {prob.text}
+                        </p>
+                    </div>
+
+                    {/* 互動區塊：改為上下排列，給予圖解區最大寬度以避免水平捲動 */}
+                    <div className="flex flex-col gap-6 mb-8 relative z-10 w-full">
+                        {/* 上方：專屬動態圖解 */}
+                        <div className="w-full">
+                            <ProblemVisualizer key={`vis-${pIndex}`} prob={prob} intervals={intervals} />
+                        </div>
+
+                        {/* 下方：數位計算紙 */}
+                        <div className="w-full bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                            <h3 className="font-bold text-slate-700 flex items-center mb-4 border-b border-slate-200 pb-2">
+                                <Calculator className="w-5 h-5 mr-2 text-indigo-500" /> 數位演練計算紙
+                            </h3>
+                            <div className="space-y-3 mb-4 flex-1">
+                                {equations.map((eq, index) => {
+                                    const result = calculateResult(eq.text);
+                                    return (
+                                        <div key={eq.id} className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm focus-within:border-indigo-300 transition-colors">
+                                            <span className="text-slate-400 font-bold w-4 text-sm hidden sm:inline-block">{index + 1}.</span>
+                                            <input type="text" value={eq.text} onChange={e => handleEqChange(eq.id, e.target.value)} className="flex-1 min-w-[100px] p-2 text-lg border-none focus:outline-none font-mono bg-transparent" placeholder="(如 120/15)" />
+                                            <span className="text-lg font-bold text-slate-400 px-1">=</span>
+                                            <div className={`min-w-[60px] p-2 text-center rounded-lg font-mono font-bold text-lg ${result === '?' || result === '' ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'}`}>
+                                                {result === '' ? '?' : result}
+                                            </div>
+                                            <button onClick={() => removeEquation(eq.id)} disabled={equations.length === 1} className="ml-auto p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg disabled:opacity-0"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <button onClick={addEquation} className="w-full py-2.5 border-2 border-dashed border-indigo-200 text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors flex justify-center items-center text-sm"><Plus className="w-4 h-4 mr-1" /> 新增算式列</button>
+                        </div>
+                    </div>
+
+                    {/* 作答區 */}
+                    <div className="flex flex-col items-center mb-6 relative z-10 bg-white p-6 rounded-2xl border-2 border-indigo-50 shadow-sm">
+                        <label className="text-slate-600 font-bold mb-3">請輸入最終計算結果：</label>
+                        <div className="flex items-center gap-4">
+                            <input
+                                type="number"
+                                value={inputAns}
+                                onChange={e => { setInputAns(e.target.value); setStatus('playing'); }}
+                                className={`w-32 md:w-48 text-center text-3xl p-4 border-4 rounded-2xl focus:outline-none transition-colors shadow-inner ${status === 'wrong' ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-indigo-200 focus:border-indigo-500 bg-slate-50'}`}
+                                placeholder="?"
+                                disabled={status === 'correct'}
+                                onKeyDown={e => e.key === 'Enter' && handleCheck()}
+                            />
+                        </div>
+                        {status === 'wrong' && <span className="text-rose-600 font-bold mt-3 animate-pulse">答案不對喔！試試看操作上方的圖解來找出盲點！</span>}
+                    </div>
+
+                    <div className="flex flex-wrap justify-center gap-4 relative z-10">
+                        {status !== 'correct' && (
+                            <>
+                                <button onClick={handleCheck} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-xl text-lg shadow-md transition-transform hover:-translate-y-1 flex items-center">
+                                    <CheckCircle2 className="w-5 h-5 mr-2" /> 送出答案
+                                </button>
+                                <button onClick={() => setStatus('hint')} className="bg-white border-2 border-slate-200 hover:bg-slate-50 text-slate-600 font-bold py-3 px-6 rounded-xl text-lg transition-colors flex items-center">
+                                    <Lightbulb className="w-5 h-5 mr-2 text-amber-500" /> 看文字提示
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    {status === 'hint' && (
+                        <div className="mt-6 bg-amber-50 border border-amber-200 p-5 rounded-2xl animate-fadeIn text-amber-900 font-medium relative z-10">
+                            💡 提示：總長度 {prob.length} ÷ 間隔 {prob.intv} = <strong className="text-xl">{intervals} 個間隔</strong>。<br />
+                            依照本題的情境，你可以利用上方的圖解區實際點擊看看，數量會比間隔數多還是少呢？
+                        </div>
+                    )}
+
+                    {status === 'correct' && (
+                        <div className="mt-8 text-center animate-fadeIn bg-emerald-50 p-6 rounded-2xl border border-emerald-200 relative z-10">
+                            <div className="text-emerald-600 text-2xl font-bold mb-4">🎉 完全正確！數學邏輯與運算都非常清晰！</div>
+                            <button onClick={nextP} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-10 rounded-full text-lg shadow-lg transition-transform hover:scale-105">
+                                {pIndex < problems.length - 1 ? '挑戰下一題' : '解鎖終極大師關卡'} <ArrowRight className="w-5 h-5 ml-2 inline" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 第四關：終極大師挑戰 (變形應用題) ---
+        const Level4 = () => {
+            // 隨機整數產生器
+            const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+            // 動態題庫生成器：每次呼叫皆會產生全新數字配置的變形題
+            const generateVariant = (index) => {
+                if (index === 0) { // 樓梯題
+                    const targetFloor = getRandomInt(6, 12);
+                    const midFloor = getRandomInt(3, targetFloor - 2);
+                    const timePerFloor = getRandomInt(10, 20);
+                    const timeToMid = (midFloor - 1) * timePerFloor;
+                    return {
+                        id: 'stairs', icon: '🪜', title: '樓梯陷阱題',
+                        desc: `小明住在 ${targetFloor} 樓，他從 1 樓爬到 ${midFloor} 樓花了 ${timeToMid} 秒。如果他以相同的速度繼續爬，請問他從 1 樓爬到 ${targetFloor} 樓總共需要多少秒？`,
+                        hint: `樓梯題也是間隔問題！從 1 樓到 ${midFloor} 樓，其實只爬了 (${midFloor} - 1) = ${midFloor - 1} 層樓的樓梯。先算出爬 1 層樓要幾秒。`,
+                        calc: timePerFloor * (targetFloor - 1),
+                        unit: '秒',
+                        vIndex: index
+                    };
+                } else if (index === 1) { // 鋸木頭題
+                    const segmentLength = getRandomInt(2, 5);
+                    const segments = getRandomInt(4, 8);
+                    const totalLength = segmentLength * segments;
+                    const restTime = getRandomInt(3, 8);
+                    return {
+                        id: 'wood', icon: '🪚', title: '鋸木頭時間計算',
+                        desc: `木工師傅把一根長 ${totalLength} 公尺的木材，每 ${segmentLength} 公尺鋸成一段。已知鋸一次需要休息並耗費 ${restTime} 分鐘。請問整根木材鋸完，總共需要花費多少分鐘？`,
+                        hint: `${totalLength}公尺每${segmentLength}公尺一段，會有 (${totalLength}÷${segmentLength})=${segments} 段。切成 ${segments} 段只需要鋸 (${segments} - 1) = ${segments - 1} 次喔！(切割模型)`,
+                        calc: (segments - 1) * restTime,
+                        unit: '分鐘',
+                        vIndex: index
+                    };
+                } else if (index === 2) { // 敲鐘題
+                    const chimes1 = getRandomInt(4, 6);
+                    const timePerInterval = getRandomInt(2, 4);
+                    const time1 = (chimes1 - 1) * timePerInterval;
+                    const chimes2 = getRandomInt(10, 12);
+                    return {
+                        id: 'clock', icon: '🕰️', title: '敲鐘時間差',
+                        desc: `大笨鐘報時，敲 ${chimes1} 下需要 ${time1} 秒鐘。在午夜 ${chimes2} 點時要敲 ${chimes2} 下，請問敲完 ${chimes2} 下總共需要幾秒鐘？`,
+                        hint: `敲 ${chimes1} 下，中間其實只有 (${chimes1} - 1) = ${chimes1 - 1} 個間隔時間。${time1} 秒是 ${chimes1 - 1} 個間隔的總和。敲 ${chimes2} 下有幾個間隔呢？`,
+                        calc: timePerInterval * (chimes2 - 1),
+                        unit: '秒',
+                        vIndex: index
+                    };
+                } else if (index === 3) { // 反推長度題
+                    const count = getRandomInt(20, 50);
+                    const interval = getRandomInt(3, 8) * 5; // 產生15, 20, 25等倍數
+                    return {
+                        id: 'reverse_len', icon: '📏', title: '反推總長度',
+                        desc: `市政府在馬路「一側」設置了 ${count} 盞路燈（兩端都有設），相鄰兩盞路燈距離 ${interval} 公尺。請問這條馬路全長是多少公尺？`,
+                        hint: `給你數量反推長度！兩端都有設，代表「間隔數 = 數量 - 1」。算出間隔數後，再乘以每個間隔的距離即可。`,
+                        calc: (count - 1) * interval,
+                        unit: '公尺',
+                        vIndex: index
+                    };
+                } else { // 反推次數題
+                    const cuts = getRandomInt(10, 25);
+                    const lengthPerSegment = getRandomInt(2, 6) * 5;
+                    return {
+                        id: 'reverse_cnt', icon: '✂️', title: '反推次數',
+                        desc: `裁縫師把一條緞帶剪了 ${cuts} 次，全部剪成每段長度為 ${lengthPerSegment} 公分的短緞帶。請問這條緞帶原本總長度是多少公分？`,
+                        hint: `剪了 ${cuts} 次，代表被切成了 (${cuts} + 1) = ${cuts + 1} 段！`,
+                        calc: (cuts + 1) * lengthPerSegment,
+                        unit: '公分',
+                        vIndex: index
+                    };
+                }
+            };
+
+            // 使用 useState 儲存目前動態產生的題目狀態
+            const [prob, setProb] = useState(() => generateVariant(0));
+            const [inputAns, setInputAns] = useState('');
+            const [status, setStatus] = useState('playing');
+            const [showHint, setShowHint] = useState(false);
+
+            const [equations, setEquations] = useState([{ id: Date.now(), text: '' }]);
+
+            const correctAns = prob.calc;
+
+            const handleEqChange = (id, value) => setEquations(eqs => eqs.map(eq => eq.id === id ? { ...eq, text: value } : eq));
+            const addEquation = () => setEquations([...equations, { id: Date.now(), text: '' }]);
+            const removeEquation = (id) => { if (equations.length > 1) setEquations(equations.filter(eq => eq.id !== id)); };
+            const calculateResult = (expr) => {
+                if (!expr || expr.trim() === '') return '';
+                try {
+                    let sanitized = expr.replace(/×/g, '*').replace(/÷/g, '/');
+                    if (!/^[0-9+\-*/().\s]*$/.test(sanitized)) return '?';
+                    let res = new Function('return ' + sanitized)();
+                    return (res === Infinity || res === -Infinity || isNaN(res)) ? '?' : Math.round(res * 100) / 100;
+                } catch (e) { return '?'; }
+            };
+
+            const checkAnswer = () => {
+                if (inputAns === '') return;
+                if (parseFloat(inputAns) === correctAns) setStatus('correct');
+                else setStatus('wrong');
+            };
+
+            const nextVariant = () => {
+                // 產生下一種類型的變形題，並自動帶入隨機亂數
+                setProb(generateVariant((prob.vIndex + 1) % 5));
+                setInputAns('');
+                setStatus('playing');
+                setShowHint(false);
+                setEquations([{ id: Date.now(), text: '' }]);
+            };
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl border-2 border-rose-200 relative overflow-hidden animate-fadeIn">
+                    <div className="absolute top-0 right-0 -mt-8 -mr-8 text-9xl opacity-5 pointer-events-none animate-float">{prob.icon}</div>
+
+                    <h2 className="text-2xl font-bold text-rose-800 mb-6 flex items-center relative z-10">
+                        <span className="bg-rose-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">🔥</span>
+                        第四關：終極大師挑戰賽 ({prob.vIndex + 1}/5)
+                    </h2>
+
+                    <div className="bg-rose-50 p-6 rounded-2xl border border-rose-100 mb-8 shadow-inner relative z-10">
+                        <h3 className="text-lg font-bold text-rose-600 mb-2 border-b border-rose-200 pb-2 inline-block">{prob.title}</h3>
+                        <p className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mt-2">{prob.desc}</p>
+                    </div>
+
+                    {/* 互動區塊：改為上下排列，保持版面一致性 */}
+                    <div className="flex flex-col gap-8 mb-8 relative z-10 w-full">
+                        {/* 上方：程式輔助計算紙 */}
+                        <div className="w-full bg-slate-50 rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <h3 className="text-xl font-bold text-slate-700 flex items-center mb-4 border-b border-slate-200 pb-3">
+                                <Calculator className="w-6 h-6 mr-2 text-blue-500" /> 數位演練計算紙
+                            </h3>
+                            <div className="space-y-3 mb-4">
+                                {equations.map((eq, index) => {
+                                    const result = calculateResult(eq.text);
+                                    return (
+                                        <div key={eq.id} className="flex flex-wrap items-center gap-2 bg-white p-2 md:p-3 rounded-xl border border-slate-200 shadow-sm transition-all focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100">
+                                            <span className="text-slate-400 font-bold w-6 hidden md:inline-block">{index + 1}.</span>
+                                            <input type="text" value={eq.text} onChange={e => handleEqChange(eq.id, e.target.value)} className="flex-1 min-w-[120px] p-2 text-lg md:text-xl border-none focus:outline-none font-mono bg-transparent" placeholder="(如 15/3-1)" />
+                                            <span className="text-xl font-bold text-slate-400 px-1">=</span>
+                                            <div className={`min-w-[70px] p-2 text-center rounded-lg font-mono font-bold text-xl md:text-2xl ${result === '?' || result === '' ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                                                {result === '' ? '?' : result}
+                                            </div>
+                                            <button onClick={() => removeEquation(eq.id)} disabled={equations.length === 1} className="ml-auto p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg disabled:opacity-0 transition-colors"><Trash2 className="w-5 h-5" /></button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <button onClick={addEquation} className="w-full py-3 border-2 border-dashed border-blue-200 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-colors flex justify-center items-center"><Plus className="w-5 h-5 mr-1" /> 新增算式列</button>
+                        </div>
+
+                        {/* 下方：作答區 */}
+                        <div className="w-full flex flex-col gap-4">
+                            <div className="bg-white p-6 rounded-3xl border-2 border-rose-200 shadow-sm flex flex-col items-center">
+                                <label className="text-lg font-bold text-slate-700 mb-4">輸入最終答案</label>
+                                <div className="flex items-center gap-3 w-full">
+                                    <input type="number" value={inputAns} onChange={e => { setInputAns(e.target.value); setStatus('playing'); }} className="w-full text-center text-3xl p-4 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-50 transition-all bg-slate-50" placeholder="?" disabled={status === 'correct'} onKeyDown={e => e.key === 'Enter' && checkAnswer()} />
+                                    <span className="text-xl text-slate-500 font-bold whitespace-nowrap">{prob.unit}</span>
+                                </div>
+                            </div>
+
+                            {status !== 'correct' && (
+                                <div className="flex flex-col gap-3 mt-auto">
+                                    <button onClick={checkAnswer} className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 rounded-xl text-lg shadow-md flex justify-center items-center transition-transform hover:-translate-y-1"><CheckCircle2 className="w-5 h-5 mr-2" /> 送出挑戰</button>
+                                    <button onClick={() => setShowHint(!showHint)} className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold py-3 rounded-xl text-lg flex justify-center items-center transition-colors"><Lightbulb className={`w-5 h-5 mr-2 ${showHint ? 'fill-amber-400 text-amber-500' : ''}`} /> 需要大師提點</button>
+                                </div>
+                            )}
+                            {status === 'wrong' && <div className="mt-2 text-center text-rose-600 font-bold animate-pulseSlow bg-rose-50 py-3 rounded-xl border border-rose-100">❌ 答案有誤喔！這種變形題充滿陷阱，請仔細思考模型。</div>}
+                        </div>
+                    </div>
+
+                    {showHint && status !== 'correct' && (
+                        <div className="mb-6 p-5 bg-amber-50 border border-amber-200 rounded-2xl shadow-sm animate-fadeIn relative z-10">
+                            <h4 className="font-bold text-lg text-amber-900 flex items-center mb-2"><Lightbulb className="w-6 h-6 mr-2 fill-amber-500 text-amber-500" /> 突破盲點提示：</h4>
+                            <p className="text-lg text-amber-800 leading-relaxed">{prob.hint}</p>
+                        </div>
+                    )}
+
+                    {status === 'correct' && (
+                        <div className="mt-4 text-center animate-fadeIn bg-gradient-to-r from-rose-50 to-orange-50 p-6 rounded-3xl border border-rose-200 shadow-sm relative z-10">
+                            <div className="text-rose-600 text-2xl font-bold mb-6 flex justify-center items-center">🎉 卓越表現！成功破解變形陷阱題！</div>
+                            <button onClick={nextVariant} className="bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white font-bold py-3 px-10 rounded-full text-lg shadow-lg flex items-center mx-auto transition-transform hover:scale-105">
+                                迎戰下一道難題 <RefreshCw className="w-5 h-5 ml-2" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 主應用程式 ---
+        const App = () => {
+            const [currentTab, setCurrentTab] = useState(1); // 預設打開第一關
+
+            useEffect(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, [currentTab]);
+
+            return (
+                <div className="py-8 px-4 font-sans text-slate-800">
+                    <div className="max-w-5xl mx-auto">
+                        <header className="text-center mb-10">
+                            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-800 mb-4 tracking-tight drop-shadow-sm flex justify-center items-center gap-3">
+                                🌳 間隔與植樹問題
+                            </h1>
+                            <p className="text-lg text-slate-500 font-medium">從基礎圖解到高階變形，培養模型轉換思維！</p>
+                        </header>
+
+                        <nav className="flex justify-center mb-10 sticky top-4 z-50">
+                            <div className="flex bg-white/80 backdrop-blur-md rounded-full shadow-lg border border-slate-200 p-1.5 flex-wrap justify-center overflow-hidden">
+                                {[
+                                    { id: 1, label: '第一關 圖解', color: 'emerald' },
+                                    { id: 2, label: '第二關 推導', color: 'teal' },
+                                    { id: 3, label: '第三關 實戰', color: 'indigo' },
+                                    { id: 4, label: '🔥 大師挑戰', color: 'rose' }
+                                ].map((tab) => {
+                                    const isActive = currentTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setCurrentTab(tab.id)}
+                                            className={`px-4 sm:px-6 py-2.5 rounded-full font-bold text-sm sm:text-base transition-all duration-300 m-0.5 ${isActive
+                                                ? `bg-${tab.color}-600 text-white shadow-md transform scale-105`
+                                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                                                }`}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </nav>
+
+                        <main className="min-h-[500px]">
+                            {currentTab === 1 && <Level1 onComplete={() => setCurrentTab(2)} />}
+                            {currentTab === 2 && <Level2 onComplete={() => setCurrentTab(3)} />}
+                            {currentTab === 3 && <Level3 onComplete={() => setCurrentTab(4)} />}
+                            {currentTab === 4 && <Level4 />}
+                        </main>
+
+                        <footer className="text-center mt-16 text-slate-400 text-sm font-medium pb-8 flex flex-col items-center">
+                            <div className="w-16 h-1 bg-slate-200 rounded-full mb-4"></div>
+                            <p>設計與工程：基於建構式數學理念 | 訓練高階認知與模型轉移</p>
+                        </footer>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

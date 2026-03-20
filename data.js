@@ -164,5 +164,14 @@ window.MATH_TOOLS_DATA = [
     "link": "chicken_rabbit.html",
     "icon": "Rabbit",
     "color": "green"
+  },
+  {
+    "id": "tool_1773993537069",
+    "title": "間隔與植樹問題",
+    "grade": "六年級",
+    "description": "透過高度互動的視覺化沙盒、動態幾何圖形操作，以及情境化的實戰測驗，輔助學習者（主要為國小高年級）建構並內化「間隔問題」的數學模型。系統導入了鷹架理論 (Scaffolding Theory)，引導學生從具體圖解過渡至抽象公式，最終具備模型轉移與解題之能力。\n",
+    "link": "planting_tree.html",
+    "icon": "Trees",
+    "color": "sky"
   }
 ];
