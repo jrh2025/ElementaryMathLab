@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年齡差解密大師</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            safelist: [
+                'bg-indigo-600', 'bg-teal-600', 'bg-orange-600', 'bg-rose-600', 'bg-purple-600',
+                'hover:bg-indigo-700', 'hover:bg-teal-700', 'hover:bg-orange-700', 'hover:bg-rose-700', 'hover:bg-purple-700'
+            ],
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'bounce': 'bounce 1s infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel Standalone (for JSX compilation in the browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 自訂滑桿軌道顏色 */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 2px 4px border-slate-300;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #c7d2fe;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans selection:bg-indigo-200">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 輔助圖示 (替換原先的 lucide-react) ---
+        const Brain = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" /><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" /><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" /><path d="M17.599 6.5a3 3 0 0 0 .399-1.375" /></svg>;
+        const ArrowRight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>;
+        const CheckCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>;
+        const FastForward = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 19 22 12 13 5 13 19" /><polygon points="2 19 11 12 2 5 2 19" /></svg>;
+        const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>;
+        const Calculator = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></svg>;
+        const Plus = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14" /><path d="M12 5v14" /></svg>;
+        const Trash2 = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>;
+        const Lightbulb = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></svg>;
+        const BookOpen = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>;
+        const Award = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></svg>;
+
+
+        // --- 第一關：互動沙盒（證明年齡差永恆不變） ---
+        const Level1 = ({ onComplete }) => {
+            const [yearOffset, setYearOffset] = useState(0);
+            const baseDad = 40;
+            const baseSon = 10;
+
+            const dadAge = baseDad + yearOffset;
+            const sonAge = baseSon + yearOffset;
+            const diff = dadAge - sonAge;
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-indigo-100 animate-fade-in">
+                    <h2 className="text-2xl font-bold text-indigo-800 mb-6 flex items-center">
+                        <span className="bg-indigo-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">⏳</span>
+                        第一關：時光機沙盒實驗
+                    </h2>
+                    <p className="text-slate-600 text-lg leading-relaxed bg-slate-50 p-4 rounded-xl border-l-4 border-indigo-400 mb-6">
+                        拖拉下方的「時光滑桿」，觀察爸爸和兒子的年齡變化。你有發現什麼<strong>永遠不會改變</strong>的秘密嗎？
+                    </p>
+
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mb-8 relative overflow-x-hidden">
+                        <div className="flex flex-col gap-6 mb-8 relative pr-12">
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 text-center font-bold text-slate-700 flex flex-col items-center">
+                                    <span className="text-3xl mb-1">👨</span>爸爸
+                                </div>
+                                <div className="flex-1 bg-indigo-100 h-12 rounded-r-xl relative transition-all duration-300 ease-out"
+                                    style={{ width: `${dadAge}%`, maxWidth: '100%' }}>
+                                    <div className="absolute inset-0 bg-indigo-500 rounded-r-xl transition-all duration-300 ease-out"
+                                        style={{ width: '100%' }}></div>
+                                    <span className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full text-xl font-bold text-indigo-700">{dadAge} 歲</span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 text-center font-bold text-slate-700 flex flex-col items-center">
+                                    <span className="text-3xl mb-1">👦</span>兒子
+                                </div>
+                                <div className="flex-1 bg-teal-100 h-12 rounded-r-xl relative transition-all duration-300 ease-out"
+                                    style={{ width: `${sonAge}%`, maxWidth: '100%' }}>
+                                    <div className="absolute inset-0 bg-teal-500 rounded-r-xl transition-all duration-300 ease-out"
+                                        style={{ width: '100%' }}></div>
+                                    <span className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full text-xl font-bold text-teal-700">{sonAge} 歲</span>
+                                </div>
+                            </div>
+
+                            <div className="absolute top-0 bottom-0 pointer-events-none flex flex-col justify-center transition-all duration-300"
+                                style={{ left: `calc(5rem + ${sonAge}%)` }}>
+                                <div className="border-l-2 border-t-2 border-b-2 border-dashed border-rose-400 w-8 h-20 relative flex items-center justify-center -translate-x-full ml-4">
+                                    <span className="absolute -left-2 -translate-x-full bg-rose-100 text-rose-600 px-3 py-1 rounded-full font-bold shadow-sm whitespace-nowrap">
+                                        相差 {diff} 歲
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200 mt-12">
+                            <span className="font-bold text-slate-500 w-full sm:w-24 text-center sm:text-right">時光倒流</span>
+                            <input type="range" min="-10" max="30" value={yearOffset} onChange={(e) => setYearOffset(parseInt(e.target.value))}
+                                className="flex-1 w-full sm:w-auto outline-none" />
+                            <span className="font-bold text-slate-500 w-full sm:w-24 text-center sm:text-left">前往未來</span>
+                        </div>
+                        <div className="text-center mt-4">
+                            <span className="text-lg font-bold text-indigo-600 bg-indigo-50 px-6 py-2 rounded-full inline-block">
+                                目前時間：{yearOffset === 0 ? '現在' : yearOffset > 0 ? `${yearOffset} 年後` : `${Math.abs(yearOffset)} 年前`}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="text-center">
+                        <button onClick={onComplete}
+                            className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg flex items-center mx-auto transition-transform hover:scale-105">
+                            我明白了！年齡差永遠不變
+                            <ArrowRight className="w-5 h-5 ml-2" />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 第二關：積木模型（解決倍數問題） ---
+        const Level2 = ({ onComplete }) => {
+            const [step, setStep] = useState(0);
+            const targetMult = 4;
+
+            const flow = [
+                { msg: "爸爸 37 歲，兒子 4 歲。幾年後爸爸是兒子的 4 倍？", action: "點擊計算年齡差" },
+                { msg: `第一步：找出永遠不變的年齡差。37 - 4 = 33 歲。`, action: "顯示方塊模型" },
+                { msg: `第二步：當爸爸是兒子的 4 倍時，代表爸爸有 4 個方塊，兒子有 1 個方塊。`, action: "對齊方塊看差距" },
+                { msg: `第三步：爸爸比兒子「多出」了 3 個方塊 (4 - 1 = 3)。這 3 個方塊就等於年齡差的 33 歲！`, action: "計算單一方塊(兒子年齡)" },
+                { msg: `第四步：3 個方塊 = 33 歲，所以 1 個方塊 = 11 歲 (兒子那時的年齡)。`, action: "計算過了幾年" },
+                { msg: `第五步：兒子從現在的 4 歲變成 11 歲，需要經過 (11 - 4) = 7 年！`, action: "完成" }
+            ];
+
+            const nextStep = () => {
+                if (step < flow.length - 1) setStep(step + 1);
+                else onComplete();
+            };
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-teal-100 animate-fade-in">
+                    <h2 className="text-2xl font-bold text-teal-800 mb-6 flex items-center">
+                        <span className="bg-teal-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">🧩</span>
+                        第二關：方塊倍數模型
+                    </h2>
+
+                    <div className="bg-teal-50 p-6 rounded-2xl border border-teal-100 mb-8 min-h-[400px] flex flex-col">
+                        <div className="w-full max-w-2xl mx-auto bg-white py-4 px-6 rounded-xl shadow-sm border border-teal-200 mb-6">
+                            <p className="text-xl font-bold text-slate-800 text-center">{flow[0].msg}</p>
+                        </div>
+
+                        <div className="flex flex-col gap-3 mb-8 w-full max-w-2xl mx-auto">
+                            {flow.slice(1, step + 1).map((item, index) => (
+                                <div key={index} className="bg-teal-100/60 p-3 md:p-4 rounded-lg border-l-4 border-teal-500 text-slate-700 font-medium animate-fade-in text-lg shadow-sm">
+                                    {item.msg}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="w-full max-w-lg mx-auto relative flex flex-col justify-center gap-4 mt-auto min-h-[12rem]">
+                            {step >= 2 && (
+                                <div className="flex items-center gap-4 animate-fade-in">
+                                    <div className="w-16 text-right font-bold text-slate-600">👨 爸爸</div>
+                                    <div className="flex flex-1 gap-1">
+                                        {[...Array(targetMult)].map((_, i) => (
+                                            <div key={`d-${i}`} className={`h-12 flex-1 rounded-lg border-2 flex items-center justify-center font-bold text-lg transition-all duration-500 ${i === 0 ? 'bg-teal-500 border-teal-600 text-white' : (step >= 3 ? 'bg-amber-400 border-amber-500 text-amber-900 shadow-inner' : 'bg-slate-200 border-slate-300 text-slate-400')}`}>
+                                                {step >= 4 ? '11歲' : (i === 0 ? '兒子' : '差')}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {step >= 2 && (
+                                <div className="flex items-center gap-4 animate-fade-in">
+                                    <div className="w-16 text-right font-bold text-slate-600">👦 兒子</div>
+                                    <div className="flex flex-1 gap-1">
+                                        <div className="h-12 flex-1 bg-teal-500 border-2 border-teal-600 rounded-lg text-white font-bold flex items-center justify-center text-lg">
+                                            {step >= 4 ? '11歲' : '兒子'}
+                                        </div>
+                                        {[...Array(targetMult - 1)].map((_, i) => (
+                                            <div key={`empty-${i}`} className="h-12 flex-1 opacity-0"></div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {step >= 3 && (
+                                <div className="absolute right-0 top-0 bottom-0 w-[70%] flex flex-col justify-center animate-fade-in pointer-events-none pt-2">
+                                    <div className="border-b-4 border-l-4 border-r-4 border-rose-400 h-10 w-[98%] mx-auto rounded-b-xl relative translate-y-10">
+                                        <span className="absolute left-1/2 bottom-0 translate-y-full -translate-x-1/2 bg-rose-100 text-rose-600 px-4 py-1 rounded-full font-bold mt-2 shadow-sm whitespace-nowrap">
+                                            多出 3 格 = 差距 33 歲
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="text-center">
+                        <button onClick={nextStep} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-8 rounded-full shadow-lg flex items-center mx-auto transition-transform hover:-translate-y-1">
+                            {flow[step].action}
+                            {step < flow.length - 1 ? <ArrowRight className="w-5 h-5 ml-2" /> : <CheckCircle className="w-5 h-5 ml-2" />}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 第三關：年齡和陷阱（動態追趕） ---
+        const Level3 = ({ onComplete }) => {
+            const momStart = 32;
+            const kidsStart = 11 + 8; // 19
+            const [yearsPassed, setYearsPassed] = useState(0);
+
+            const currentMom = momStart + yearsPassed;
+            const currentKids = kidsStart + (yearsPassed * 2);
+            const gap = currentMom - currentKids;
+
+            const addYear = (y) => {
+                if (gap > 0) setYearsPassed(prev => Math.min(prev + y, 13));
+            };
+
+            const isDone = gap === 0;
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-orange-100 animate-fade-in">
+                    <h2 className="text-2xl font-bold text-orange-800 mb-6 flex items-center">
+                        <span className="bg-orange-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">🏃</span>
+                        第三關：賽跑追趕陷阱
+                    </h2>
+                    <p className="text-slate-600 text-lg leading-relaxed bg-slate-50 p-4 rounded-xl border-l-4 border-orange-400 mb-6">
+                        媽媽目前 32 歲，兩個小孩分別是 11 歲和 8 歲（和為 19 歲）。<br />
+                        請點擊「過 1 年」，觀察媽媽的年齡與「小孩年齡和」的成長速度差異！
+                    </p>
+
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mb-8">
+                        <div className="flex flex-col gap-8 relative max-w-2xl mx-auto">
+                            <div className="relative">
+                                <div className="flex justify-between text-sm font-bold text-slate-500 mb-1">
+                                    <span>👩 媽媽 (每年 +1)</span>
+                                    <span className="text-orange-600 text-xl">{currentMom} 歲</span>
+                                </div>
+                                <div className="h-8 bg-slate-200 rounded-full overflow-hidden flex">
+                                    <div className="bg-orange-400 transition-all duration-300 h-full flex items-center justify-end pr-2 text-white font-bold"
+                                        style={{ width: `${(currentMom / 50) * 100}%` }}></div>
+                                </div>
+                            </div>
+
+                            <div className="relative">
+                                <div className="flex justify-between text-sm font-bold text-slate-500 mb-1">
+                                    <span>👦👧 兩個小孩的年齡和 (每年 +2)</span>
+                                    <span className="text-blue-600 text-xl">{currentKids} 歲</span>
+                                </div>
+                                <div className="h-8 bg-slate-200 rounded-full overflow-hidden flex">
+                                    <div className="bg-blue-500 transition-all duration-300 h-full flex items-center justify-end pr-2 text-white font-bold"
+                                        style={{ width: `${(currentKids / 50) * 100}%` }}></div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mt-2">
+                                <div className={`inline-block px-6 py-3 rounded-2xl font-bold text-xl transition-colors duration-300 ${isDone ? 'bg-green-100 text-green-700 border-2 border-green-400 animate-bounce' : 'bg-rose-50 text-rose-600 border border-rose-200'}`}>
+                                    目前差距：{gap} 歲
+                                    {isDone && <span className="block text-sm mt-1">追平了！經過了 {yearsPassed} 年！</span>}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap justify-center gap-4 mt-8">
+                            <button onClick={() => addYear(1)} disabled={isDone}
+                                className="bg-white border-2 border-orange-300 hover:bg-orange-50 text-orange-600 font-bold py-3 px-6 rounded-xl shadow-sm disabled:opacity-50 flex items-center transition-transform hover:scale-105 active:scale-95">
+                                + 過 1 年
+                            </button>
+                            <button onClick={() => addYear(5)} disabled={isDone}
+                                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-sm disabled:opacity-50 flex items-center transition-transform hover:scale-105 active:scale-95">
+                                <FastForward className="w-5 h-5 mr-1" /> 快轉 5 年
+                            </button>
+                            <button onClick={() => setYearsPassed(0)}
+                                className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl shadow-sm transition-colors">
+                                <RefreshCw className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="text-center">
+                        <button onClick={onComplete} className={`font-bold py-3 px-10 rounded-full shadow-lg flex items-center mx-auto transition-all duration-500 ${isDone ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white scale-110' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`} disabled={!isDone}>
+                            解鎖大師關卡
+                            <ArrowRight className="w-5 h-5 ml-2" />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 第四關：數位計算紙組件 ---
+        const Scratchpad = ({ equations, setEquations }) => {
+            const handleEqChange = (id, value) => setEquations(eqs => eqs.map(eq => eq.id === id ? { ...eq, text: value } : eq));
+            const addEquation = () => setEquations([...equations, { id: Date.now(), text: '' }]);
+            const removeEquation = (id) => { if (equations.length > 1) setEquations(equations.filter(eq => eq.id !== id)); };
+
+            const calculateResult = (expr) => {
+                if (!expr || expr.trim() === '') return '';
+                try {
+                    let sanitized = expr.replace(/×/g, '*').replace(/÷/g, '/');
+                    if (!/^[0-9+\-*/().\s]*$/.test(sanitized)) return '?';
+                    let res = new Function('return ' + sanitized)();
+                    return (res === Infinity || res === -Infinity || isNaN(res)) ? '?' : Math.round(res * 100) / 100;
+                } catch (e) { return '?'; }
+            };
+
+            return (
+                <div className="w-full bg-slate-50 rounded-3xl border border-slate-200 p-6 shadow-sm mt-8">
+                    <h3 className="text-xl font-bold text-slate-700 flex items-center mb-4 border-b border-slate-200 pb-3">
+                        <Calculator className="w-6 h-6 mr-2 text-rose-500" /> 數位演練計算紙
+                    </h3>
+                    <div className="space-y-3 mb-4">
+                        {equations.map((eq, index) => {
+                            const result = calculateResult(eq.text);
+                            return (
+                                <div key={eq.id} className="flex flex-wrap items-center gap-2 bg-white p-2 md:p-3 rounded-xl border border-slate-200 shadow-sm transition-all focus-within:border-rose-300 focus-within:ring-2 focus-within:ring-rose-100">
+                                    <span className="text-slate-400 font-bold w-6 hidden md:inline-block">{index + 1}.</span>
+                                    <input type="text" value={eq.text} onChange={e => handleEqChange(eq.id, e.target.value)}
+                                        className="flex-1 min-w-[120px] p-2 text-lg md:text-xl border-none focus:outline-none font-mono bg-transparent text-slate-700"
+                                        placeholder="(如 (40+20)/2)" />
+                                    <span className="text-xl font-bold text-slate-400 px-1">=</span>
+                                    <div className={`min-w-[70px] p-2 text-center rounded-lg font-mono font-bold text-xl md:text-2xl ${result === '?' || result === '' ? 'bg-slate-100 text-slate-400' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                                        {result === '' ? '?' : result}
+                                    </div>
+                                    <button onClick={() => removeEquation(eq.id)} disabled={equations.length === 1}
+                                        className="ml-auto p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg disabled:opacity-0 transition-colors">
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <button onClick={addEquation} className="w-full py-3 border-2 border-dashed border-rose-200 text-rose-600 font-bold rounded-xl hover:bg-rose-50 transition-colors flex justify-center items-center">
+                        <Plus className="w-5 h-5 mr-1" /> 新增算式列
+                    </button>
+                </div>
+            );
+        };
+
+        // --- 第四關：產生不重複的 14 題終極題庫 ---
+        const generateL4Questions = () => {
+            let qList = [];
+
+            // 1. 姐姐和妹妹 (Basic)
+            let l = Math.floor(Math.random() * 20) + 20; // 20~39
+            let s = Math.floor(Math.random() * 15) + 5;  // 5~19
+            qList.push({
+                type: 1, typeLabel: '基礎和差', ansType: 'double',
+                text: `姐姐和妹妹兩個人的年齡和為 ${l + s} 歲、年齡差為 ${l - s} 歲，請問姐姐和妹妹的年齡各是幾歲？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "姐姐", hintNameSmall: "妹妹", unit: "歲"
+            });
+
+            // 2. 小明和小華 (Basic)
+            l = Math.floor(Math.random() * 30) + 70; // 70~99
+            s = Math.floor(Math.random() * 20) + 50; // 50~69
+            qList.push({
+                type: 1, typeLabel: '基礎和差', ansType: 'double',
+                text: `已知小明的體重比小華重，而且兩個人體重的和為 ${l + s} 公斤、體重的差為 ${l - s} 公斤，請問小明和小華的體重各是幾公斤？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "小明", hintNameSmall: "小華", unit: "公斤"
+            });
+
+            // 3. 小珍和小芬 (Basic)
+            l = Math.floor(Math.random() * 15) + 160;
+            s = Math.floor(Math.random() * 15) + 145;
+            qList.push({
+                type: 1, typeLabel: '基礎和差', ansType: 'double',
+                text: `已知小珍的身高比小芬高，而且兩個人身高的和為 ${l + s} 公分、身高的差為 ${l - s} 公分，請問小珍和小芬的身高各是幾公分？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "小珍", hintNameSmall: "小芬", unit: "公分"
+            });
+
+            // 4. 甲數和乙數 (Multiples)
+            l = Math.floor(Math.random() * 40) + 60;
+            s = Math.floor(Math.random() * 30) + 20;
+            let m1 = Math.floor(Math.random() * 3) + 3; // 3~5
+            qList.push({
+                type: 2, typeLabel: '倍數變化', ansType: 'double',
+                text: `有甲、乙兩數，其中甲數大於乙數，且兩數和的 ${m1} 倍為 ${(l + s) * m1}、兩數差的一半為 ${(l - s) / 2}，請問甲、乙兩數各是多少？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "甲數", hintNameSmall: "乙數", unit: "",
+                sol: { sumGiven: (l + s) * m1, sumMult: m1, diffGiven: (l - s) / 2, diffIsHalf: true }
+            });
+
+            // 5. 小傑和奇犽 (Multiples)
+            l = Math.floor(Math.random() * 30) + 80;
+            s = Math.floor(Math.random() * 20) + 60;
+            m1 = Math.floor(Math.random() * 2) + 3; // 3~4
+            let m2 = Math.floor(Math.random() * 3) + 4; // 4~6
+            qList.push({
+                type: 2, typeLabel: '倍數變化', ansType: 'double',
+                text: `已知小傑的體重比奇犽重，而且兩個人體重和的 ${m1} 倍為 ${(l + s) * m1} 公斤、體重差的 ${m2} 倍為 ${(l - s) * m2} 公斤，請問小傑和奇犽的體重各是幾公斤？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "小傑", hintNameSmall: "奇犽", unit: "公斤",
+                sol: { sumGiven: (l + s) * m1, sumMult: m1, diffGiven: (l - s) * m2, diffMult: m2, diffIsHalf: false }
+            });
+
+            // 6. 東豪和朗東 (Multiples)
+            l = Math.floor(Math.random() * 10) + 175;
+            s = Math.floor(Math.random() * 10) + 160;
+            m1 = Math.floor(Math.random() * 3) + 2;
+            m2 = Math.floor(Math.random() * 3) + 5;
+            qList.push({
+                type: 2, typeLabel: '倍數變化', ansType: 'double',
+                text: `已知東豪的身高比朗東高，而且兩個人身高和的 ${m1} 倍為 ${(l + s) * m1} 公分、身高差的 ${m2} 倍為 ${(l - s) * m2} 公分，請問東豪和朗東的身高各是幾公分？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "東豪", hintNameSmall: "朗東", unit: "公分",
+                sol: { sumGiven: (l + s) * m1, sumMult: m1, diffGiven: (l - s) * m2, diffMult: m2, diffIsHalf: false }
+            });
+
+            // 7. 麗安 (錯算:加成減)
+            l = Math.floor(Math.random() * 40) + 50;
+            s = Math.floor(Math.random() * 20) + 15;
+            qList.push({
+                type: 3, typeLabel: '錯算成減', ansType: 'double',
+                text: `麗安計算一題兩個數相加的數學題目，不小心算成了相減，所得到的答案為 ${l - s}，比正確答案少了 ${2 * s}。請問這個數學題目的兩個數字分別為多少？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "大數", hintNameSmall: "小數", unit: "",
+                sol: { wrongAns: l - s, diffAmount: 2 * s }
+            });
+
+            // 8. 明龍 (錯算:加成減)
+            l = Math.floor(Math.random() * 40) + 60;
+            s = Math.floor(Math.random() * 20) + 25;
+            qList.push({
+                type: 3, typeLabel: '錯算成減', ansType: 'double',
+                text: `明龍計算一題兩個數相加的數學題目，不小心算成了相減，所得到的答案為 ${l - s}，比正確答案少了 ${2 * s}。請問這個數學題目的兩個數字分別為多少？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "大數", hintNameSmall: "小數", unit: "",
+                sol: { wrongAns: l - s, diffAmount: 2 * s }
+            });
+
+            // 9. 以琳 (錯算:減成加)
+            l = Math.floor(Math.random() * 40) + 50;
+            s = Math.floor(Math.random() * 20) + 15;
+            qList.push({
+                type: 4, typeLabel: '錯算成加', ansType: 'double',
+                text: `以琳計算一題兩個數相減的數學題目，不小心算成了相加，所得到的答案為 ${l + s}，比正確答案多了 ${2 * s}。請問這個數學題目的兩個數字分別為多少？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "大數", hintNameSmall: "小數", unit: "",
+                sol: { wrongAns: l + s, diffAmount: 2 * s }
+            });
+
+            // 10. 翔宇 (錯算:減成加)
+            l = Math.floor(Math.random() * 40) + 60;
+            s = Math.floor(Math.random() * 20) + 25;
+            qList.push({
+                type: 4, typeLabel: '錯算成加', ansType: 'double',
+                text: `翔宇在作一題兩個數相減的數學題目，不小心算成了相加，所得到的答案為 ${l + s}，比正確答案多了 ${2 * s}。請問這個數學題目的兩個數字分別為多 少？`,
+                large: l, small: s, sum: l + s, diff: l - s, hintNameLarge: "大數", hintNameSmall: "小數", unit: "",
+                sol: { wrongAns: l + s, diffAmount: 2 * s }
+            });
+
+            // 11. 倍數年齡差 (父親與兒子)
+            let y11 = Math.floor(Math.random() * 8) + 3; // 3~10 年後
+            let c11 = Math.floor(Math.random() * 6) + 3; // 子 3~8 歲
+            let m11 = Math.floor(Math.random() * 3) + 3; // 3~5 倍
+            let cf11 = c11 + y11;
+            let pf11 = cf11 * m11;
+            let p11 = pf11 - y11;
+            qList.push({
+                type: 5, typeLabel: '倍數年齡差', ansType: 'single',
+                text: `父親今年 ${p11} 歲，兒子今年 ${c11} 歲。請問幾年後，父親的年齡會是兒子的 ${m11} 倍？`,
+                singleAns: y11, hintNameSingle: "幾年後", unit: "年",
+                sol: { p: p11, c: c11, m: m11, diff: p11 - c11, c_future: cf11 }
+            });
+
+            // 12. 倍數年齡差 (母親與女兒)
+            let y12 = Math.floor(Math.random() * 8) + 3;
+            let c12 = Math.floor(Math.random() * 6) + 4;
+            let m12 = Math.floor(Math.random() * 2) + 3; // 3~4 倍
+            let cf12 = c12 + y12;
+            let pf12 = cf12 * m12;
+            let p12 = pf12 - y12;
+            qList.push({
+                type: 5, typeLabel: '倍數年齡差', ansType: 'single',
+                text: `媽媽今年 ${p12} 歲，女兒今年 ${c12} 歲。請問幾年後，媽媽的年齡會是女兒的 ${m12} 倍？`,
+                singleAns: y12, hintNameSingle: "幾年後", unit: "年",
+                sol: { p: p12, c: c12, m: m12, diff: p12 - c12, c_future: cf12 }
+            });
+
+            // 13. 年齡和追趕 (媽媽與小孩)
+            let y13 = Math.floor(Math.random() * 10) + 3; // 3~12 年後
+            let c13_1 = Math.floor(Math.random() * 8) + 5; // 5~12 歲
+            let c13_2 = Math.floor(Math.random() * 8) + 3; // 3~10 歲
+            let sum_c13 = c13_1 + c13_2;
+            let p13 = sum_c13 + y13;
+            qList.push({
+                type: 6, typeLabel: '年齡和追趕', ansType: 'single',
+                text: `媽媽今年 ${p13} 歲，兩個小孩分別是 ${c13_1} 歲和 ${c13_2} 歲。幾年後，兩個小孩的年齡總和會等於媽媽的年齡？`,
+                singleAns: y13, hintNameSingle: "幾年後", unit: "年",
+                sol: { c1: c13_1, c2: c13_2, p: p13, diff: p13 - sum_c13 }
+            });
+
+            // 14. 年齡和追趕 (父親與小孩)
+            let y14 = Math.floor(Math.random() * 8) + 4;
+            let c14_1 = Math.floor(Math.random() * 6) + 6;
+            let c14_2 = Math.floor(Math.random() * 6) + 4;
+            let sum_c14 = c14_1 + c14_2;
+            let p14 = sum_c14 + y14;
+            qList.push({
+                type: 6, typeLabel: '年齡和追趕', ansType: 'single',
+                text: `父親今年 ${p14} 歲，兩個小孩分別是 ${c14_1} 歲和 ${c14_2} 歲。幾年後，兩個小孩的年齡總和會等於父親的年齡？`,
+                singleAns: y14, hintNameSingle: "幾年後", unit: "年",
+                sol: { c1: c14_1, c2: c14_2, p: p14, diff: p14 - sum_c14 }
+            });
+
+
+            // 隨機打亂題庫 (Fisher-Yates Shuffle)
+            for (let i = qList.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [qList[i], qList[j]] = [qList[j], qList[i]];
+            }
+            return qList;
+        };
+
+        // --- 第四關：終極和差問題挑戰 ---
+        const Level4 = () => {
+            const [questions, setQuestions] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [inputLarge, setInputLarge] = useState('');
+            const [inputSmall, setInputSmall] = useState('');
+            const [inputSingle, setInputSingle] = useState('');
+            const [status, setStatus] = useState('playing'); // playing, correct, wrong
+            const [showHint, setShowHint] = useState(false);
+            const [showSolution, setShowSolution] = useState(false);
+            const [equations, setEquations] = useState([{ id: Date.now(), text: '' }]);
+            const [isAllCompleted, setIsAllCompleted] = useState(false);
+
+            useEffect(() => {
+                setQuestions(generateL4Questions());
+            }, []);
+
+            if (questions.length === 0) return null;
+
+            const prob = questions[currentIndex];
+
+            const checkAnswer = () => {
+                if (prob.ansType === 'single') {
+                    if (!inputSingle) return;
+                    if (parseInt(inputSingle) === prob.singleAns) {
+                        setStatus('correct');
+                    } else {
+                        setStatus('wrong');
+                    }
+                } else {
+                    if (!inputLarge || !inputSmall) return;
+                    if (parseInt(inputLarge) === prob.large && parseInt(inputSmall) === prob.small) {
+                        setStatus('correct');
+                    } else {
+                        setStatus('wrong');
+                    }
+                }
+            };
+
+            const nextProblem = () => {
+                if (currentIndex < questions.length - 1) {
+                    setCurrentIndex(currentIndex + 1);
+                    setInputLarge('');
+                    setInputSmall('');
+                    setInputSingle('');
+                    setStatus('playing');
+                    setShowHint(false);
+                    setShowSolution(false);
+                    setEquations([{ id: Date.now(), text: '' }]);
+                } else {
+                    setIsAllCompleted(true);
+                }
+            };
+
+            const restartBank = () => {
+                setQuestions(generateL4Questions());
+                setCurrentIndex(0);
+                setIsAllCompleted(false);
+                setInputLarge('');
+                setInputSmall('');
+                setInputSingle('');
+                setStatus('playing');
+                setShowHint(false);
+                setShowSolution(false);
+                setEquations([{ id: Date.now(), text: '' }]);
+            };
+
+            // 產生詳解畫面
+            const renderSolution = (prob) => {
+                if (prob.type === 1) {
+                    return (
+                        <div className="space-y-4 text-slate-700 font-medium text-lg max-w-2xl mx-auto">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 1</span>確認和與差：</p>
+                                <p className="ml-10 text-slate-600">題目直接給定：和 = <span className="font-bold text-rose-500">{prob.sum}</span>，差 = <span className="font-bold text-rose-500">{prob.diff}</span>。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 2</span>求出大數：</p>
+                                <p className="ml-10 text-slate-600">大數 = (和 + 差) ÷ 2 = ({prob.sum} + {prob.diff}) ÷ 2 = <span className="font-bold text-rose-500">{prob.large}</span>。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 3</span>求出小數：</p>
+                                <p className="ml-10 text-slate-600">小數 = (和 - 差) ÷ 2 = ({prob.sum} - {prob.diff}) ÷ 2 = <span className="font-bold text-rose-500">{prob.small}</span>。</p>
+                            </div>
+                        </div>
+                    );
+                } else if (prob.type === 2) {
+                    return (
+                        <div className="space-y-4 text-slate-700 font-medium text-lg max-w-2xl mx-auto">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 1</span>還原真實的「和」：</p>
+                                <p className="ml-10 text-slate-600">和的 {prob.sol.sumMult} 倍為 {prob.sol.sumGiven}，所以真實的和 = {prob.sol.sumGiven} ÷ {prob.sol.sumMult} = <span className="font-bold text-rose-500">{prob.sum}</span>。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 2</span>還原真實的「差」：</p>
+                                <p className="ml-10 text-slate-600">
+                                    {prob.sol.diffIsHalf ? `差的一半為 ${prob.sol.diffGiven}，所以真實的差 = ${prob.sol.diffGiven} × 2 = ` : `差的 ${prob.sol.diffMult} 倍為 ${prob.sol.diffGiven}，所以真實的差 = ${prob.sol.diffGiven} ÷ ${prob.sol.diffMult} = `}
+                                    <span className="font-bold text-rose-500">{prob.diff}</span>。
+                                </p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 3</span>套用公式：</p>
+                                <p className="ml-10 text-slate-600">大數 = ({prob.sum} + {prob.diff}) ÷ 2 = <span className="font-bold text-rose-500">{prob.large}</span>。<br />
+                                    小數 = ({prob.sum} - {prob.diff}) ÷ 2 = <span className="font-bold text-rose-500">{prob.small}</span>。</p>
+                            </div>
+                        </div>
+                    );
+                } else if (prob.type === 3) {
+                    return (
+                        <div className="space-y-4 text-slate-700 font-medium text-lg max-w-2xl mx-auto">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 1</span>理解錯算的差距：</p>
+                                <p className="ml-10 text-slate-600">本來應該相加(大數+小數)，卻算成了相減(大數-小數)。一來一回，答案相差了 <span className="font-bold text-rose-500">2 個小數</span>。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 2</span>求出小數：</p>
+                                <p className="ml-10 text-slate-600">題目說比正確少了 {prob.sol.diffAmount}，代表 2 個小數 = {prob.sol.diffAmount}。<br />所以，小數 = {prob.sol.diffAmount} ÷ 2 = <span className="font-bold text-rose-500">{prob.small}</span>。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 3</span>推算大數：</p>
+                                <p className="ml-10 text-slate-600">算錯的答案是相減(大數 - 小數 = {prob.sol.wrongAns})。<br />所以，大數 = {prob.sol.wrongAns} + 小數({prob.small}) = <span className="font-bold text-rose-500">{prob.large}</span>。</p>
+                            </div>
+                        </div>
+                    );
+                } else if (prob.type === 4) {
+                    return (
+                        <div className="space-y-4 text-slate-700 font-medium text-lg max-w-2xl mx-auto">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 1</span>理解錯算的差距：</p>
+                                <p className="ml-10 text-slate-600">本來應該相減(大數-小數)，卻算成了相加(大數+小數)。一來一回，答案相差了 <span className="font-bold text-rose-500">2 個小數</span>。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 2</span>求出小數：</p>
+                                <p className="ml-10 text-slate-600">題目說比正確多了 {prob.sol.diffAmount}，代表 2 個小數 = {prob.sol.diffAmount}。<br />所以，小數 = {prob.sol.diffAmount} ÷ 2 = <span className="font-bold text-rose-500">{prob.small}</span>。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 3</span>推算大數：</p>
+                                <p className="ml-10 text-slate-600">算錯的答案是相加(大數 + 小數 = {prob.sol.wrongAns})。<br />所以，大數 = {prob.sol.wrongAns} - 小數({prob.small}) = <span className="font-bold text-rose-500">{prob.large}</span>。</p>
+                            </div>
+                        </div>
+                    );
+                } else if (prob.type === 5) {
+                    return (
+                        <div className="space-y-4 text-slate-700 font-medium text-lg max-w-2xl mx-auto">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 1</span>找出永遠不變的年齡差：</p>
+                                <p className="ml-10 text-slate-600">兩人現在的年齡差 = {prob.sol.p} - {prob.sol.c} = <span className="font-bold text-rose-500">{prob.sol.diff}</span> 歲。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 2</span>計算未來小孩的年齡：</p>
+                                <p className="ml-10 text-slate-600">當長輩是小孩的 {prob.sol.m} 倍時，長輩比小孩多出 {prob.sol.m} - 1 = {prob.sol.m - 1} 倍。<br />這 {prob.sol.m - 1} 倍就等於年齡差的 {prob.sol.diff} 歲，所以小孩未來的年齡 = {prob.sol.diff} ÷ {prob.sol.m - 1} = <span className="font-bold text-rose-500">{prob.sol.c_future}</span> 歲。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 3</span>計算經過的年數：</p>
+                                <p className="ml-10 text-slate-600">小孩從現在的 {prob.sol.c} 歲變成 {prob.sol.c_future} 歲，需要經過 {prob.sol.c_future} - {prob.sol.c} = <span className="font-bold text-rose-500">{prob.singleAns}</span> 年。</p>
+                            </div>
+                        </div>
+                    );
+                } else if (prob.type === 6) {
+                    return (
+                        <div className="space-y-4 text-slate-700 font-medium text-lg max-w-2xl mx-auto">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 1</span>找出目前的年齡差距：</p>
+                                <p className="ml-10 text-slate-600">目前的差距 = 長輩年齡 - 兩個小孩的年齡和 = {prob.sol.p} - ({prob.sol.c1} + {prob.sol.c2}) = <span className="font-bold text-rose-500">{prob.sol.diff}</span> 歲。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 2</span>比較每年的成長速度：</p>
+                                <p className="ml-10 text-slate-600">長輩每年長 1 歲，兩個小孩每年共長 2 歲。因此，每年小孩會追上 2 - 1 = <span className="font-bold text-rose-500">1</span> 歲。</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 3</span>計算追上的年數：</p>
+                                <p className="ml-10 text-slate-600">要追平 {prob.sol.diff} 歲的差距，因為每年追上 1 歲，所以需要 {prob.sol.diff} ÷ 1 = <span className="font-bold text-rose-500">{prob.singleAns}</span> 年。</p>
+                            </div>
+                        </div>
+                    );
+                }
+            };
+
+            // 如果全部通關，顯示解鎖畫面
+            if (isAllCompleted) {
+                return (
+                    <div className="bg-white p-8 md:p-12 rounded-3xl shadow-2xl border-2 border-rose-300 relative overflow-hidden animate-fade-in text-center flex flex-col items-center justify-center min-h-[500px]">
+                        <Award className="w-24 h-24 text-rose-500 mb-6 animate-bounce" />
+                        <h2 className="text-3xl md:text-4xl font-extrabold text-rose-800 mb-4">太神了！終極題庫全數通關！</h2>
+                        <p className="text-slate-600 text-lg md:text-xl mb-10 max-w-lg">
+                            恭喜你！你已經完全掌握了各種變化的和差問題，不論是倍數陷阱還是錯算挑戰，都難不倒身為解密大師的你了！
+                        </p>
+                        <button onClick={restartBank} className="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold py-4 px-10 rounded-full shadow-xl flex items-center transition-transform hover:scale-105 text-lg">
+                            <RefreshCw className="w-6 h-6 mr-3" /> 重新生成題庫挑戰
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl border-2 border-rose-200 relative overflow-hidden animate-fade-in">
+
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-6 relative z-10 w-full border-b border-rose-100 pb-4">
+                        <h2 className="text-2xl font-bold text-rose-800 flex items-center m-0">
+                            <span className="bg-rose-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">🏆</span>
+                            第四關：和差問題綜合題庫
+                        </h2>
+                        <span className="bg-rose-100 text-rose-800 px-4 py-1.5 rounded-full text-sm md:text-base font-bold shadow-sm border border-rose-200">
+                            進度：{currentIndex + 1} / {questions.length}
+                        </span>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-rose-50 to-pink-50 p-6 rounded-2xl border border-rose-100 mb-8 shadow-inner relative z-10 flex flex-col items-center">
+                        <div className="mb-4">
+                            <span className="inline-block bg-rose-500 text-white px-4 py-1.5 rounded-full text-sm md:text-base font-bold shadow-sm tracking-wide">
+                                題型：{prob.typeLabel}
+                            </span>
+                        </div>
+                        <p className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed text-center max-w-2xl">{prob.text}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-8 mb-8 relative z-10 w-full">
+                        {/* 和差問題提示與公式 */}
+                        {showHint && (
+                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 shadow-sm animate-fade-in">
+                                <h4 className="text-center font-bold text-slate-500 mb-6">💡 解題秘訣</h4>
+                                {(prob.type <= 4) && (
+                                    <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
+                                        <div className="bg-white border-2 border-rose-200 p-4 rounded-2xl shadow-sm text-center">
+                                            <div className="text-rose-600 font-bold mb-2">📌 核心公式</div>
+                                            <div className="text-lg font-bold text-slate-700">大數 = ( 和 + 差 ) ÷ 2</div>
+                                            <div className="text-lg font-bold text-slate-700 mt-2">小數 = ( 和 - 差 ) ÷ 2</div>
+                                        </div>
+                                        <div className="text-slate-500 font-medium max-w-xs text-sm md:text-base">
+                                            <span className="font-bold text-slate-700">注意：</span>如果題目給的是倍數，或者因為算錯而給了錯誤的答案，請先推敲出<span className="text-rose-500 font-bold">真實的「和」與「差」</span>，再套用公式喔！
+                                        </div>
+                                    </div>
+                                )}
+                                {(prob.type === 5) && (
+                                    <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
+                                        <div className="text-slate-500 font-medium max-w-sm text-center text-sm md:text-base leading-relaxed">
+                                            <span className="font-bold text-slate-700 text-lg">恆定定律：</span>兩人之間的<span className="text-rose-500 font-bold">年齡差永遠不會改變</span>。試著先算出現在的年齡差，再思考未來長輩是小孩幾倍時，多出來的倍數代表什麼？
+                                        </div>
+                                    </div>
+                                )}
+                                {(prob.type === 6) && (
+                                    <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
+                                        <div className="text-slate-500 font-medium max-w-sm text-center text-sm md:text-base leading-relaxed">
+                                            <span className="font-bold text-slate-700 text-lg">追趕效應：</span>長輩每年只會長 1 歲，但兩個小孩每年<span className="text-rose-500 font-bold">總共會長 2 歲</span>。只要算出現在的差距，就知道需要幾年才能追上囉！
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* 專家詳解 */}
+                        {showSolution && (
+                            <div className="bg-emerald-50 p-6 md:p-8 rounded-3xl border border-emerald-200 shadow-sm animate-fade-in">
+                                <h4 className="text-center font-bold text-emerald-700 mb-6 flex items-center justify-center text-xl">
+                                    <BookOpen className="w-6 h-6 mr-2" /> 專家級完整詳解
+                                </h4>
+                                {renderSolution(prob)}
+                            </div>
+                        )}
+
+                        <Scratchpad equations={equations} setEquations={setEquations} />
+
+                        {/* 作答區 */}
+                        <div className="w-full flex flex-col gap-6">
+                            <div className="bg-white p-6 rounded-3xl border-2 border-rose-200 shadow-sm flex flex-col items-center">
+                                <label className="text-lg font-bold text-slate-700 mb-6">請輸入計算結果</label>
+
+                                {/* 根據題型自動切換單輸入或雙輸入 */}
+                                {prob.ansType === 'single' ? (
+                                    <div className="flex items-center justify-center gap-3 w-full max-w-sm mx-auto">
+                                        <span className="text-lg font-bold text-slate-600 w-20 text-right whitespace-nowrap">{prob.hintNameSingle}</span>
+                                        <input type="number" value={inputSingle} onChange={e => { setInputSingle(e.target.value); if (status === 'wrong') setStatus('playing'); }}
+                                            className="w-full text-center text-2xl p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-50 transition-all bg-slate-50"
+                                            placeholder="?" disabled={status === 'correct'} onKeyDown={e => e.key === 'Enter' && checkAnswer()} />
+                                        <span className="text-lg text-slate-500 font-bold w-12">{prob.unit}</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col md:flex-row items-center justify-center gap-6 w-full max-w-lg">
+                                        <div className="flex items-center gap-3 w-full">
+                                            <span className="text-lg font-bold text-slate-600 w-16 text-right whitespace-nowrap">{prob.hintNameLarge}</span>
+                                            <input type="number" value={inputLarge} onChange={e => { setInputLarge(e.target.value); if (status === 'wrong') setStatus('playing'); }}
+                                                className="w-full text-center text-2xl p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-50 transition-all bg-slate-50"
+                                                placeholder="?" disabled={status === 'correct'} onKeyDown={e => e.key === 'Enter' && checkAnswer()} />
+                                            <span className="text-lg text-slate-500 font-bold w-12">{prob.unit}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 w-full">
+                                            <span className="text-lg font-bold text-slate-600 w-16 text-right whitespace-nowrap">{prob.hintNameSmall}</span>
+                                            <input type="number" value={inputSmall} onChange={e => { setInputSmall(e.target.value); if (status === 'wrong') setStatus('playing'); }}
+                                                className="w-full text-center text-2xl p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-50 transition-all bg-slate-50"
+                                                placeholder="?" disabled={status === 'correct'} onKeyDown={e => e.key === 'Enter' && checkAnswer()} />
+                                            <span className="text-lg text-slate-500 font-bold w-12">{prob.unit}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+
+                            {status !== 'correct' && (
+                                <div className="flex flex-col sm:flex-row gap-3 mt-2 justify-center flex-wrap">
+                                    <button onClick={checkAnswer} className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 px-10 rounded-xl text-lg shadow-md flex justify-center items-center transition-transform hover:-translate-y-1">
+                                        <CheckCircle className="w-5 h-5 mr-2" /> 提交答案
+                                    </button>
+                                    {!showHint && (
+                                        <button onClick={() => setShowHint(true)} className="bg-white border-2 border-slate-200 hover:bg-slate-50 text-slate-600 font-bold py-4 px-8 rounded-xl text-lg flex justify-center items-center transition-colors">
+                                            <Lightbulb className="w-5 h-5 mr-2 text-amber-500 fill-amber-400" /> 顯示解題秘訣
+                                        </button>
+                                    )}
+                                    {showHint && !showSolution && (
+                                        <button onClick={() => setShowSolution(true)} className="bg-emerald-50 border-2 border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-bold py-4 px-6 rounded-xl text-lg flex justify-center items-center transition-colors animate-fade-in">
+                                            <BookOpen className="w-5 h-5 mr-2 text-emerald-600" /> 觀看詳解
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            {status === 'wrong' && <div className="mt-2 text-center text-rose-600 font-bold animate-pulse bg-rose-50 py-3 rounded-xl border border-rose-100">❌ 答案似乎有些不對，善用數位計算紙推演看看。</div>}
+                        </div>
+                    </div>
+
+                    {status === 'correct' && (
+                        <div className="mt-4 text-center animate-fade-in bg-gradient-to-r from-rose-50 to-orange-50 p-6 rounded-3xl border border-rose-200 shadow-sm relative z-10">
+                            <div className="text-rose-600 text-2xl font-bold mb-6 flex justify-center items-center">🎉 解題精準！這題對您來說輕而易舉。</div>
+                            <button onClick={nextProblem} className="bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white font-bold py-3 px-10 rounded-full text-lg shadow-lg flex items-center mx-auto transition-transform hover:scale-105">
+                                {currentIndex < questions.length - 1 ? "下一題挑戰" : "觀看通關結果"}
+                                <ArrowRight className="w-5 h-5 ml-2" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 第五關：時空魔王挑戰 (含詳解) ---
+        const Level5 = () => {
+            const generateProblem = () => {
+                const past = Math.floor(Math.random() * 6) + 3; // 3 ~ 8
+                const gap = Math.floor(Math.random() * 8) + 4; // 4 ~ 11 
+                const future = past + 3 * gap;
+
+                return {
+                    past, future, gap,
+                    olderNow: past + 2 * gap,
+                    youngerNow: past + gap,
+                    desc: `哥哥對弟弟說：「當我像你現在這麼大時，你才 ${past} 歲；當你長到像我現在這麼大時，我已經 ${future} 歲了。」請問哥哥現在幾歲？`
+                };
+            };
+
+            const [prob, setProb] = useState(generateProblem());
+            const [inputAns, setInputAns] = useState('');
+            const [status, setStatus] = useState('playing'); // playing, correct, wrong
+            const [showHint, setShowHint] = useState(false);
+            const [showSolution, setShowSolution] = useState(false);
+            const [equations, setEquations] = useState([{ id: Date.now(), text: '' }]);
+
+            const checkAnswer = () => {
+                if (!inputAns) return;
+                if (parseInt(inputAns) === prob.olderNow) {
+                    setStatus('correct');
+                } else {
+                    setStatus('wrong');
+                }
+            };
+
+            const nextProblem = () => {
+                setProb(generateProblem());
+                setInputAns('');
+                setStatus('playing');
+                setShowHint(false);
+                setShowSolution(false);
+                setEquations([{ id: Date.now(), text: '' }]);
+            };
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl border-2 border-purple-200 relative overflow-hidden animate-fade-in">
+                    <h2 className="text-2xl font-bold text-purple-800 mb-6 flex items-center relative z-10">
+                        <span className="bg-purple-100 p-2 rounded-xl mr-3 shadow-sm text-2xl">🌌</span>
+                        時空魔王挑戰：終極年齡差
+                    </h2>
+
+                    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-2xl border border-purple-100 mb-8 shadow-inner relative z-10">
+                        <p className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed text-center">{prob.desc}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-8 mb-8 relative z-10 w-full">
+                        {/* 互動線段圖提示 */}
+                        {showHint && (
+                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 shadow-sm animate-fade-in overflow-x-auto">
+                                <h4 className="text-center font-bold text-slate-500 mb-8">💡 線段圖輔助思考模型</h4>
+                                <div className="relative flex items-center justify-between mt-4 mb-4 min-w-[500px] max-w-2xl mx-auto px-4">
+                                    <div className="absolute top-1/2 left-4 right-4 h-1.5 bg-purple-200 -translate-y-1/2 z-0"></div>
+
+                                    <div className="z-10 flex flex-col items-center">
+                                        <div className="w-5 h-5 bg-white border-4 border-purple-500 rounded-full mb-3 shadow-sm"></div>
+                                        <span className="text-sm font-bold bg-purple-100 text-purple-800 px-3 py-1 rounded-full shadow-sm">弟昔({prob.past}歲)</span>
+                                    </div>
+
+                                    <div className="z-10 flex flex-col items-center">
+                                        <span className="text-xs font-bold text-purple-400 mb-2 whitespace-nowrap">間隔1(年齡差)</span>
+                                        <div className="w-5 h-5 bg-white border-4 border-purple-400 rounded-full mb-3"></div>
+                                        <span className="text-sm font-bold bg-white border border-slate-200 text-slate-600 px-3 py-1 rounded-full">弟現(哥昔)</span>
+                                    </div>
+
+                                    <div className="z-10 flex flex-col items-center">
+                                        <span className="text-xs font-bold text-purple-400 mb-2 whitespace-nowrap">間隔2(年齡差)</span>
+                                        <div className="w-5 h-5 bg-white border-4 border-purple-400 rounded-full mb-3"></div>
+                                        <span className="text-sm font-bold bg-white border border-slate-200 text-slate-600 px-3 py-1 rounded-full">哥現(弟將)</span>
+                                    </div>
+
+                                    <div className="z-10 flex flex-col items-center">
+                                        <span className="text-xs font-bold text-purple-400 mb-2 whitespace-nowrap">間隔3(年齡差)</span>
+                                        <div className="w-5 h-5 bg-white border-4 border-purple-500 rounded-full mb-3 shadow-sm"></div>
+                                        <span className="text-sm font-bold bg-purple-100 text-purple-800 px-3 py-1 rounded-full shadow-sm">哥將({prob.future}歲)</span>
+                                    </div>
+                                </div>
+                                <p className="text-center text-slate-600 font-bold mt-6 text-lg">
+                                    總差距 ({prob.future} - {prob.past}) = 3 個間隔。<br />算出 1 個間隔(年齡差)後，就能推算「哥現」了！
+                                </p>
+                            </div>
+                        )}
+
+                        {/* 完整解題推演 (詳解) */}
+                        {showSolution && (
+                            <div className="bg-emerald-50 p-6 md:p-8 rounded-3xl border border-emerald-200 shadow-sm animate-fade-in">
+                                <h4 className="text-center font-bold text-emerald-700 mb-6 flex items-center justify-center text-xl">
+                                    <BookOpen className="w-6 h-6 mr-2" /> 專家級完整詳解
+                                </h4>
+                                <div className="space-y-4 text-slate-700 font-medium text-lg max-w-2xl mx-auto">
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                        <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 1</span>計算跨越的總年齡跨度：</p>
+                                        <p className="ml-10 text-slate-600">從「弟弟過去({prob.past}歲)」到「哥哥未來({prob.future}歲)」，總共經過了 <span className="font-bold text-rose-500">{prob.future} - {prob.past} = {prob.future - prob.past} 歲</span>。</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                        <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 2</span>找出單一間隔（兩人的年齡差）：</p>
+                                        <p className="ml-10 text-slate-600">觀察上方線段圖，這段跨度剛好包含了 <span className="font-bold text-purple-600">3 個相等的年齡差</span>。所以他們的年齡差是 <span className="font-bold text-rose-500">{prob.future - prob.past} ÷ 3 = {prob.gap} 歲</span>。</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                        <p className="mb-2"><span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-1 rounded mr-2">步驟 3</span>推算哥哥現在的年紀：</p>
+                                        <p className="ml-10 text-slate-600">線段圖上，「弟弟過去」加上 <span className="font-bold text-purple-600">2 個間隔(年齡差)</span> 就會剛好到達「哥哥現在」。因此哥哥現在是 <span className="font-bold text-rose-500">{prob.past} + ({prob.gap} × 2) = {prob.olderNow} 歲</span>。</p>
+                                    </div>
+                                    <div className="mt-6 p-4 bg-emerald-600 rounded-xl shadow-md text-center text-white font-bold text-xl tracking-wide">
+                                        正確解答：哥哥現在 {prob.olderNow} 歲
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <Scratchpad equations={equations} setEquations={setEquations} />
+
+                        {/* 作答區 */}
+                        <div className="w-full flex flex-col gap-4">
+                            <div className="bg-white p-6 rounded-3xl border-2 border-purple-200 shadow-sm flex flex-col items-center">
+                                <label className="text-lg font-bold text-slate-700 mb-4">輸入「哥哥現在」的年齡</label>
+                                <div className="flex items-center gap-3 w-full max-w-sm">
+                                    <input type="number" value={inputAns} onChange={e => { setInputAns(e.target.value); if (status === 'wrong') setStatus('playing'); }}
+                                        className="w-full text-center text-3xl p-4 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-50 transition-all bg-slate-50"
+                                        placeholder="?" disabled={status === 'correct'} onKeyDown={e => e.key === 'Enter' && checkAnswer()} />
+                                    <span className="text-xl text-slate-500 font-bold whitespace-nowrap">歲</span>
+                                </div>
+                            </div>
+
+                            {status !== 'correct' && (
+                                <div className="flex flex-col sm:flex-row gap-3 mt-4 justify-center flex-wrap">
+                                    <button onClick={checkAnswer} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-xl text-lg shadow-md flex justify-center items-center transition-transform hover:-translate-y-1">
+                                        <CheckCircle className="w-5 h-5 mr-2" /> 提交答案
+                                    </button>
+                                    {!showHint && (
+                                        <button onClick={() => setShowHint(true)} className="bg-white border-2 border-slate-200 hover:bg-slate-50 text-slate-600 font-bold py-4 px-6 rounded-xl text-lg flex justify-center items-center transition-colors">
+                                            <Lightbulb className="w-5 h-5 mr-2 text-amber-500 fill-amber-400" /> 顯示線段圖
+                                        </button>
+                                    )}
+                                    {showHint && !showSolution && (
+                                        <button onClick={() => setShowSolution(true)} className="bg-emerald-50 border-2 border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-bold py-4 px-6 rounded-xl text-lg flex justify-center items-center transition-colors animate-fade-in">
+                                            <BookOpen className="w-5 h-5 mr-2 text-emerald-600" /> 觀看詳解
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            {status === 'wrong' && <div className="mt-2 text-center text-rose-600 font-bold animate-pulse bg-rose-50 py-3 rounded-xl border border-rose-100">❌ 答案有誤喔！請參考線段圖或觀看詳解。</div>}
+                        </div>
+                    </div>
+
+                    {status === 'correct' && (
+                        <div className="mt-4 text-center animate-fade-in bg-gradient-to-r from-purple-50 to-indigo-50 p-6 rounded-3xl border border-purple-200 shadow-sm relative z-10">
+                            <div className="text-purple-700 text-2xl font-bold mb-6 flex justify-center items-center">🎉 太神了！你成功破解了最高階的時空魔王題！</div>
+                            <button onClick={nextProblem} className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold py-3 px-10 rounded-full text-lg shadow-lg flex items-center mx-auto transition-transform hover:scale-105">
+                                再挑戰一題
+                                <RefreshCw className="w-5 h-5 ml-2" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 主應用程式 ---
+        const App = () => {
+            const [currentTab, setCurrentTab] = useState(1);
+
+            useEffect(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, [currentTab]);
+
+            return (
+                <div className="min-h-screen font-sans text-slate-800 py-8 px-4">
+                    <div className="max-w-4xl mx-auto">
+                        <header className="text-center mb-10">
+                            <div className="inline-flex items-center justify-center p-4 bg-white rounded-full shadow-sm mb-4">
+                                <Brain className="w-10 h-10 text-indigo-600" />
+                            </div>
+                            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-800 mb-4 tracking-tight drop-shadow-sm">
+                                年齡差解密大師
+                            </h1>
+                            <p className="text-lg text-slate-500 font-medium">從視覺實驗到邏輯推演，徹底征服和差問題！</p>
+                        </header>
+
+                        <nav className="flex justify-center mb-10 sticky top-4 z-50">
+                            <div className="flex bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-slate-200 p-1.5 flex-wrap justify-center overflow-hidden">
+                                {[
+                                    { id: 1, label: 'L1: 恆定定律', color: 'indigo' },
+                                    { id: 2, label: 'L2: 倍數尋寶', color: 'teal' },
+                                    { id: 3, label: 'L3: 追趕遊戲', color: 'orange' },
+                                    { id: 4, label: 'L4: 終極題庫', color: 'rose' },
+                                    { id: 5, label: '👑 時空魔王', color: 'purple' }
+                                ].map((tab) => {
+                                    const isActive = currentTab === tab.id;
+                                    return (
+                                        <button key={tab.id} onClick={() => setCurrentTab(tab.id)}
+                                            className={`px-4 sm:px-6 py-2.5 rounded-full font-bold text-sm sm:text-base transition-all duration-300 m-0.5 ${isActive ? `bg-${tab.color}-600 text-white shadow-md transform scale-105` : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
+                                            {tab.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </nav>
+
+                        <main className="min-h-[600px] transition-all">
+                            {currentTab === 1 && <Level1 onComplete={() => setCurrentTab(2)} />}
+                            {currentTab === 2 && <Level2 onComplete={() => setCurrentTab(3)} />}
+                            {currentTab === 3 && <Level3 onComplete={() => setCurrentTab(4)} />}
+                            {currentTab === 4 && <Level4 />}
+                            {currentTab === 5 && <Level5 />}
+                        </main>
+
+                        <footer className="text-center mt-16 text-slate-400 text-sm font-medium pb-8 flex flex-col items-center">
+                            <div className="w-16 h-1 bg-slate-200 rounded-full mb-4"></div>
+                            <p><a href="https://jrh2025.github.io/ElementaryMathLab/">國小數學互動教學實驗室</a></p>
+                        </footer>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

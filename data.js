@@ -173,5 +173,14 @@ window.MATH_TOOLS_DATA = [
     "link": "planting_tree.html",
     "icon": "Trees",
     "color": "sky"
+  },
+  {
+    "id": "tool_1774402810804",
+    "title": "年齡差解密大師",
+    "grade": "六年級",
+    "description": "「年齡差解密大師」是一款基於建構式數學原理與高階認知訓練模型所開發的單頁式網頁應用程式 (SPA)。本系統旨在透過互動式的視覺化元件（如時光滑桿、積木模型、動態進度條、線段圖），協助學習者從具象操作過渡到抽象邏輯推演，徹底掌握數學領域中經典的「和差問題」與「年齡問題」。\n系統具備五個漸進式難度關卡（L1 至 L5），並內建隨機演算法生成題庫與逐步詳解機制，確保學習者能夠進行無重複的刻意練習。",
+    "link": "age_difference.html",
+    "icon": "MessageSquareCode",
+    "color": "green"
   }
 ];
