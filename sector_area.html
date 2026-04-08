@@ -427,7 +427,7 @@
                             <p className="font-bold mb-1">【解析步驟】</p>
                             <ul className="list-disc list-inside space-y-1">
                                 <li>4 個直徑 10 的半圓，剛好等於 <strong className="text-emerald-600">2 個完整圓</strong>！</li>
-                                <li>兩個完整圓面積和：<code className="bg-white px-1 rounded">(5×5×3.14) × 2 = 157</code></li>
+                                <li>兩個完整圓面積和：<code className="bg-white px-1 rounded">(<li>兩側剩下的「60°弓形」：<code className="bg-white px-1 rounded text-xs md:text-sm">60°扇形 - 正三角形 ≈ 52.3 - 43.3 = 9</code></li>) × 2 = 157</code></li>
                                 <li>多出來的重疊面積：<code className="bg-white px-1 rounded font-bold text-emerald-600">157 - 100 = 57 cm²</code>。</li>
                             </ul>
                         </div>
@@ -437,12 +437,14 @@
                             <h4 className="font-bold text-purple-800 mb-2">📝 實戰解說：外擴四角星 (資優題)</h4>
                             <p className="mb-2"><strong>題目：</strong>正方形邊長 10，以四個頂點為圓心，半徑 10 畫出 4 個 1/4 圓。求最中央的四芒星面積？</p>
                             <hr className="border-purple-200 my-2" />
-                            <p className="font-bold mb-1">【解析步驟：構造正三角形】</p>
+                            <p className="font-bold mb-1">【解析步驟：1️⃣構造正三角形 2️⃣60°弓形 3️⃣30°扇形 4️⃣四芒星面積】</p>
                             <ul className="list-disc list-inside space-y-1">
                                 <li>將下方兩個頂點與圖形上方交點相連，會形成一個<strong className="text-purple-600">邊長為 10 的正三角形</strong>。</li>
                                 <li>正三角形面積：<code className="bg-white px-1 rounded text-xs md:text-sm">10² × √3/4 = 25√3 ≈ 43.3</code></li>
-                                <li>兩側剩下的「60°弓形」：<code className="bg-white px-1 rounded text-xs md:text-sm">60°扇形 - 正三角形 ≈ 52.3 - 43.3 = 9</code></li>
-                                <li>代入數值 (π=3.14, √3=1.732)：<br /><span className="text-purple-700 font-bold">100 × (1 + 1.047 - 1.732) = 31.5 cm²</span>。</li>
+                                <li>兩側剩下的「60°弓形」：<code className="bg-white px-1 rounded text-xs md:text-sm">60°扇形 - 正三角形 ≈ 52.36 - 43.3 = 9.06</code></li>
+                                <li>30°扇形面積：<code className="bg-white px-1 rounded text-xs md:text-sm">10² × 3.14 × (30/360) ≈ 26.18</code></li>
+                                <li>四芒星面積 = 正方形面積- 4 × (30° 扇形 - 60° 弓形)<code className="bg-white px-1 rounded text-xs md:text-sm">10² -4 × (26.18 - 9.06) = 31.52</code></li>
+
                             </ul>
                         </div>
                     )}
@@ -494,6 +496,7 @@
                                 <div className="mt-3 text-blue-300 font-bold flex flex-col items-end animate-fade-in border-t border-slate-700 pt-3">
                                     <span className="text-xs text-blue-200 mb-1">目標面積 = 30° 扇形 - 60° 弓形</span>
                                     <span className="text-lg">25√3 - <Fraction top="25" bottom="3" /><span className="font-serif italic">π</span></span>
+                                    <span className="text-lg">約 17.12</span>
                                 </div>
                             )}
                         </div>
@@ -536,7 +539,7 @@
                         <button onClick={() => setStep(2)} className={`px-3 py-2 rounded-lg font-bold text-sm transition-all ${step >= 2 ? 'bg-red-400 text-red-900 shadow-md' : 'bg-gray-200 text-gray-500'}`}>2. 找弓形</button>
                         <button onClick={() => setStep(3)} className={`px-3 py-2 rounded-lg font-bold text-sm transition-all ${step >= 3 ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-500'}`}>3. 相減結果</button>
                     </div>
-                </div>
+                </div >
             );
         }
 
