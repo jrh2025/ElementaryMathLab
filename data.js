@@ -191,5 +191,14 @@ window.MATH_TOOLS_DATA = [
     "link": "pi.html",
     "icon": "Circle",
     "color": "blue"
+  },
+  {
+    "id": "tool_1775612939929",
+    "title": "扇形面積魔法閣",
+    "grade": "六年級",
+    "description": "提供國小高年級學生一個互動式、視覺化的數學學習環境。透過動態圖形（SVG）、可拖曳的互動滑桿，幫助學生具象化地理解「扇形面積」、「弧長轉換」以及各種「複合圖形（變形題型）」的解題邏輯（拆、減、補），並提供動態生成的測驗與數位計算紙來驗證學習成果。",
+    "link": "sector_area.html",
+    "icon": "CircleGauge",
+    "color": "blue"
   }
 ];
