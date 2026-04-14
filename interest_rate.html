@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>利息與複利的奧秘</title>
+    <!-- 引入 React 與 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel 用於瀏覽器端編譯 JSX -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* 自定義動畫設定 */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        .zoom-in {
+            animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .slide-in-from-bottom {
+            animation: slideInBottom 0.5s ease-out forwards;
+        }
+
+        /* 數值變化平滑過渡 */
+        .bar-transition {
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 font-sans selection:bg-blue-200 text-gray-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect, Fragment, useRef } = React;
+
+        // --- SVG 圖示元件 (確保單檔運行無依賴問題) ---
+        const Icon = ({ path, className = "w-6 h-6", fill = "none" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
+        );
+
+        const Icons = {
+            PiggyBank: (p) => <Icon {...p} path={<><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.5-1 2-1.5L19 5z" /><path d="M2 9v1c0 1.1.9 2 2 2h1" /><path d="M16 11h.01" /></>} />,
+            TrendingUp: (p) => <Icon {...p} path={<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></>} />,
+            AlertCircle: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>} />,
+            CheckCircle2: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></>} />,
+            ChevronRight: (p) => <Icon {...p} path={<polyline points="9 18 15 12 9 6" />} />,
+            ChevronLeft: (p) => <Icon {...p} path={<polyline points="15 18 9 12 15 6" />} />,
+            Coins: (p) => <Icon {...p} path={<><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7.71-2.82 2.82" /></>} />,
+            Calculator: (p) => <Icon {...p} path={<><rect x="4" y="2" width="16" height="20" rx="2" ry="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></>} />,
+            Star: (p) => <Icon {...p} path={<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />} fill="currentColor" />,
+            Calendar: (p) => <Icon {...p} path={<><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>} />,
+            BookOpen: (p) => <Icon {...p} path={<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></>} />,
+            Terminal: (p) => <Icon {...p} path={<><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></>} />
+        };
+
+        // --- 數位計算紙模組 (Scratchpad) ---
+        const Scratchpad = () => {
+            const [history, setHistory] = useState([]);
+            const [input, setInput] = useState('');
+            const endRef = useRef(null);
+
+            // 自動滾動到底部
+            useEffect(() => {
+                endRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [history]);
+
+            // 算式解析與安全執行引擎
+            const evaluateMath = (expr) => {
+                if (!expr.trim()) return "Error";
+                // 安全檢查：僅允許數字、基本運算符、括號、空格、次方(^)、百分比(%)及乘除替代符號
+                if (/[^0-9+\-*/().\s\^%xX×÷]/.test(expr)) {
+                    return "Error";
+                }
+                try {
+                    // 符號轉譯
+                    let parsed = expr
+                        .replace(/[xX×]/g, '*')
+                        .replace(/÷/g, '/')
+                        .replace(/%/g, '/100')
+                        .replace(/\^/g, '**');
+
+                    // 執行運算
+                    const result = new Function(`return ${parsed}`)();
+
+                    if (typeof result !== 'number' || !isFinite(result)) throw new Error("Invalid");
+                    // 限制小數點位數避免浮點數誤差
+                    return Math.round(result * 10000) / 10000;
+                } catch (err) {
+                    return "Error";
+                }
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter' && input.trim()) {
+                    const result = evaluateMath(input);
+                    setHistory(prev => [...prev, {
+                        id: Date.now(),
+                        expr: input,
+                        result: result,
+                        isError: result === "Error"
+                    }]);
+                    setInput('');
+                }
+            };
+
+            const deleteLine = (id) => setHistory(prev => prev.filter(item => item.id !== id));
+            const clearBuffer = () => setHistory([]);
+
+            return (
+                <div className="bg-gray-900 rounded-2xl shadow-xl flex flex-col h-[400px] lg:h-[550px] border border-gray-700 font-mono text-sm overflow-hidden">
+                    <div className="bg-gray-800 px-4 py-3 flex justify-between items-center border-b border-gray-700">
+                        <span className="text-gray-100 font-bold flex items-center">
+                            <Icons.Terminal className="w-4 h-4 mr-2" />
+                            數位計算紙 (Scratchpad)
+                        </span>
+                        <button onClick={clearBuffer} className="text-xs bg-red-500/20 hover:bg-red-500/40 text-red-300 px-2 py-1 rounded transition border border-red-500/30">
+                            清空緩衝區
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        <div className="text-gray-500 text-xs mb-4">
+                            // 支援符號: +, -, *, /, ^ (次方), %<br />
+                            // 範例: 10000 * (1 + 5%) ^ 2
+                        </div>
+                        {history.map((item) => (
+                            <div key={item.id} className="group flex justify-between items-start">
+                                <div className="flex-1 pr-2">
+                                    <div className="text-gray-400 select-all">&gt; {item.expr}</div>
+                                    <div className={item.isError ? "text-red-400" : "text-green-400 font-bold select-all"}>
+                                        {item.isError ? "語法錯誤" : `= ${item.result.toLocaleString()}`}
+                                    </div>
+                                </div>
+                                <button onClick={() => deleteLine(item.id)} className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition px-2 py-1 flex-shrink-0">
+                                    ✕
+                                </button>
+                            </div>
+                        ))}
+                        <div ref={endRef} />
+                    </div>
+                    <div className="bg-gray-800 p-3 flex items-center border-t border-gray-700">
+                        <span className="text-green-500 mr-3 font-bold">&gt;</span>
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            className="flex-1 bg-transparent text-white outline-none placeholder-gray-500 font-bold text-base"
+                            placeholder="輸入算式..."
+                            autoComplete="off"
+                            spellCheck="false"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 核心教學模組 ---
+
+        // --- 第 1 關：基本觀念 ---
+        const ConceptIntro = ({ nextStep }) => {
+            const [revealed, setRevealed] = useState({});
+
+            const terms = [
+                {
+                    id: 'principal', title: '本金 (Principal)', icon: <Icons.PiggyBank className="w-8 h-8 text-blue-500" />, desc: (
+                        <div className="space-y-2 text-sm text-gray-600 mt-2">
+                            <p>你存入銀行或借給別人的<strong className="text-blue-600">原始金額</strong>。</p>
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-start">
+                                <span className="text-xl mr-2">🌱</span>
+                                <p className="text-blue-800">就像是你種下的第一顆種子。種子越大（本金越多），未來長出的果實就越多！</p>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    id: 'rate', title: '利率 (Interest Rate)', icon: <Icons.TrendingUp className="w-8 h-8 text-green-500" />, desc: (
+                        <div className="space-y-3 text-sm text-gray-600 mt-2">
+                            <p>代表錢成長的「速度」。通常會用百分比（%）來表示。</p>
+                            <div className="bg-green-50 p-3 rounded-lg border border-green-200 shadow-sm">
+                                <p className="font-bold text-green-800 mb-2 border-b border-green-200 pb-1">🕒 常見的利率單位（考試常考！）：</p>
+                                <ul className="space-y-2 text-green-900">
+                                    <li className="flex items-center"><span className="bg-green-200 text-green-800 px-2 py-1 rounded text-xs mr-2 w-14 text-center font-bold">年利率</span> <span>以「一年」結算。<br /><span className="text-xs opacity-75">(例：年利率 12%)</span></span></li>
+                                    <li className="flex items-center"><span className="bg-green-200 text-green-800 px-2 py-1 rounded text-xs mr-2 w-14 text-center font-bold">月利率</span> <span>以「一個月」結算。<br /><span className="text-xs opacity-75">(例：月利率 = 12% ÷ 12 = 1%)</span></span></li>
+                                    <li className="flex items-center"><span className="bg-green-200 text-green-800 px-2 py-1 rounded text-xs mr-2 w-14 text-center font-bold">季利率</span> <span>以「一季(三個月)」結算。<br /><span className="text-xs opacity-75">(例：季利率 = 12% ÷ 4 = 3%)</span></span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    id: 'interest', title: '利息 (Interest)', icon: <Icons.Coins className="w-8 h-8 text-yellow-500" />, desc: (
+                        <div className="space-y-2 text-sm text-gray-600 mt-2">
+                            <p>本金運用後產生的<strong className="text-yellow-600">額外收益</strong>。</p>
+                            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 flex items-start">
+                                <span className="text-xl mr-2">🎁</span>
+                                <p className="text-yellow-800">你可以把它當作是銀行或借款人給你的「獎勵金」。時間越久，獎勵通常越多喔！</p>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    id: 'amount', title: '本利和 (Amount)', icon: <Icons.Calculator className="w-8 h-8 text-purple-500" />, desc: (
+                        <div className="space-y-2 text-sm text-gray-600 mt-2">
+                            <p>最後拿回來的<strong className="text-purple-600">總金額</strong>，也就是你的大豐收！</p>
+                            <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 text-center">
+                                <p className="text-purple-800 font-bold mb-1">✨ 核心公式 ✨</p>
+                                <div className="flex items-center justify-center space-x-1 sm:space-x-2 font-mono text-sm sm:text-base">
+                                    <span className="bg-white px-2 py-1 rounded shadow-sm text-blue-600">本金</span>
+                                    <span className="text-gray-500">+</span>
+                                    <span className="bg-white px-2 py-1 rounded shadow-sm text-yellow-600">利息</span>
+                                    <span className="text-gray-500">=</span>
+                                    <span className="bg-white px-2 py-1 rounded shadow-sm font-bold text-purple-600">本利和</span>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+            ];
+
+            const toggleReveal = (id) => setRevealed(prev => ({ ...prev, [id]: true }));
+            const allRevealed = Object.keys(revealed).length === terms.length;
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="text-center space-y-2">
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800">第一關：認識四大天王</h2>
+                        <p className="text-gray-600">在進入金錢的魔法世界前，請先點擊卡片解鎖他們！</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {terms.map(term => (
+                            <div key={term.id} onClick={() => toggleReveal(term.id)}
+                                className={`p-6 rounded-2xl border-2 transition-all cursor-pointer transform hover:-translate-y-1 ${revealed[term.id] ? 'bg-white border-blue-200 shadow-md' : 'bg-gray-50 border-dashed border-gray-300 flex items-center justify-center min-h-[140px]'}`}>
+                                {revealed[term.id] ? (
+                                    <div className="flex space-x-4 zoom-in">
+                                        <div className="flex-shrink-0 bg-blue-50 p-3 rounded-full">{term.icon}</div>
+                                        <div>
+                                            <h3 className="font-bold text-lg text-gray-800">{term.title}</h3>
+                                            <div className="mt-1">{term.desc}</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-gray-400 font-medium flex items-center space-x-2">
+                                        <span>點擊解鎖</span><span className="text-xl">🔒</span>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    {allRevealed && (
+                        <div className="flex justify-center mt-8 slide-in-from-bottom">
+                            <button onClick={nextStep} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full flex items-center shadow-lg transition-transform hover:scale-105">
+                                太棒了！進入下一關 <Icons.ChevronRight className="ml-2 w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 第 2 關：單利 ---
+        const SimpleInterest = ({ nextStep, prevStep }) => {
+            const [principal, setPrincipal] = useState(10000);
+            const [rate, setRate] = useState(5);
+            const [years, setYears] = useState(2);
+
+            const interest = principal * (rate / 100) * years;
+            const amount = principal + interest;
+
+            const maxSimAmount = 50000 + (50000 * 0.15 * 10);
+            const principalWidth = (principal / maxSimAmount) * 100;
+            const interestWidth = (interest / maxSimAmount) * 100;
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="text-center space-y-2 mb-6">
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800">第二關：單利 (老實存錢法)</h2>
+                        <p className="text-gray-600">核心觀念：只有「原始本金」會生利息，利息<span className="text-red-500 font-bold">不會</span>再滾入本金。</p>
+                    </div>
+
+                    {/* 教學實例區塊 */}
+                    <div className="bg-sky-50 border border-sky-200 rounded-2xl p-5 md:p-6 mb-8 shadow-sm">
+                        <h3 className="font-bold text-sky-800 flex items-center mb-4 text-lg">
+                            <Icons.BookOpen className="w-6 h-6 mr-2 text-sky-600" /> 👨‍🏫 老師講例題：小明存壓歲錢
+                        </h3>
+                        <div className="text-sm md:text-base text-sky-900 space-y-3">
+                            <p className="font-medium bg-white p-3 rounded-lg border border-sky-100 shadow-sm">
+                                <strong>題目：</strong>小明把 <span className="text-blue-600 font-bold">10,000 元</span>壓歲錢存進銀行，年利率 <span className="text-green-600 font-bold">5%</span>，存了 <span className="text-purple-600 font-bold">2 年</span>。單利要怎麼算呢？
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                                <div className="bg-white p-3 rounded-lg border border-sky-100">
+                                    <div className="text-xs text-sky-500 font-bold mb-1">第一步 (算1年利息)</div>
+                                    <p>10,000 × 5% = <br /><span className="text-red-500 font-bold text-lg">500 元</span></p>
+                                </div>
+                                <div className="bg-white p-3 rounded-lg border border-sky-100">
+                                    <div className="text-xs text-sky-500 font-bold mb-1">第二步 (算2年利息)</div>
+                                    <p>500 × 2 年 = <br /><span className="text-red-500 font-bold text-lg">1,000 元</span></p>
+                                </div>
+                                <div className="bg-white p-3 rounded-lg border border-sky-100">
+                                    <div className="text-xs text-sky-500 font-bold mb-1">第三步 (算本利和)</div>
+                                    <p>本金 + 利息 = <br /><span className="text-blue-600 font-bold text-lg">11,000 元</span></p>
+                                </div>
+                            </div>
+                            <p className="font-bold text-sky-800 mt-3 pt-3 border-t border-sky-200">
+                                ✨ 你發現了嗎？在單利世界裡，不論存幾年，每年的利息都是固定的！現在換你拉拉看下面的滑桿：
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <h3 className="font-bold text-blue-800 flex items-center">
+                                    <Icons.Calculator className="w-5 h-5 mr-2" /> 動手拉拉看
+                                </h3>
+                                <div>
+                                    <label className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                        <span>本金 (元)</span><span className="text-blue-600 font-bold">${principal.toLocaleString()}</span>
+                                    </label>
+                                    <input type="range" min="1000" max="50000" step="1000" value={principal} onChange={(e) => setPrincipal(Number(e.target.value))} className="w-full accent-blue-600" />
+                                </div>
+                                <div>
+                                    <label className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                        <span>年利率 (%)</span><span className="text-green-600 font-bold">{rate}%</span>
+                                    </label>
+                                    <input type="range" min="1" max="15" step="1" value={rate} onChange={(e) => setRate(Number(e.target.value))} className="w-full accent-green-600" />
+                                </div>
+                                <div>
+                                    <label className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                        <span>時間 (年)</span><span className="text-purple-600 font-bold">{years} 年</span>
+                                    </label>
+                                    <input type="range" min="1" max="10" step="1" value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full accent-purple-600" />
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-xl shadow-sm flex flex-col justify-center">
+                                <p className="text-sm text-gray-500 text-center mb-4">金錢累積視覺化</p>
+
+                                <div className="h-12 w-full bg-gray-100 rounded-lg overflow-hidden flex shadow-inner">
+                                    <div className="bg-blue-500 bar-transition flex items-center justify-center text-white text-xs font-bold" style={{ width: `${principalWidth}%` }}>
+                                        {principalWidth > 15 ? '本金' : ''}
+                                    </div>
+                                    <div className="bg-yellow-400 bar-transition flex items-center justify-center text-yellow-900 text-xs font-bold" style={{ width: `${interestWidth}%` }}>
+                                        {interestWidth > 15 ? '利息' : ''}
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 text-center space-y-2">
+                                    <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                                        <span className="bg-blue-100 px-2 py-1 rounded">本金 ${principal.toLocaleString()}</span>
+                                        <span>+</span>
+                                        <span className="bg-yellow-100 px-2 py-1 rounded">利息 ${Math.round(interest).toLocaleString()}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-500 mt-4">最終拿回 (本利和)</p>
+                                    <p className="text-4xl font-black text-green-600">${Math.round(amount).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 動態算式解析區塊 */}
+                        <div className="bg-white p-5 rounded-xl mt-6 border-2 border-blue-200 shadow-sm">
+                            <h4 className="font-bold text-blue-800 mb-3 flex items-center">
+                                🔢 你的專屬計算機 (動態算式)
+                            </h4>
+                            <div className="space-y-3 font-mono text-sm sm:text-base text-gray-700 bg-blue-50 p-4 rounded-lg">
+                                <p className="flex items-center flex-wrap gap-2">
+                                    <span className="bg-white px-2 py-1 rounded border border-gray-200 font-bold text-gray-500 text-xs">第一步: 算利息</span>
+                                    <span>{principal.toLocaleString()}</span>
+                                    <span className="text-gray-400">×</span>
+                                    <span className="text-green-600">{rate}%</span>
+                                    <span className="text-gray-400">×</span>
+                                    <span className="text-purple-600">{years}</span>
+                                    <span className="text-gray-400">=</span>
+                                    <strong className="text-red-500 bg-red-100 px-2 py-0.5 rounded">{Math.round(interest).toLocaleString()}</strong>
+                                </p>
+                                <p className="flex items-center flex-wrap gap-2">
+                                    <span className="bg-white px-2 py-1 rounded border border-gray-200 font-bold text-gray-500 text-xs">第二步: 算總和</span>
+                                    <span>{principal.toLocaleString()}</span>
+                                    <span className="text-gray-400">+</span>
+                                    <span className="text-red-500">{Math.round(interest).toLocaleString()}</span>
+                                    <span className="text-gray-400">=</span>
+                                    <strong className="text-blue-700 text-xl border-b-2 border-blue-700">${Math.round(amount).toLocaleString()}</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div className="flex justify-between mt-8">
+                        <button onClick={prevStep} className="text-gray-500 hover:text-gray-800 font-medium py-2 px-4 rounded-full transition flex items-center">
+                            <Icons.ChevronLeft className="mr-1 w-5 h-5" /> 上一關
+                        </button>
+                        <button onClick={nextStep} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full flex items-center shadow-lg transition-transform hover:scale-105">
+                            準備學習複利 <Icons.ChevronRight className="ml-2 w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 第 3 關：複利 ---
+        const CompoundInterest = ({ nextStep, prevStep }) => {
+            const [principal, setPrincipal] = useState(10000);
+            const [rate, setRate] = useState(10);
+            const [years, setYears] = useState(3);
+
+            const rateDecimal = rate / 100;
+            const multiplier = 1 + rateDecimal; // ex: 1.10
+            const finalAmount = principal * Math.pow(multiplier, years);
+            const prevAmount = years > 1 ? principal * Math.pow(multiplier, years - 1) : principal;
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="text-center space-y-2 mb-6">
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800">第三關：複利 (利滾利滾雪球)</h2>
+                        <p className="text-gray-600">核心觀念：利息會加入本金，變成<span className="text-green-600 font-bold">「新本金」</span>繼續生利息！</p>
+                    </div>
+
+                    {/* 教學實例區塊 */}
+                    <div className="bg-green-50 border border-green-200 rounded-2xl p-5 md:p-6 mb-8 shadow-sm">
+                        <h3 className="font-bold text-green-800 flex items-center mb-4 text-lg">
+                            <Icons.BookOpen className="w-6 h-6 mr-2 text-green-600" /> 👨‍🏫 老師講例題：小華的魔法存錢筒
+                        </h3>
+                        <div className="text-sm md:text-base text-green-900 space-y-3">
+                            <p className="font-medium bg-white p-3 rounded-lg border border-green-100 shadow-sm">
+                                <strong>題目：</strong>小華一樣存 <span className="text-blue-600 font-bold">10,000 元</span>，年利率較高是 <span className="text-green-600 font-bold">10%</span> (代表每年變成 1.1 倍)，存 <span className="text-purple-600 font-bold">2 年</span>。我們用「複利」算算看！
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                                <div className="bg-white p-3 rounded-lg border border-green-100">
+                                    <div className="text-xs text-green-500 font-bold mb-1">第 1 年末 (跟單利一樣)</div>
+                                    <p>10,000 × (1 + 10%) = <span className="text-red-500 font-bold">11,000 元</span></p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg border-2 border-green-300 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-1 rounded-bl-lg font-bold">魔法發生處 ✨</div>
+                                    <div className="text-xs text-green-600 font-bold mb-1">第 2 年末 (拿11,000當新本金)</div>
+                                    <p>11,000 × (1 + 10%) = <span className="text-red-500 font-bold text-lg">12,100 元</span></p>
+                                </div>
+                            </div>
+                            <p className="font-bold text-green-800 mt-3 pt-3 border-t border-green-200">
+                                ✨ 複利的秘密：第 2 年生利息的「本金變大了」！動手拉拉看下面的滑桿：
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200 shadow-sm">
+
+                        <div className="bg-white p-6 rounded-xl shadow-sm mb-6 space-y-5">
+                            <h3 className="font-bold text-green-800 flex items-center mb-2 border-b border-green-100 pb-3">
+                                <Icons.Calculator className="w-5 h-5 mr-2" /> 動手設定複利條件 (感受雪球的威力！)
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                            <span>本金 (元)</span><span className="text-blue-600 font-bold">${principal.toLocaleString()}</span>
+                                        </label>
+                                        <input type="range" min="1000" max="100000" step="1000" value={principal} onChange={(e) => setPrincipal(Number(e.target.value))} className="w-full accent-blue-600" />
+                                    </div>
+                                    <div>
+                                        <label className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                            <span>年利率 (%)</span><span className="text-green-600 font-bold">{rate}%</span>
+                                        </label>
+                                        <input type="range" min="1" max="20" step="1" value={rate} onChange={(e) => setRate(Number(e.target.value))} className="w-full accent-green-600" />
+                                    </div>
+                                </div>
+
+                                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                    <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                                        <span className="flex items-center"><Icons.TrendingUp className="w-4 h-4 mr-1 text-purple-600" /> 時間 (年)</span>
+                                        <span className="text-purple-700 font-black text-lg">{years} 年</span>
+                                    </label>
+                                    <input type="range" min="1" max="30" step="1" value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full accent-purple-600 mb-4" />
+
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-purple-600 font-medium">最高可達 30 年</span>
+                                        <button
+                                            onClick={() => setYears(y => Math.min(y + 1, 30))}
+                                            disabled={years >= 30}
+                                            className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-full transition-all shadow-sm active:scale-95 flex items-center"
+                                        >
+                                            進入下一年 ⏳
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-xl border border-green-200 shadow-md relative overflow-hidden mb-6">
+                            <div className="absolute top-0 right-0 bg-green-500 text-white px-4 py-1 rounded-bl-xl font-bold text-sm shadow-sm">
+                                第 {years} 年末
+                            </div>
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mt-2">
+                                <div>
+                                    <p className="text-gray-600 text-sm md:text-base">
+                                        把第 {Math.max(1, years - 1)} 年末的本利和 <strong className="text-gray-800">${Math.round(prevAmount).toLocaleString()}</strong>，
+                                    </p>
+                                    <p className="text-gray-600 text-sm md:text-base mt-1">
+                                        再乘上今年增長的 <strong className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded">{multiplier.toFixed(2)} 倍</strong>
+                                    </p>
+                                </div>
+                                <div className="mt-4 md:mt-0 text-right w-full md:w-auto bg-green-50 p-4 rounded-xl border border-green-100">
+                                    <p className="text-sm text-gray-500 mb-1 font-bold">今年年底總財富 (本利和)</p>
+                                    <p className="text-4xl font-black text-green-600">${Math.round(finalAmount).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 動態算式與次方教學區 (修改與升級 - 加回連續乘法展開) */}
+                        <div className="bg-white border-2 border-green-300 p-6 rounded-xl relative shadow-sm">
+                            <div className="absolute -top-4 left-6 bg-green-500 text-white px-4 py-1 rounded-full font-bold text-sm shadow-sm flex items-center">
+                                🔢 你的專屬計算機：真正的「複利公式」
+                            </div>
+                            <p className="text-sm text-gray-800 mt-2 mb-4 leading-relaxed font-medium">
+                                我們發現，每過一年，錢就會乘上 <strong>(1 + {rate}%)</strong> 也就是 <strong>{multiplier.toFixed(2)}</strong>。過 {years} 年，就要連續乘 {years} 次！<br />
+                                為了不要寫出超級長的算式，數學家發明了<strong className="text-red-500 text-base mx-1">「次方」</strong>來當作連續乘法的縮寫。
+                            </p>
+
+                            <div className="bg-green-50 p-4 rounded-lg font-mono text-sm sm:text-base mb-4 overflow-x-auto border border-green-200 space-y-4">
+
+                                {/* 1. 連續乘法展開 */}
+                                <div>
+                                    <div className="text-gray-600 mb-2 font-bold text-xs bg-white border border-gray-200 inline-block px-2 py-1 rounded shadow-sm">1. 連續乘法展開 (剛開始這樣想)</div>
+                                    <div className="text-indigo-800 font-bold pl-2 flex items-baseline flex-wrap gap-2">
+                                        <span>{principal.toLocaleString()}</span>
+                                        <span className="text-gray-400">×</span>
+                                        <span>
+                                            {years <= 6
+                                                ? Array(years).fill(multiplier.toFixed(2)).join(" × ")
+                                                : `${multiplier.toFixed(2)} × ${multiplier.toFixed(2)} × ... (中間省略 ${years - 3} 次) ... × ${multiplier.toFixed(2)}`
+                                            }
+                                        </span>
+                                        <span className="text-gray-400">=</span>
+                                        <span className="text-xl">${Math.round(finalAmount).toLocaleString()}</span>
+                                    </div>
+                                </div>
+
+                                {/* 2. 使用次方縮寫 */}
+                                <div className="border-t border-green-200 pt-3">
+                                    <div className="text-green-800 mb-2 font-bold text-xs bg-green-200 inline-block px-2 py-1 rounded shadow-sm">2. 使用「次方」縮寫 (數學家的魔法)</div>
+                                    <div className="text-xl text-green-800 font-bold flex items-baseline flex-wrap gap-2 pl-2">
+                                        <span>{principal.toLocaleString()}</span>
+                                        <span className="text-gray-400">×</span>
+                                        <span className="bg-white px-2 rounded-md border border-green-300 shadow-sm">
+                                            ({multiplier.toFixed(2)})<sup className="text-red-600 text-2xl font-black ml-1">{years}</sup>
+                                        </span>
+                                        <span className="text-gray-400">=</span>
+                                        <span className="text-3xl text-green-700 border-b-4 border-green-600">${Math.round(finalAmount).toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-orange-100 p-3 rounded-lg flex items-start">
+                                <span className="text-xl mr-2">💡</span>
+                                <p className="text-sm text-orange-900 font-bold leading-relaxed">
+                                    這唸作：「 {multiplier.toFixed(2)} 的 <strong className="text-red-600 text-lg">{years}</strong> 次方 」。<br />
+                                    次方的數字寫在右上角，代表它擁有能讓數字「爆炸性成長」的魔法能量。時間越長 (次方越大)，複利的雪球就滾得越快！
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div className="flex justify-between mt-8">
+                        <button onClick={prevStep} className="text-gray-500 hover:text-gray-800 font-medium py-2 px-4 rounded-full transition flex items-center">
+                            <Icons.ChevronLeft className="mr-1 w-5 h-5" /> 上一關
+                        </button>
+                        <button onClick={nextStep} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full flex items-center shadow-lg transition-transform hover:scale-105">
+                            單利 vs 複利 大對決 <Icons.ChevronRight className="ml-2 w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 第 4 關：單筆大對決 ---
+        const ComparisonChart = ({ nextStep, prevStep }) => {
+            const [principal, setPrincipal] = useState(10000);
+            const [rate, setRate] = useState(10);
+            const [years, setYears] = useState(20);
+
+            const data = useMemo(() => {
+                const pts = [];
+                for (let i = 0; i <= years; i++) {
+                    const simple = principal + (principal * (rate / 100) * i);
+                    const compound = principal * Math.pow(1 + (rate / 100), i);
+                    pts.push({ year: i, simple, compound });
+                }
+                return pts;
+            }, [principal, rate, years]);
+
+            const maxVal = data[data.length - 1].compound;
+            const finalSimple = data[data.length - 1].simple;
+            const finalCompound = data[data.length - 1].compound;
+            const rateDecimal = rate / 100;
+            const multiplier = 1 + rateDecimal;
+
+            const w = 600; const h = 250; const padding = 40;
+            const getX = (i) => padding + (i / years) * (w - padding * 2);
+            const getY = (val) => h - padding - (val / maxVal) * (h - padding * 2);
+
+            const simplePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.simple)}`).join(' ');
+            const compoundPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.compound)}`).join(' ');
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="text-center space-y-2 mb-6">
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800">第四關：單筆投入大對決 ⚔️</h2>
+                        <p className="text-gray-600">拉動滑桿，看看將「一筆錢」長期放置，複利的「雪球」能滾得多誇張！</p>
+                    </div>
+
+                    {/* 教學實例區塊 */}
+                    <div className="bg-purple-50 border border-purple-200 rounded-2xl p-5 md:p-6 mb-8 shadow-sm">
+                        <h3 className="font-bold text-purple-800 flex items-center mb-4 text-lg">
+                            <Icons.BookOpen className="w-6 h-6 mr-2 text-purple-600" /> 👨‍🏫 老師講例題：烏龜與兔子的賽跑
+                        </h3>
+                        <div className="text-sm md:text-base text-purple-900 space-y-3">
+                            <p className="font-medium bg-white p-3 rounded-lg border border-purple-100 shadow-sm">
+                                <strong>為什麼複利會贏單利這麼多？</strong> 讓我們對比一下：本金 10,000 元，年利率 10%。
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                                <div className="bg-white p-4 rounded-lg border-l-4 border-l-blue-400 shadow-sm">
+                                    <p className="font-bold text-blue-600 border-b border-blue-100 pb-2 mb-2 flex items-center">
+                                        <span className="text-xl mr-2">🐢</span> 單利 (每年拿固定利息)
+                                    </p>
+                                    <ul className="text-sm space-y-2 text-gray-600">
+                                        <li>第 1 年產生利息：<strong className="text-blue-500">1,000</strong></li>
+                                        <li>第 2 年產生利息：<strong className="text-blue-500">1,000</strong></li>
+                                        <li>第 3 年產生利息：<strong className="text-blue-500">1,000</strong></li>
+                                    </ul>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg border-l-4 border-l-green-400 shadow-sm relative">
+                                    <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] px-2 py-1 rounded-bl-lg font-bold">越來越快！</div>
+                                    <p className="font-bold text-green-600 border-b border-green-100 pb-2 mb-2 flex items-center">
+                                        <span className="text-xl mr-2">🐇</span> 複利 (利息會再幫你賺錢)
+                                    </p>
+                                    <ul className="text-sm space-y-2 text-gray-600">
+                                        <li>第 1 年產生利息：<strong className="text-green-500">1,000</strong></li>
+                                        <li>第 2 年產生利息：<strong className="text-green-500">1,100</strong> <span className="text-xs text-gray-400">(多100是第一年利息賺的)</span></li>
+                                        <li>第 3 年產生利息：<strong className="text-green-500">1,210</strong> <span className="text-xs text-gray-400">(又變更多了！)</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <p className="font-bold text-purple-800 mt-3 pt-3 border-t border-purple-200">
+                                ✨ 時間越久，複利每年產生的「新利息」就越巨大！自己拉拉看時間滑桿感受一下：
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-6">
+                            <div>
+                                <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                                    <span>本金 (元)</span><span className="text-indigo-600 font-bold">${principal.toLocaleString()}</span>
+                                </label>
+                                <input type="range" min="1000" max="100000" step="1000" value={principal} onChange={(e) => setPrincipal(Number(e.target.value))} className="w-full accent-indigo-600" />
+                            </div>
+                            <div>
+                                <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                                    <span>年利率</span><span className="text-indigo-600 font-bold">{rate}%</span>
+                                </label>
+                                <input type="range" min="1" max="20" step="1" value={rate} onChange={(e) => setRate(Number(e.target.value))} className="w-full accent-indigo-600" />
+                            </div>
+                            <div>
+                                <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                                    <span>時間 (年)</span><span className="text-indigo-600 font-bold">{years} 年</span>
+                                </label>
+                                <input type="range" min="5" max="50" step="5" value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full accent-indigo-600" />
+                            </div>
+
+                            <div className="bg-gray-50 p-4 rounded-xl space-y-3 shadow-inner">
+                                <h4 className="text-sm font-bold text-gray-500 text-center border-b pb-2">第 {years} 年末的成果</h4>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm flex items-center text-blue-600 font-bold"><span className="w-3 h-3 rounded-full bg-blue-400 mr-2"></span> 單利</span>
+                                    <span className="font-mono font-bold">${Math.round(finalSimple).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm flex items-center text-green-600 font-bold"><span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span> 複利</span>
+                                    <span className="font-mono font-bold text-green-600">${Math.round(finalCompound).toLocaleString()}</span>
+                                </div>
+                                <div className="pt-2 border-t border-gray-200 text-sm text-red-500 text-right font-black">
+                                    兩者相差了 ${Math.round(finalCompound - finalSimple).toLocaleString()} !
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+                                <h3 className="text-center font-bold text-gray-600 mb-2 text-sm">時間成長曲線圖</h3>
+                                <div className="min-w-[400px]">
+                                    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto drop-shadow-sm">
+                                        <line x1={padding} y1={h - padding} x2={w - padding} y2={h - padding} stroke="#cbd5e1" strokeWidth="2" />
+                                        <line x1={padding} y1={padding} x2={padding} y2={h - padding} stroke="#cbd5e1" strokeWidth="2" />
+
+                                        <text x={padding} y={h - 15} fontSize="12" fill="#64748b">0 年</text>
+                                        <text x={w - padding - 20} y={h - 15} fontSize="12" fill="#64748b">{years} 年</text>
+                                        <text x={10} y={padding} fontSize="12" fill="#64748b" transform={`rotate(-90 20 ${padding + 30})`}>金額</text>
+
+                                        <path d={simplePath} fill="none" stroke="#60a5fa" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d={compoundPath} fill="none" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+
+                                        <circle cx={getX(years)} cy={getY(finalSimple)} r="5" fill="#3b82f6" />
+                                        <circle cx={getX(years)} cy={getY(finalCompound)} r="5" fill="#16a34a" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mt-6">
+                                <h3 className="text-center font-bold text-gray-600 mb-6 text-sm">第 {years} 年末：最終財富長條圖</h3>
+                                <div className="flex items-end justify-around h-64 px-2 sm:px-8 border-b-2 border-gray-300 relative pt-10">
+                                    <div className="w-5/12 sm:w-1/3 flex flex-col justify-end items-center h-full relative group">
+                                        <div className="absolute w-full text-center text-xs sm:text-sm font-bold text-blue-600 transition-all duration-700 ease-out transform group-hover:-translate-y-1"
+                                            style={{ bottom: `calc(${Math.max((finalSimple / maxVal) * 100, 2)}% + 8px)` }}>
+                                            ${Math.round(finalSimple).toLocaleString()}
+                                        </div>
+                                        <div className="bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-md shadow-md w-full transition-all duration-700 ease-out"
+                                            style={{ height: `${Math.max((finalSimple / maxVal) * 100, 2)}%` }}></div>
+                                        <div className="absolute -bottom-8 text-center text-sm font-bold text-gray-700 w-full">單利</div>
+                                    </div>
+                                    <div className="w-5/12 sm:w-1/3 flex flex-col justify-end items-center h-full relative group">
+                                        <div className="absolute w-full text-center text-xs sm:text-sm font-bold text-green-600 transition-all duration-700 ease-out transform group-hover:-translate-y-1"
+                                            style={{ bottom: `calc(${Math.max((finalCompound / maxVal) * 100, 2)}% + 8px)` }}>
+                                            ${Math.round(finalCompound).toLocaleString()}
+                                        </div>
+                                        <div className="bg-gradient-to-t from-green-500 to-green-300 rounded-t-md shadow-md w-full transition-all duration-700 ease-out"
+                                            style={{ height: `${Math.max((finalCompound / maxVal) * 100, 2)}%` }}></div>
+                                        <div className="absolute -bottom-8 text-center text-sm font-bold text-gray-700 w-full">複利</div>
+                                    </div>
+                                </div>
+                                <div className="h-10"></div>
+                            </div>
+                        </div>
+
+                        {/* 動態算式大車拚 */}
+                        <div className="lg:col-span-3 bg-purple-100 p-5 rounded-xl border-2 border-purple-300 shadow-sm mt-4">
+                            <h4 className="font-bold text-purple-900 mb-4 flex items-center">
+                                🔢 算式大車拚 (套用你現在的數字)
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-sm sm:text-base text-gray-700">
+                                <div className="bg-white p-4 rounded-lg border border-blue-300 shadow-sm">
+                                    <p className="text-blue-600 font-bold mb-2 pb-2 border-b border-blue-100">【單利算式】 本金 + 總利息</p>
+                                    <p className="mb-1 text-gray-500 text-xs">算式： 本金 + (本金 × 利率 × 年)</p>
+                                    <p className="flex items-center flex-wrap gap-1 mt-2">
+                                        {principal.toLocaleString()} <span className="text-gray-400">+</span> ({principal.toLocaleString()} × {rate}% × {years})
+                                    </p>
+                                    <p className="mt-2 text-xl font-bold text-blue-700">= ${Math.round(finalSimple).toLocaleString()}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg border border-green-300 shadow-sm relative">
+                                    <div className="absolute -top-3 -right-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow animate-bounce">勝出!</div>
+                                    <p className="text-green-600 font-bold mb-2 pb-2 border-b border-green-100">【複利算式】 本金 × (1+利率)^年</p>
+                                    <p className="mb-1 text-gray-500 text-xs">算式： 本金 × (1 + 利率)<sup className="text-[10px]">時間(年)</sup></p>
+                                    <p className="flex items-center flex-wrap gap-1 mt-2">
+                                        {principal.toLocaleString()} <span className="text-gray-400">×</span> ({multiplier.toFixed(2)})<sup className="text-red-500 font-bold">{years}</sup>
+                                    </p>
+                                    <p className="mt-2 text-xl font-bold text-green-700">= ${Math.round(finalCompound).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div className="flex justify-between mt-8">
+                        <button onClick={prevStep} className="text-gray-500 hover:text-gray-800 font-medium py-2 px-4 rounded-full transition flex items-center">
+                            <Icons.ChevronLeft className="mr-1 w-5 h-5" /> 上一關
+                        </button>
+                        <button onClick={nextStep} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full flex items-center shadow-lg transition-transform hover:scale-105">
+                            學習定期定額法 <Icons.ChevronRight className="ml-2 w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 第 5 關：定期定額大對決 ---
+        const RegularSavingsComparison = ({ nextStep, prevStep }) => {
+            const [annualDeposit, setAnnualDeposit] = useState(10000);
+            const [rate, setRate] = useState(8);
+            const [years, setYears] = useState(20);
+
+            // 產生定期定額圖表數據
+            const data = useMemo(() => {
+                const pts = [];
+                let cumPrincipal = 0;
+                let currentCompound = 0;
+
+                for (let i = 0; i <= years; i++) {
+                    if (i === 0) {
+                        pts.push({ year: 0, principal: 0, simple: 0, compound: 0 });
+                    } else {
+                        // 每年初投入一筆新本金
+                        cumPrincipal += annualDeposit;
+
+                        // 計算單利：把過去每筆存款分別算利息 (第 j 年存入的錢，到第 i 年底經過了 i - j + 1 年)
+                        let simInterest = 0;
+                        for (let j = 1; j <= i; j++) {
+                            simInterest += annualDeposit * (rate / 100) * (i - j + 1);
+                        }
+
+                        // 計算複利：年初投入，年底結算
+                        currentCompound = (currentCompound + annualDeposit) * (1 + (rate / 100));
+
+                        pts.push({
+                            year: i,
+                            principal: cumPrincipal,
+                            simple: cumPrincipal + simInterest,
+                            compound: currentCompound
+                        });
+                    }
+                }
+                return pts;
+            }, [annualDeposit, rate, years]);
+
+            const maxVal = data[data.length - 1].compound;
+            const totalPrincipal = data[data.length - 1].principal;
+            const finalSimple = data[data.length - 1].simple;
+            const finalCompound = data[data.length - 1].compound;
+
+            const rateDecimal = rate / 100;
+            const multiplier = 1 + rateDecimal;
+
+            // 堆疊長條圖的比例
+            const simplePrincipalHeight = (totalPrincipal / maxVal) * 100;
+            const simpleIntHeight = ((finalSimple - totalPrincipal) / maxVal) * 100;
+
+            const compPrincipalHeight = (totalPrincipal / maxVal) * 100;
+            const compIntHeight = ((finalCompound - totalPrincipal) / maxVal) * 100;
+
+            const w = 600; const h = 250; const padding = 40;
+            const getX = (i) => padding + (i / years) * (w - padding * 2);
+            const getY = (val) => h - padding - (val / maxVal) * (h - padding * 2);
+
+            const principalPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.principal)}`).join(' ');
+            const simplePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.simple)}`).join(' ');
+            const compoundPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.compound)}`).join(' ');
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="text-center space-y-2 mb-6">
+                        <div className="inline-flex items-center justify-center bg-orange-100 text-orange-800 px-4 py-1 rounded-full text-sm font-bold mb-2">
+                            <Icons.Calendar className="w-4 h-4 mr-1" /> 小資族的秘密武器
+                        </div>
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800">第五關：定期定額大挑戰</h2>
+                        <p className="text-gray-600">現實中我們很少有一大筆錢。如果<span className="font-bold text-orange-600">「每年持續存入一筆錢」</span>，長期下來會有多驚人？</p>
+                    </div>
+
+                    {/* 教學實例區塊 */}
+                    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 md:p-6 mb-8 shadow-sm">
+                        <h3 className="font-bold text-orange-800 flex items-center mb-4 text-lg">
+                            <Icons.BookOpen className="w-6 h-6 mr-2 text-orange-600" /> 👨‍🏫 老師講例題：種樹理論 (每年存一筆)
+                        </h3>
+                        <div className="text-sm md:text-base text-orange-900 space-y-3">
+                            <p className="font-medium bg-white p-3 rounded-lg border border-orange-100 shadow-sm">
+                                <strong>題目：</strong>如果我「每年」都存 <span className="text-orange-600 font-bold">10,000 元</span>進去，連續存 <span className="text-purple-600 font-bold">3 年</span> (年利率 10% 複利)，錢是怎麼長大的？
+                            </p>
+                            <div className="bg-white p-4 rounded-lg border border-orange-100 shadow-sm space-y-2">
+                                <div className="flex items-center">
+                                    <span className="w-6 h-6 rounded-full bg-orange-200 text-orange-800 flex items-center justify-center text-xs font-bold mr-3 flex-shrink-0">1</span>
+                                    <p><strong>第 1 年存的錢：</strong>享受了 3 年的魔法 ➔ 長成 <span className="text-green-600 font-bold">13,310</span> <span className="text-xs text-gray-400">(最高!)</span></p>
+                                </div>
+                                <div className="flex items-center">
+                                    <span className="w-6 h-6 rounded-full bg-orange-200 text-orange-800 flex items-center justify-center text-xs font-bold mr-3 flex-shrink-0">2</span>
+                                    <p><strong>第 2 年存的錢：</strong>享受了 2 年的魔法 ➔ 長成 <span className="text-green-600 font-bold">12,100</span></p>
+                                </div>
+                                <div className="flex items-center">
+                                    <span className="w-6 h-6 rounded-full bg-orange-200 text-orange-800 flex items-center justify-center text-xs font-bold mr-3 flex-shrink-0">3</span>
+                                    <p><strong>第 3 年存的錢：</strong>只享受 1 年的魔法 ➔ 長成 <span className="text-green-600 font-bold">11,000</span> <span className="text-xs text-gray-400">(最矮!)</span></p>
+                                </div>
+                                <div className="border-t border-orange-200 mt-2 pt-2 text-red-600 font-bold pl-9">
+                                    總共拿回：13,310 + 12,100 + 11,000 = 36,410 元
+                                </div>
+                            </div>
+                            <p className="font-bold text-orange-800 mt-3 pt-3 border-t border-orange-200">
+                                ✨ 定期定額就像每年種下一顆新種子，最早種的樹會長得最高！來試著設定你每年的存款目標：
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-orange-200 space-y-6">
+                            <div>
+                                <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                                    <span className="font-bold text-orange-600">每年新存入 (元)</span><span className="text-orange-600 font-bold">${annualDeposit.toLocaleString()}</span>
+                                </label>
+                                <input type="range" min="10000" max="200000" step="10000" value={annualDeposit} onChange={(e) => setAnnualDeposit(Number(e.target.value))} className="w-full accent-orange-500" />
+                            </div>
+                            <div>
+                                <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                                    <span>年利率</span><span className="text-indigo-600 font-bold">{rate}%</span>
+                                </label>
+                                <input type="range" min="1" max="20" step="1" value={rate} onChange={(e) => setRate(Number(e.target.value))} className="w-full accent-indigo-600" />
+                            </div>
+                            <div>
+                                <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                                    <span>堅持時間 (年)</span><span className="text-indigo-600 font-bold">{years} 年</span>
+                                </label>
+                                <input type="range" min="5" max="40" step="5" value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full accent-indigo-600" />
+                            </div>
+
+                            <div className="bg-orange-50 p-4 rounded-xl space-y-3 shadow-inner border border-orange-100">
+                                <h4 className="text-sm font-bold text-gray-600 text-center border-b border-orange-200 pb-2">第 {years} 年末的成果</h4>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="flex items-center text-slate-600"><span className="w-3 h-3 rounded-full bg-slate-300 mr-2"></span> 自己存的本金</span>
+                                    <span className="font-mono font-bold">${Math.round(totalPrincipal).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="flex items-center text-blue-600 font-bold"><span className="w-3 h-3 rounded-full bg-blue-400 mr-2"></span> 單利本利和</span>
+                                    <span className="font-mono font-bold">${Math.round(finalSimple).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="flex items-center text-green-600 font-bold"><span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span> 複利本利和</span>
+                                    <span className="font-mono font-bold text-green-600">${Math.round(finalCompound).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+                                <h3 className="text-center font-bold text-gray-600 mb-2 text-sm">定期定額累積曲線圖</h3>
+                                <div className="min-w-[400px]">
+                                    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto drop-shadow-sm">
+                                        <line x1={padding} y1={h - padding} x2={w - padding} y2={h - padding} stroke="#cbd5e1" strokeWidth="2" />
+                                        <line x1={padding} y1={padding} x2={padding} y2={h - padding} stroke="#cbd5e1" strokeWidth="2" />
+
+                                        <text x={padding} y={h - 15} fontSize="12" fill="#64748b">0 年</text>
+                                        <text x={w - padding - 20} y={h - 15} fontSize="12" fill="#64748b">{years} 年</text>
+                                        <text x={10} y={padding} fontSize="12" fill="#64748b" transform={`rotate(-90 20 ${padding + 30})`}>金額</text>
+
+                                        {/* 階梯狀累積本金 */}
+                                        <path d={principalPath} fill="none" stroke="#94a3b8" strokeWidth="2" strokeDasharray="5,5" strokeLinecap="round" strokeLinejoin="round" />
+
+                                        <path d={simplePath} fill="none" stroke="#60a5fa" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d={compoundPath} fill="none" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+
+                                        <circle cx={getX(years)} cy={getY(totalPrincipal)} r="4" fill="#94a3b8" />
+                                        <circle cx={getX(years)} cy={getY(finalSimple)} r="5" fill="#3b82f6" />
+                                        <circle cx={getX(years)} cy={getY(finalCompound)} r="5" fill="#16a34a" />
+                                    </svg>
+                                </div>
+                                <div className="flex justify-center space-x-4 mt-2 text-[10px] sm:text-xs font-bold text-gray-500">
+                                    <span className="flex items-center"><span className="w-3 h-0.5 border-t-2 border-dashed border-slate-400 mr-1"></span>累積本金</span>
+                                    <span className="flex items-center text-blue-500"><span className="w-3 h-1 bg-blue-500 mr-1 rounded"></span>單利成長</span>
+                                    <span className="flex items-center text-green-500"><span className="w-3 h-1 bg-green-500 mr-1 rounded"></span>複利成長</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mt-6">
+                                <h3 className="text-center font-bold text-gray-600 mb-6 text-sm">你的錢是由什麼組成的？(堆疊長條圖)</h3>
+                                <div className="flex items-end justify-around h-64 px-2 sm:px-8 border-b-2 border-gray-300 relative pt-10">
+
+                                    {/* 單利堆疊柱 */}
+                                    <div className="w-5/12 sm:w-1/3 flex flex-col justify-end items-center h-full relative group">
+                                        <div className="absolute w-full text-center text-xs sm:text-sm font-bold text-blue-600 transition-all duration-700 ease-out transform group-hover:-translate-y-1"
+                                            style={{ bottom: `calc(${Math.max((finalSimple / maxVal) * 100, 0)}% + 8px)` }}>
+                                            ${Math.round(finalSimple).toLocaleString()}
+                                        </div>
+                                        {/* 利息部分 */}
+                                        <div className="bg-gradient-to-t from-blue-400 to-blue-300 w-full rounded-t-md border-b-2 border-blue-500 transition-all duration-700 ease-out flex items-center justify-center text-[10px] text-white font-bold overflow-hidden"
+                                            style={{ height: `${simpleIntHeight}%` }}>
+                                            {simpleIntHeight > 8 ? '利息' : ''}
+                                        </div>
+                                        {/* 本金部分 */}
+                                        <div className="bg-slate-200 w-full transition-all duration-700 ease-out flex items-center justify-center text-[10px] text-slate-500 font-bold overflow-hidden shadow-inner"
+                                            style={{ height: `${simplePrincipalHeight}%` }}>
+                                            {simplePrincipalHeight > 8 ? '本金' : ''}
+                                        </div>
+                                        <div className="absolute -bottom-8 text-center text-sm font-bold text-gray-700 w-full">定期單利</div>
+                                    </div>
+
+                                    {/* 複利堆疊柱 */}
+                                    <div className="w-5/12 sm:w-1/3 flex flex-col justify-end items-center h-full relative group">
+                                        <div className="absolute w-full text-center text-xs sm:text-sm font-bold text-green-600 transition-all duration-700 ease-out transform group-hover:-translate-y-1"
+                                            style={{ bottom: `calc(${Math.max((finalCompound / maxVal) * 100, 0)}% + 8px)` }}>
+                                            ${Math.round(finalCompound).toLocaleString()}
+                                        </div>
+                                        {/* 利息部分 */}
+                                        <div className="bg-gradient-to-t from-green-500 to-green-300 w-full rounded-t-md border-b-2 border-green-600 transition-all duration-700 ease-out flex items-center justify-center text-[10px] text-white font-bold overflow-hidden shadow-md"
+                                            style={{ height: `${compIntHeight}%` }}>
+                                            {compIntHeight > 8 ? '利息 (越滾越大!)' : ''}
+                                        </div>
+                                        {/* 本金部分 */}
+                                        <div className="bg-slate-200 w-full transition-all duration-700 ease-out flex items-center justify-center text-[10px] text-slate-500 font-bold overflow-hidden shadow-inner"
+                                            style={{ height: `${compPrincipalHeight}%` }}>
+                                            {compPrincipalHeight > 8 ? '本金' : ''}
+                                        </div>
+                                        <div className="absolute -bottom-8 text-center text-sm font-bold text-gray-700 w-full">定期複利</div>
+                                    </div>
+
+                                </div>
+                                <div className="h-10"></div>
+                            </div>
+                        </div>
+
+                        {/* 定期定額動態算式解析區塊 */}
+                        <div className="lg:col-span-3 bg-orange-100 p-5 rounded-xl border-2 border-orange-300 shadow-sm mt-4">
+                            <h4 className="font-bold text-orange-900 mb-4 flex items-center">
+                                🔢 算式拆解大公開 (套用你現在的數字：每年存 {annualDeposit.toLocaleString()}，存 {years} 年)
+                            </h4>
+                            <div className="bg-white p-4 rounded-lg border border-orange-200 shadow-sm font-mono text-sm sm:text-base text-gray-700 space-y-3">
+                                <p className="text-gray-500 font-bold mb-1 border-b pb-2">「每一筆存進去的錢」享受魔法的時間都不一樣：</p>
+                                <p className="flex items-center flex-wrap gap-2">
+                                    <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold w-16 text-center">第 1 筆</span>
+                                    <span>享受到 {years} 年複利 ➔ {annualDeposit.toLocaleString()} × ({multiplier.toFixed(2)})<sup className="text-red-500 font-bold">{years}</sup> = <span className="text-green-700 font-bold">{Math.round(annualDeposit * Math.pow(multiplier, years)).toLocaleString()}</span></span>
+                                </p>
+                                <p className="flex items-center flex-wrap gap-2">
+                                    <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold w-16 text-center">第 2 筆</span>
+                                    <span>享受到 {years - 1} 年複利 ➔ {annualDeposit.toLocaleString()} × ({multiplier.toFixed(2)})<sup className="text-red-500 font-bold">{years - 1}</sup> = <span className="text-green-700 font-bold">{Math.round(annualDeposit * Math.pow(multiplier, years - 1)).toLocaleString()}</span></span>
+                                </p>
+                                {years > 3 && (
+                                    <p className="text-gray-400 pl-2">... (中間省略) ...</p>
+                                )}
+                                {years >= 3 && (
+                                    <p className="flex items-center flex-wrap gap-2">
+                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold w-16 text-center">最後1筆</span>
+                                        <span>只享受到 1 年複利 ➔ {annualDeposit.toLocaleString()} × ({multiplier.toFixed(2)})<sup className="text-red-500 font-bold">1</sup> = <span className="text-green-700 font-bold">{Math.round(annualDeposit * Math.pow(multiplier, 1)).toLocaleString()}</span></span>
+                                    </p>
+                                )}
+                                <div className="border-t-2 border-orange-300 mt-4 pt-3 flex justify-between items-center bg-orange-50 p-3 rounded">
+                                    <span className="font-bold text-gray-800">全部加起來 (最終總和) = </span>
+                                    <span className="text-2xl font-black text-orange-600">${Math.round(finalCompound).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div className="flex justify-between mt-8">
+                        <button onClick={prevStep} className="text-gray-500 hover:text-gray-800 font-medium py-2 px-4 rounded-full transition flex items-center">
+                            <Icons.ChevronLeft className="mr-1 w-5 h-5" /> 上一關
+                        </button>
+                        <button onClick={nextStep} className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-full flex items-center shadow-lg transition-transform hover:scale-105">
+                            進入終極挑戰 <Icons.AlertCircle className="ml-2 w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 第 6 關：常見陷阱與動態隨機測驗 (加入計算紙) ---
+        const QuizAndTraps = ({ prevStep }) => {
+            const [quizData, setQuizData] = useState([]);
+            const [answers, setAnswers] = useState({});
+            const [score, setScore] = useState(null);
+
+            // 產生隨機題庫的函數
+            const generateQuestions = () => {
+                const format = (n) => Math.round(n).toLocaleString();
+                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
+                // 產生單一題目的輔助函數 (自動打亂選項順序並記錄正確解答的索引)
+                const createQ = (type, q, correctOpt, wrongOpts, exp) => {
+                    const allOpts = [{ text: correctOpt, isCorrect: true }, ...wrongOpts.map(o => ({ text: o, isCorrect: false }))];
+                    const shuffled = shuffle(allOpts);
+                    return { type, q, opts: shuffled.map(o => o.text), ans: shuffled.findIndex(o => o.isCorrect), exp };
+                };
+
+                // 1. 基本概念題
+                const q1Pool = [
+                    { q: "小美把零用錢存在銀行，銀行因為她把錢放在那裡，給她的「額外獎勵金」叫做什麼？", c: "利息", w: ["本金", "利率", "本利和"], e: "這筆額外的獎勵就是「利息」，是你借錢給銀行獲得的報酬！" },
+                    { q: "如果想知道銀行給的利息到底大不大方，我們要看哪一個數字（通常會有 % 符號）？", c: "利率", w: ["本金", "本利和", "期數"], e: "「利率」代表錢成長的速度，通常用百分比(%)表示，例如年利率 5%。" },
+                    { q: "我們用什麼數學符號來縮寫「連續乘上同一個數字」（例如 1.1 × 1.1）？", c: "次方", w: ["加號 (+)", "乘號 (×)", "除號 (÷)"], e: "連續乘法可以縮寫成「次方」，寫在數字的右上角！" }
+                ];
+                const q1Data = pick(q1Pool);
+                const q1 = createQ('基本概念', q1Data.q, q1Data.c, q1Data.w, q1Data.e);
+
+                // 2. 單利計算題
+                const p2 = pick([1000, 2000, 5000, 10000]);
+                const r2 = pick([2, 5, 10]);
+                const y2 = pick([2, 3, 5]);
+                const interest2 = p2 * (r2 / 100) * y2;
+                const amount2 = p2 + interest2;
+                const askInterest = Math.random() > 0.5; // 隨機問利息或本利和
+
+                const q2q = `小明把壓歲錢 ${format(p2)} 元存入銀行，年利率 ${r2}%。如果用【單利】計算，存了 ${y2} 年後，他最後可以拿到多少${askInterest ? '「利息」' : '「本利和（本金+利息）」'}？`;
+                const q2ans = askInterest ? interest2 : amount2;
+                const q2w1 = askInterest ? amount2 : interest2;
+                const q2w2 = askInterest ? p2 * (r2 / 100) : p2 + p2 * (r2 / 100);
+                const q2w3 = q2ans + pick([100, 500, 1000]);
+                const q2exp = `【單利公式】每年利息固定。 1年利息 = ${format(p2)} × ${r2}% = ${format(p2 * r2 / 100)}。 ${y2}年總利息 = ${format(p2 * r2 / 100)} × ${y2} = ${format(interest2)}。${askInterest ? '' : `本利和 = 本金 + 利息 = ${format(amount2)}。`}`;
+                const q2 = createQ('單利計算', q2q, `${format(q2ans)} 元`, [`${format(q2w1)} 元`, `${format(q2w2)} 元`, `${format(q2w3)} 元`], q2exp);
+
+                // 3. 複利計算題
+                const p3 = pick([10000, 20000]);
+                const r3 = 10; // 固定 10% 讓乘法倍數為好算的 1.1
+                const y3 = pick([2, 3]);
+                const amount3 = Math.round(p3 * Math.pow(1.1, y3));
+                const simAmt3 = p3 + (p3 * 0.1 * y3);
+
+                const q3q = `魔法阿嬤給小芳 ${format(p3)} 元當作大學基金，放在年利率 ${r3}% 的【複利】帳戶中。過了 ${y3} 年後，這筆錢會變成多少元（本利和）？`;
+                const q3ans = amount3;
+                const q3w1 = simAmt3;
+                const q3w2 = amount3 + pick([1000, 2000]);
+                const q3w3 = amount3 - pick([500, 1000]);
+                const q3exp = `【複利公式】利息會滾入本金！算式：${format(p3)} × (1.1)^${y3} = ${format(amount3)} 元。如果算成 ${format(simAmt3)} 元，那是單利算法喔！`;
+                const q3 = createQ('複利計算', q3q, `${format(q3ans)} 元`, [`${format(q3w1)} 元`, `${format(q3w2)} 元`, `${format(q3w3)} 元`], q3exp);
+
+                // 4. 單利 vs 複利比較題
+                const p4 = pick([10000, 50000]);
+                const sim4 = p4 + (p4 * 0.1 * 2);
+                const comp4 = Math.round(p4 * 1.21); // 1.1^2
+                const diff4 = comp4 - sim4;
+
+                const q4q = `雙胞胎兄弟各有 ${format(p4)} 元，哥哥選年利率 10% 的「單利」，弟弟選年利率 10% 的「複利」。都存了 2 年後，誰的錢比較多？多了多少元？`;
+                const q4ans = `弟弟多 ${format(diff4)} 元`;
+                const q4w1 = `哥哥多 ${format(diff4)} 元`;
+                const q4w2 = `兩人一樣多`;
+                const q4w3 = `弟弟多 ${format(diff4 * 2)} 元`;
+                const q4exp = `哥哥(單利)：${format(sim4)}元。弟弟(複利)：${format(comp4)}元。弟弟多了 ${format(diff4)} 元！因為第 2 年時，弟弟第 1 年的利息也跑去生利息了。`;
+                const q4 = createQ('單利 vs 複利', q4q, q4ans, [q4w1, q4w2, q4w3], q4exp);
+
+                // 5. 定期定額複利題
+                const a5 = pick([1000, 2000, 5000]);
+                const amt5_1 = a5 * 1.21; // 存 2 年
+                const amt5_2 = a5 * 1.1;  // 存 1 年
+                const tot5 = Math.round(amt5_1 + amt5_2);
+
+                const q5q = `小資族姊姊為了買機票，決定【每年初】都存 ${format(a5)} 元到銀行，年利率 10%（複利）。連續存了 2 年後（第 2 年底），她總共能拿回多少錢？`;
+                const q5ans = tot5;
+                const q5w1 = a5 * 2 + a5 * 0.1 * 2; // 錯誤的單利算法
+                const q5w2 = Math.round(a5 * 1.21); // 只存了1筆的算法
+                const q5w3 = tot5 + pick([100, 500]);
+                const q5exp = `第 1 筆存 2 年：${format(a5)} × 1.1^2 = ${format(Math.round(amt5_1))}。第 2 筆存 1 年：${format(a5)} × 1.1 = ${format(Math.round(amt5_2))}。加總為：${format(tot5)} 元。`;
+                const q5 = createQ('定期定額複利', q5q, `${format(q5ans)} 元`, [`${format(q5w1)} 元`, `${format(q5w2)} 元`, `${format(q5w3)} 元`], q5exp);
+
+                // 6. 定期定額單利題型
+                const a6 = pick([5000, 10000]);
+                const r6 = pick([3, 5]);
+                const y6 = pick([2, 3]);
+                let tot6 = 0;
+                for (let i = 1; i <= y6; i++) {
+                    tot6 += a6 + a6 * (r6 / 100) * i;
+                }
+                const q6q = `媽媽決定【每年初】存 ${format(a6)} 元到銀行，年利率 ${r6}%，以【單利】計算。連續存了 ${y6} 年後，她總共能拿回多少錢？`;
+                const q6w1 = a6 * y6 + a6 * (r6 / 100) * y6;
+                const q6w2 = Math.round(a6 * Math.pow(1 + r6 / 100, y6));
+                const q6w3 = tot6 + pick([1000, 2000]);
+                const q6exp = `單利定期定額要把每一筆分開算！第 1 筆存了 ${y6} 年，第 2 筆存了 ${y6 - 1} 年... 把每筆的本利和加起來就是 ${format(tot6)} 元。`;
+                const q6 = createQ('定期定額單利', q6q, `${format(tot6)} 元`, [`${format(q6w1)} 元`, `${format(q6w2)} 元`, `${format(q6w3)} 元`], q6exp);
+
+                // 7. 以「月」為單位的定期定額題型
+                const a7 = pick([1000, 2000, 3000]);
+                const y7 = pick([2, 3]); // 個月
+                const r7 = 12; // 年利率 12%
+                let tot7 = 0;
+                for (let i = 1; i <= y7; i++) {
+                    tot7 += a7 * Math.pow(1.01, i);
+                }
+                tot7 = Math.round(tot7);
+                const q7q = `小明為了買遊戲機，【每個月初】存 ${format(a7)} 元。銀行年利率 ${r7}%（相當於月利率 1%）。以「月複利」計算，連續存了 ${y7} 個月後，總共能拿回多少錢？`;
+                const q7w1 = a7 * y7 + a7 * 0.01 * y7;
+                const q7w2 = Math.round(a7 * Math.pow(1.01, y7));
+                const q7w3 = tot7 + pick([50, 100]);
+                const q7exp = `月利率 = 12% ÷ 12 = 1%。第 1 個月存的錢滾了 ${y7} 個月，第 2 個月存的錢滾了 ${y7 - 1} 個月... 總和為 ${format(tot7)} 元！`;
+                const q7 = createQ('月定期定額(複利)', q7q, `${format(tot7)} 元`, [`${format(q7w1)} 元`, `${format(q7w2)} 元`, `${format(q7w3)} 元`], q7exp);
+
+                // 8. 信用卡借貸計息題型
+                const p8 = pick([30000, 50000]);
+                const r8 = pick([15, 18, 20]); // 高循環利率
+                const y8 = pick([2, 3]);
+                const tot8 = Math.round(p8 * Math.pow(1 + r8 / 100, y8));
+                const q8q = `【生活陷阱題】叔叔有一筆 ${format(p8)} 元的信用卡費忘記繳，銀行的信用卡循環年利率高達 ${r8}%！如果拖了 ${y8} 年都沒還，以「複利」計算，他最後會欠銀行多少錢？`;
+                const q8w1 = p8 + p8 * (r8 / 100) * y8; // 單利
+                const q8w2 = Math.round(tot8 * 1.05);
+                const q8w3 = tot8 - pick([2000, 3000]);
+                const q8exp = `信用卡的循環利息是可怕的複利！算式：${format(p8)} × (1 + ${r8}% )^${y8} = ${format(tot8)} 元。千萬要準時繳清卡費啊！`;
+                const q8 = createQ('信用卡計息(陷阱)', q8q, `${format(tot8)} 元`, [`${format(q8w1)} 元`, `${format(q8w2)} 元`, `${format(q8w3)} 元`], q8exp);
+
+                // 從 8 大題型中隨機挑選 5 題組成一份測驗
+                return shuffle([q1, q2, q3, q4, q5, q6, q7, q8]).slice(0, 5);
+            };
+
+            // 初始載入時產生題目
+            useEffect(() => {
+                setQuizData(generateQuestions());
+            }, []);
+
+            const handleSelect = (qIndex, optIndex) => {
+                if (score !== null) return; // 交卷後鎖定不能改
+                setAnswers(prev => ({ ...prev, [qIndex]: optIndex }));
+            };
+
+            const submitQuiz = () => {
+                let s = 0;
+                quizData.forEach((q, i) => {
+                    if (answers[i] === q.ans) s += 20; // 每題 20 分
+                });
+                setScore(s);
+            };
+
+            const resetQuiz = () => {
+                setQuizData(generateQuestions());
+                setAnswers({});
+                setScore(null);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const allAnswered = Object.keys(answers).length === quizData.length;
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="text-center space-y-2 mb-8">
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800">第六關：終極實戰測驗</h2>
+                        <p className="text-gray-600">全部答對才算真正學會！善用右側的計算紙，開始挑戰吧！</p>
+                    </div>
+
+                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl mb-6 shadow-sm">
+                        <h3 className="font-bold text-yellow-800 flex items-center mb-1">
+                            <Icons.AlertCircle className="w-5 h-5 mr-2" /> 實戰常見陷阱 (作答前看清楚！)
+                        </h3>
+                        <ul className="list-disc list-inside text-sm text-yellow-900 space-y-1 ml-2">
+                            <li><strong>看清題目問什麼：</strong>問的是「利息」還是「本利和(總金額)」？</li>
+                            <li><strong>不要搞混玩法：</strong>「單利」跟「複利」公式不同，定期定額別忘了算多筆！</li>
+                        </ul>
+                    </div>
+
+                    {/* 雙欄排版：左邊測驗區，右邊數位計算紙 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+                        {/* 左側測驗區 */}
+                        <div className="lg:col-span-2 space-y-6">
+                            {quizData.map((q, index) => (
+                                <div key={index} className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200">
+                                    <div className="flex flex-col sm:flex-row sm:items-start mb-4">
+                                        <span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded inline-block w-max mb-2 sm:mb-0 sm:mr-3 flex-shrink-0">
+                                            {q.type}
+                                        </span>
+                                        <h4 className="font-bold text-gray-800 text-lg leading-relaxed">
+                                            {index + 1}. {q.q}
+                                        </h4>
+                                    </div>
+
+                                    <div className="space-y-2 sm:pl-16">
+                                        {q.opts.map((opt, oIdx) => {
+                                            const isSelected = answers[index] === oIdx;
+                                            const isCorrect = q.ans === oIdx;
+                                            const isSubmitted = score !== null;
+
+                                            let baseClass = "flex items-center p-3 border rounded-xl transition ";
+                                            if (!isSubmitted) {
+                                                baseClass += `cursor-pointer ${isSelected ? "bg-blue-50 border-blue-500 ring-2 ring-blue-500" : "hover:bg-gray-50 border-gray-200"}`;
+                                            } else {
+                                                baseClass += "cursor-default ";
+                                                if (isCorrect) {
+                                                    baseClass += "bg-green-100 border-green-500 ring-2 ring-green-500 text-green-900 font-bold";
+                                                } else if (isSelected && !isCorrect) {
+                                                    baseClass += "bg-red-50 border-red-500 ring-2 ring-red-500 text-red-900";
+                                                } else {
+                                                    baseClass += "bg-gray-50 border-gray-200 opacity-60";
+                                                }
+                                            }
+
+                                            const labelLetter = ['A', 'B', 'C', 'D'][oIdx];
+
+                                            return (
+                                                <div key={oIdx} onClick={() => handleSelect(index, oIdx)} className={baseClass}>
+                                                    <span className={`w-7 h-7 flex items-center justify-center rounded-full mr-3 text-sm font-bold flex-shrink-0 ${isSubmitted ? (isCorrect ? 'bg-green-500 text-white shadow-sm' : (isSelected ? 'bg-red-500 text-white shadow-sm' : 'bg-gray-300 text-gray-600'))
+                                                            : (isSelected ? 'bg-blue-500 text-white shadow-sm' : 'bg-gray-200 text-gray-600')
+                                                        }`}>{labelLetter}</span>
+                                                    <span className={isSubmitted && isCorrect ? "font-bold" : ""}>{opt}</span>
+                                                    {isSubmitted && isCorrect && <Icons.CheckCircle2 className="w-5 h-5 ml-auto text-green-600" />}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+
+                                    {/* 交卷後顯示的詳解區塊 */}
+                                    {score !== null && (
+                                        <div className="mt-5 sm:ml-16 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg slide-in-from-bottom">
+                                            <p className="font-bold text-green-800 text-sm mb-1 flex items-center">
+                                                <Icons.BookOpen className="w-4 h-4 mr-1" /> 老師來解題：
+                                            </p>
+                                            <p className="text-sm text-green-900 leading-relaxed">{q.exp}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
+                            {/* 交卷與成績區塊 (放置在左側題目底部) */}
+                            {score === null ? (
+                                <div className="pt-4 flex justify-center">
+                                    <button onClick={submitQuiz} disabled={!allAnswered} className="w-full max-w-md bg-gray-900 hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 rounded-full transition shadow-xl hover:scale-[1.02] active:scale-95 text-lg flex justify-center items-center">
+                                        {allAnswered ? "交卷看成績！" : "還有題目未作答喔"}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className={`p-8 rounded-2xl text-center zoom-in shadow-lg ${score === 100 ? 'bg-gradient-to-br from-green-100 to-emerald-50 border-2 border-green-300' : 'bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300'}`}>
+                                    <h4 className="text-3xl font-black mb-3 flex justify-center items-center text-gray-800">
+                                        {score === 100 ? <><span className="text-4xl mr-2">🏆</span> 完美通關！太神啦！</> : <><span className="text-4xl mr-2">💪</span> 再接再厲，快看詳解訂正！</>}
+                                    </h4>
+                                    <p className="font-bold text-2xl mb-6">
+                                        你的得分是：<span className={score === 100 ? "text-green-600 text-5xl" : "text-orange-600 text-5xl"}>{score}</span> 分
+                                    </p>
+
+                                    <button onClick={resetQuiz} className="bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-300 font-bold py-3 px-8 rounded-full transition-all shadow-sm active:scale-95 flex items-center mx-auto">
+                                        🔄 再挑戰一次 (題目會刷新喔)
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 右側：數位計算紙 (Sticky 浮動固定) */}
+                        <div className="lg:col-span-1 sticky top-24 z-10">
+                            <Scratchpad />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-start mt-8">
+                        <button onClick={prevStep} className="text-gray-500 hover:text-gray-800 font-medium py-2 px-4 rounded-full transition flex items-center">
+                            <Icons.ChevronLeft className="mr-1 w-5 h-5" /> 回上一關複習
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主應用程式 ---
+        function App() {
+            const [step, setStep] = useState(1);
+
+            // 每次切換關卡時自動滾動回頂部
+            useEffect(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, [step]);
+
+            const renderStep = () => {
+                switch (step) {
+                    case 1: return <ConceptIntro nextStep={() => setStep(2)} />;
+                    case 2: return <SimpleInterest prevStep={() => setStep(1)} nextStep={() => setStep(3)} />;
+                    case 3: return <CompoundInterest prevStep={() => setStep(2)} nextStep={() => setStep(4)} />;
+                    case 4: return <ComparisonChart prevStep={() => setStep(3)} nextStep={() => setStep(5)} />;
+                    case 5: return <RegularSavingsComparison prevStep={() => setStep(4)} nextStep={() => setStep(6)} />;
+                    case 6: return <QuizAndTraps prevStep={() => setStep(5)} />;
+                    default: return <ConceptIntro nextStep={() => setStep(2)} />;
+                }
+            };
+
+            const stepsInfo = ['基本觀念', '單利存錢', '複利時光機', '單筆對決', '定期定額', '實戰測驗'];
+
+            return (
+                <div className="min-h-screen pb-12">
+                    {/* 頂部導航條 */}
+                    <header className="bg-white shadow-sm sticky top-0 z-50">
+                        <div className="max-w-4xl mx-auto px-2 sm:px-4 py-3 flex flex-col sm:flex-row justify-between items-center">
+                            <h1 className="text-lg sm:text-xl font-black text-indigo-900 flex items-center mb-3 sm:mb-0 cursor-pointer" onClick={() => setStep(1)}>
+                                <Icons.PiggyBank className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-500" />
+                                利息與複利的奧秘
+                            </h1>
+
+                            {/* 進度條 */}
+                            <div className="flex items-center space-x-1">
+                                {stepsInfo.map((name, i) => {
+                                    const current = step === i + 1;
+                                    const passed = step > i + 1;
+                                    return (
+                                        <Fragment key={i}>
+                                            <div onClick={() => setStep(i + 1)} className="flex flex-col items-center cursor-pointer group">
+                                                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 group-hover:scale-110 ${current ? 'bg-indigo-600 text-white shadow-md ring-2 sm:ring-4 ring-indigo-100' :
+                                                        passed ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+                                                    {passed ? <Icons.CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" /> : i + 1}
+                                                </div>
+                                                <span className={`text-[9px] sm:text-[10px] mt-1 transition-colors whitespace-nowrap ${current ? 'font-bold text-indigo-700' : 'text-gray-400 group-hover:text-indigo-400'
+                                                    }`}>{name}</span>
+                                            </div>
+                                            {i < stepsInfo.length - 1 && (
+                                                <div className={`h-[2px] w-3 sm:w-4 -mt-4 transition-colors duration-500 ${passed ? 'bg-indigo-300' : 'bg-gray-200'}`}></div>
+                                            )}
+                                        </Fragment>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* 主要內容區 */}
+                    <main className="max-w-6xl mx-auto px-4 py-8">
+                        {renderStep()}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

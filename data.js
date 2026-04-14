@@ -200,5 +200,14 @@ window.MATH_TOOLS_DATA = [
     "link": "sector_area.html",
     "icon": "CircleGauge",
     "color": "blue"
+  },
+  {
+    "id": "tool_1776134271607",
+    "title": "利息與複利的奧秘",
+    "grade": "六年級",
+    "description": "透過視覺化圖表、互動拉桿、生活化例題與動態算式解析，降低學生學習「單利」、「複利」及「定期定額」概念的認知門檻。系統內建隨機化測驗與數位計算紙，提供閉環式的學習體驗。",
+    "link": "interest_rate.html",
+    "icon": "Rat",
+    "color": "orange"
   }
 ];
