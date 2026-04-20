@@ -209,5 +209,14 @@ window.MATH_TOOLS_DATA = [
     "link": "interest_rate.html",
     "icon": "Rat",
     "color": "orange"
+  },
+  {
+    "id": "tool_1776665430416",
+    "title": "柱體表面積互動學習系統",
+    "grade": "六年級",
+    "description": "一個具備高度互動性、即時視覺回饋及適性化測驗的單頁式網頁應用程式（SPA）。透過幾何教學策略，協助學生從具象的 3D 立體圖形拆解，過渡到抽象的 2D 表面積計算，並輔以內建的指令列運算工具，降低計算認知負載，專注於幾何邏輯思考。\n本系統分為五大核心模組：\n1️⃣核心觀念 (Concept)\n2️⃣互動探索 (Interactive)\n3️⃣逐步教學 (Steps)\n4️⃣進階應用 (Advanced)\n5️⃣自我測驗 (Quiz)",
+    "link": "cylinder_surface_area.html",
+    "icon": "Cylinder",
+    "color": "blue"
   }
 ];

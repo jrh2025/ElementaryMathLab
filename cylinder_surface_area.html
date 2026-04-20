@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>柱體表面積互動學習系統</title>
+
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 引入 React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- 引入 Babel 為了在瀏覽器解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 selection:bg-blue-200">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 圖示 SVG 元件 ---
+        const Icon = ({ children, size = 24, className = '' }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+        const Scissors = (p) => <Icon {...p}><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></Icon>;
+        const BookOpen = (p) => <Icon {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></Icon>;
+        const Calculator = (p) => <Icon {...p}><rect x="4" y="2" width="16" height="20" rx="2" ry="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="14.01" /><line x1="16" y1="10" x2="16" y2="10.01" /><line x1="16" y1="18" x2="16" y2="18.01" /><line x1="12" y1="14" x2="12" y2="14.01" /><line x1="12" y1="10" x2="12" y2="10.01" /><line x1="12" y1="18" x2="12" y2="18.01" /><line x1="8" y1="14" x2="8" y2="14.01" /><line x1="8" y1="10" x2="8" y2="10.01" /><line x1="8" y1="18" x2="8" y2="18.01" /></Icon>;
+        const Layers = (p) => <Icon {...p}><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 12 12 17 22 12" /><polyline points="2 17 12 22 22 17" /></Icon>;
+        const Target = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></Icon>;
+        const CheckCircle = (p) => <Icon {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></Icon>;
+        const Info = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></Icon>;
+        const RefreshCw = (p) => <Icon {...p}><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></Icon>;
+        const MoveRight = (p) => <Icon {...p}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></Icon>;
+        const BoxIcon = (p) => <Icon {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></Icon>;
+        const Maximize = (p) => <Icon {...p}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" /></Icon>;
+        const TerminalIcon = (p) => <Icon {...p}><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></Icon>;
+        const TrashIcon = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></Icon>;
+        const XIcon = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>;
+        const AwardIcon = (p) => <Icon {...p}><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></Icon>;
+        const XCircleIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></Icon>;
+
+        // --- 共用 UI 元件 ---
+        const Card = ({ children, className = '' }) => (
+            <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
+                {children}
+            </div>
+        );
+
+        const SectionTitle = ({ icon: IconComponent, title, subtitle }) => (
+            <div className="mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+                        <IconComponent size={24} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
+                </div>
+                {subtitle && <p className="text-slate-600 ml-12">{subtitle}</p>}
+            </div>
+        );
+
+        const StepReveal = ({ stepNum, title, children, isRevealed, onReveal }) => (
+            <div className={`border-l-4 transition-all duration-500 ${isRevealed ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 bg-slate-50'} p-4 rounded-r-xl mb-4`}>
+                <div className="flex justify-between items-center cursor-pointer" onClick={onReveal}>
+                    <div className="flex items-center gap-3">
+                        <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${isRevealed ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                            {stepNum}
+                        </div>
+                        <h3 className={`font-semibold ${isRevealed ? 'text-blue-800' : 'text-slate-600'}`}>{title}</h3>
+                    </div>
+                    {!isRevealed && (
+                        <button className="px-4 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-full text-sm font-medium transition-colors">
+                            顯示步驟
+                        </button>
+                    )}
+                </div>
+                {isRevealed && (
+                    <div className="mt-4 ml-11 text-slate-700 animate-fade-in">
+                        {children}
+                    </div>
+                )}
+            </div>
+        );
+
+        // --- 數位計算紙 (Scratchpad) UI 元件 ---
+        const Scratchpad = () => {
+            const [history, setHistory] = useState([]);
+            const [input, setInput] = useState('');
+
+            const parseAndEvaluate = (expr) => {
+                try {
+                    if (!expr.trim()) return null;
+                    let parsed = expr;
+                    parsed = parsed.replace(/[xX×]/g, '*');
+                    parsed = parsed.replace(/([0-9.]+)\s*%/g, '($1/100)');
+                    parsed = parsed.replace(/\^/g, '**');
+                    parsed = parsed.replace(/pi|π/ig, '3.14');
+                    parsed = parsed.replace(/sqrt/ig, 'Math.sqrt');
+
+                    const result = new Function(`return ${parsed}`)();
+                    return Number.isFinite(result) ? Math.round(result * 10000) / 10000 : result;
+                } catch (error) {
+                    return 'Error';
+                }
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    const res = parseAndEvaluate(input);
+                    if (res !== null) {
+                        setHistory([...history, { id: Date.now(), expr: input, result: res }]);
+                        setInput('');
+                    }
+                }
+            };
+
+            const deleteItem = (id) => {
+                setHistory(history.filter(item => item.id !== id));
+            };
+
+            return (
+                <div className="flex flex-col h-[500px] lg:h-[600px] bg-slate-900 rounded-xl border border-slate-700 shadow-lg overflow-hidden font-mono">
+                    <div className="flex justify-between items-center bg-slate-800 px-4 py-3 border-b border-slate-700">
+                        <div className="flex items-center gap-2 text-slate-300 text-sm font-bold">
+                            <TerminalIcon size={18} className="text-green-400" /> 數位計算紙
+                        </div>
+                        <button onClick={() => setHistory([])} className="text-slate-400 hover:text-red-400 text-xs flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-slate-700" title="清空緩衝區">
+                            <TrashIcon size={14} /> 清空
+                        </button>
+                    </div>
+
+                    <div className="flex-1 p-4 overflow-y-auto space-y-3 text-sm flex flex-col">
+                        {history.length === 0 && (
+                            <div className="text-slate-500 text-xs leading-relaxed mt-2 select-none">
+                    // 支援運算子: +, -, *, /, ^(次方), %(百分比)<br />
+                    // 支援括號: ( )<br />
+                    // 特殊符號: pi 或 π, sqrt(x)<br />
+                    // 輸入算式並按下 Enter 執行<br />
+                    // <br />
+                    // 範例: <br />
+                    // {'>'} 2 * 3.14 * 5<br />
+                    // {'>'} 5^2 + 12^2<br />
+                    // {'>'} sqrt(169)
+                            </div>
+                        )}
+                        {history.map(item => (
+                            <div key={item.id} className="group flex justify-between items-start hover:bg-slate-800/80 p-2 -mx-2 rounded transition-colors">
+                                <div className="text-slate-300 break-all font-medium">
+                                    <span className="text-green-400 mr-2">{'>'}</span>{item.expr}
+                                    <br />
+                                    <span className="text-yellow-300 ml-5 block mt-1">= {item.result}</span>
+                                </div>
+                                <button onClick={() => deleteItem(item.id)} className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1" title="刪除此行">
+                                    <XIcon size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="p-3 bg-slate-800 border-t border-slate-700 flex items-center gap-3">
+                        <span className="text-green-400 font-bold text-lg">{'>'}</span>
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            className="flex-1 bg-transparent text-slate-200 outline-none placeholder-slate-600 font-mono text-base w-full"
+                            placeholder="列式並按 Enter..."
+                            autoComplete="off"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主要內容模組 ---
+
+        // 1. 核心觀念 (展開圖動畫)
+        const ConceptSection = () => {
+            const [unfoldProgress, setUnfoldProgress] = useState(0);
+            const [unfoldShape, setUnfoldShape] = useState('cylinder');
+
+            const t = unfoldProgress / 100;
+            const cylW = 80 + (160 * t);
+            const cylRy = Math.max(0.01, 15 * (1 - t));
+            const lidRy = 15 + (25 * t);
+            const topCy = 100 - (40 * t);
+            const bottomCy = 200 + (40 * t);
+
+            return (
+                <div className="space-y-6">
+                    <SectionTitle icon={Scissors} title="核心觀念：拆解包裝紙 (展開圖法)" subtitle="所有的柱體，展開後都會由「兩個平行的底面」與「一個長方形(或組合)的側面」組成。" />
+
+                    <Card className="p-6">
+                        <div className="flex flex-col lg:flex-row gap-8 items-center">
+                            <div className="flex-1 space-y-4">
+                                <h3 className="text-xl font-bold text-slate-800 mb-2">通用公式</h3>
+                                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center">
+                                    <p className="text-2xl font-bold text-blue-600 mb-2">總表面積 = 側面積 + (底面積 × 2)</p>
+                                    <p className="text-lg text-slate-600 font-mono">A = L + 2B</p>
+                                </div>
+                                <ul className="space-y-3 mt-4 text-slate-700">
+                                    <li className="flex gap-2"><CheckCircle className="text-green-500 shrink-0" size={20} /> <span><strong>底面積 (B)：</strong>上下兩個形狀完全相同且平行的面。</span></li>
+                                    <li className="flex gap-2"><CheckCircle className="text-green-500 shrink-0" size={20} /> <span><strong>側面積 (L)：</strong>展開後永遠是一個長方形或多個長方形的組合。</span></li>
+                                    <li className="flex gap-2 bg-yellow-50 p-3 rounded-lg border border-yellow-200"><Info className="text-yellow-600 shrink-0" size={20} /> <span><strong>關鍵密碼：</strong>側面積展開的總長度 = <strong>底面的周長</strong>；側面積的寬度 = <strong>柱體的高度</strong>。</span></li>
+                                </ul>
+                            </div>
+
+                            <div className="flex-1 flex flex-col items-center bg-blue-50 p-6 rounded-xl w-full">
+                                <div className="flex gap-2 mb-4">
+                                    {['cylinder', 'cube', 'box'].map((shapeType) => (
+                                        <button
+                                            key={shapeType}
+                                            onClick={() => { setUnfoldShape(shapeType); setUnfoldProgress(0); }}
+                                            className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors ${unfoldShape === shapeType ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-blue-600 hover:bg-blue-100'
+                                                }`}
+                                        >
+                                            {shapeType === 'cylinder' ? '圓柱體' : shapeType === 'cube' ? '正方體' : '長方體'}
+                                        </button>
+                                    ))}
+                                </div>
+                                <h4 className="font-semibold text-blue-800 mb-4">
+                                    互動觀察：{unfoldShape === 'cylinder' ? '圓柱體' : unfoldShape === 'cube' ? '正方體' : '長方體'}真實拆解過程
+                                </h4>
+                                <div className="relative w-full h-64 flex items-center justify-center mb-4 border-2 border-dashed border-blue-200 bg-white rounded-xl overflow-hidden shadow-inner">
+                                    <svg viewBox="0 0 400 300" className="w-full h-full">
+                                        <defs>
+                                            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" strokeWidth="1" />
+                                            </pattern>
+                                        </defs>
+                                        <rect width="100%" height="100%" fill="url(#grid)" />
+
+                                        <g strokeLinejoin="round">
+                                            {unfoldShape === 'cylinder' && (
+                                                <>
+                                                    {t < 0.9 && <path d={`M ${200 - cylW / 2} 200 A ${cylW / 2} ${cylRy} 0 0 1 ${200 + cylW / 2} 200`} fill="none" stroke="#2563eb" strokeWidth="2" strokeDasharray="4 4" opacity={1 - t * 1.2} />}
+                                                    {t < 1 && <path d={`M ${200 - cylW / 2} 100 A ${cylW / 2} ${cylRy} 0 0 1 ${200 + cylW / 2} 100`} fill="none" stroke="#2563eb" strokeWidth="2" opacity={1 - t} />}
+                                                    <path d={`
+                                M ${200 - cylW / 2} 100
+                                A ${cylW / 2} ${cylRy} 0 0 0 ${200 + cylW / 2} 100
+                                L ${200 + cylW / 2} 200
+                                A ${cylW / 2} ${cylRy} 0 0 1 ${200 - cylW / 2} 200
+                                Z
+                              `} fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" />
+                                                    <ellipse cx="200" cy={topCy} rx="40" ry={lidRy} fill="#93c5fd" stroke="#2563eb" strokeWidth="2" />
+                                                    <ellipse cx="200" cy={bottomCy} rx="40" ry={lidRy} fill="#93c5fd" stroke="#2563eb" strokeWidth="2" />
+
+                                                    {t > 0.8 && (
+                                                        <g className="animate-fade-in">
+                                                            <text x="200" y={topCy - 5} textAnchor="middle" alignmentBaseline="middle" fontSize="12" fill="#1e3a8a" fontWeight="bold">底面積</text>
+                                                            <text x="200" y={bottomCy + 5} textAnchor="middle" alignmentBaseline="middle" fontSize="12" fill="#1e3a8a" fontWeight="bold">底面積</text>
+                                                            <text x="200" y="150" textAnchor="middle" fontSize="12" fill="#1e3a8a" fontWeight="bold">側面積</text>
+                                                            <text x="200" y="115" textAnchor="middle" fontSize="10" fill="#1e40af">展開長度 = 底面圓周長</text>
+                                                        </g>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {unfoldShape === 'cube' && (
+                                                <>
+                                                    <polygon points={`${250 + 25 * t},${100 + 25 * t} ${250 + 75 * t},${100 + 25 * t} ${250 + 75 * t},${150 + 25 * t} ${250 + 25 * t},${150 + 25 * t}`} fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points={`175,175 225,175 225,${175 + 50 * t} 175,${175 + 50 * t}`} fill="#93c5fd" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points={`175,125 175,175 ${175 - 50 * t},175 ${175 - 50 * t},125`} fill="#60a5fa" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points={`225,125 ${250 + 25 * t},${100 + 25 * t} ${250 + 25 * t},${150 + 25 * t} 225,175`} fill="#60a5fa" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points={`175,125 ${200 - 25 * t},${100 - 25 * t} ${250 - 25 * t},${100 - 25 * t} 225,125`} fill="#93c5fd" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points="175,125 225,125 225,175 175,175" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" />
+                                                    {t > 0.8 && (
+                                                        <text x="200" y="30" textAnchor="middle" fontSize="12" fill="#1e3a8a" fontWeight="bold" className="animate-fade-in">6 個完全相等的正方形</text>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {unfoldShape === 'box' && (
+                                                <>
+                                                    <polygon points={`280,${95 + 30 * t} ${280 + 100 * t},${95 + 30 * t} ${280 + 100 * t},${145 + 30 * t} 280,${145 + 30 * t}`} fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points={`150,175 250,175 250,${175 + 30 * t} 150,${175 + 30 * t}`} fill="#93c5fd" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points={`150,125 150,175 ${150 - 30 * t},175 ${150 - 30 * t},125`} fill="#60a5fa" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points={`250,125 280,${95 + 30 * t} 280,${145 + 30 * t} 250,175`} fill="#60a5fa" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points={`150,125 ${180 - 30 * t},95 ${280 - 30 * t},95 250,125`} fill="#93c5fd" stroke="#2563eb" strokeWidth="2" />
+                                                    <polygon points="150,125 250,125 250,175 150,175" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" />
+                                                </>
+                                            )}
+                                        </g>
+                                    </svg>
+                                </div>
+                                <div className="w-full flex items-center gap-4">
+                                    <span className="text-sm font-medium text-slate-500">立體</span>
+                                    <input
+                                        type="range"
+                                        min="0" max="100"
+                                        value={unfoldProgress}
+                                        onChange={(e) => setUnfoldProgress(Number(e.target.value))}
+                                        className="flex-1 accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <span className="text-sm font-medium text-slate-500">展開</span>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            );
+        };
+
+        // 2. 互動探索 (動態公式與計算)
+        const InteractiveExplorer = () => {
+            const [shape, setShape] = useState('cylinder');
+            const [r, setR] = useState(5);
+            const [h, setH] = useState(10);
+            const [l, setL] = useState(6);
+            const [w, setW] = useState(4);
+
+            const PI = Math.PI;
+
+            const renderCylinderNet = () => {
+                const sW = 2 * PI * r;
+                const maxW = Math.max(sW, 2 * r);
+                const maxH = h + 4 * r;
+                const scale = Math.min(180 / maxW, 180 / maxH);
+                const dw = sW * scale;
+                const dh = h * scale;
+                const dr = r * scale;
+                const cx = 100;
+                const cy = 100;
+
+                return (
+                    <svg viewBox="0 0 200 200" className="w-full h-48 bg-slate-900 rounded-lg mb-4 shadow-inner">
+                        <rect x={cx - dw / 2} y={cy - dh / 2} width={dw} height={dh} fill="#bfdbfe" stroke="#3b82f6" strokeWidth="1" />
+                        <circle cx={cx} cy={cy - dh / 2 - dr} r={dr} fill="#93c5fd" stroke="#3b82f6" strokeWidth="1" />
+                        <circle cx={cx} cy={cy + dh / 2 + dr} r={dr} fill="#93c5fd" stroke="#3b82f6" strokeWidth="1" />
+                        <text x={cx} y={cy} textAnchor="middle" alignmentBaseline="middle" fontSize="12" fill="#1e3a8a">側面積</text>
+                        <text x={cx} y={cy - dh / 2 - dr} textAnchor="middle" alignmentBaseline="middle" fontSize="10" fill="#1e3a8a">上底</text>
+                    </svg>
+                );
+            };
+
+            const renderBoxNet = () => {
+                const maxW = l + 2 * w;
+                const maxH = 2 * h + 2 * w;
+                const scale = Math.min(180 / maxW, 180 / maxH);
+                const sl = l * scale;
+                const sw = w * scale;
+                const sh = h * scale;
+                const cx = 100;
+                const cy = 100 - (sh + sw) / 2;
+
+                return (
+                    <svg viewBox="0 0 200 200" className="w-full h-48 bg-slate-900 rounded-lg mb-4 shadow-inner">
+                        <rect x={cx - sl / 2} y={cy} width={sl} height={sh} fill="#bfdbfe" stroke="#3b82f6" strokeWidth="1" />
+                        <rect x={cx - sl / 2} y={cy - sw} width={sl} height={sw} fill="#93c5fd" stroke="#3b82f6" strokeWidth="1" />
+                        <rect x={cx - sl / 2} y={cy + sh} width={sl} height={sw} fill="#93c5fd" stroke="#3b82f6" strokeWidth="1" />
+                        <rect x={cx - sl / 2} y={cy + sh + sw} width={sl} height={sh} fill="#bfdbfe" stroke="#3b82f6" strokeWidth="1" />
+                        <rect x={cx - sl / 2 - sw} y={cy} width={sw} height={sh} fill="#60a5fa" stroke="#3b82f6" strokeWidth="1" />
+                        <rect x={cx + sl / 2} y={cy} width={sw} height={sh} fill="#60a5fa" stroke="#3b82f6" strokeWidth="1" />
+                    </svg>
+                );
+            };
+
+            return (
+                <div className="space-y-6">
+                    <SectionTitle icon={Calculator} title="互動計算機：即時觀察公式與圖形變化" subtitle="拖曳滑桿改變長度，觀察右側展開圖的比例，以及表面積數值是如何被計算出來的。" />
+
+                    <Card>
+                        <div className="border-b border-slate-200 flex overflow-x-auto">
+                            <button
+                                className={`px-6 py-4 font-semibold text-sm transition-colors ${shape === 'cylinder' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-slate-500 hover:bg-slate-50'}`}
+                                onClick={() => setShape('cylinder')}
+                            >
+                                圓柱體
+                            </button>
+                            <button
+                                className={`px-6 py-4 font-semibold text-sm transition-colors ${shape === 'box' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-slate-500 hover:bg-slate-50'}`}
+                                onClick={() => setShape('box')}
+                            >
+                                長方體
+                            </button>
+                        </div>
+
+                        <div className="p-6 grid md:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <MoveRight className="text-blue-500" /> 調整參數
+                                </h3>
+
+                                {shape === 'cylinder' ? (
+                                    <>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <label className="font-medium text-slate-700">底面半徑 (r) : {r} cm</label>
+                                            </div>
+                                            <input type="range" min="2" max="15" value={r} onChange={(e) => setR(Number(e.target.value))} className="w-full accent-blue-600" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <label className="font-medium text-slate-700">柱體高度 (h) : {h} cm</label>
+                                            </div>
+                                            <input type="range" min="5" max="30" value={h} onChange={(e) => setH(Number(e.target.value))} className="w-full accent-blue-600" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="font-medium text-slate-700 flex justify-between">長 (a) : {l} cm</label>
+                                            <input type="range" min="2" max="20" value={l} onChange={(e) => setL(Number(e.target.value))} className="w-full accent-blue-600" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="font-medium text-slate-700 flex justify-between">寬 (b) : {w} cm</label>
+                                            <input type="range" min="2" max="20" value={w} onChange={(e) => setW(Number(e.target.value))} className="w-full accent-blue-600" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="font-medium text-slate-700 flex justify-between">高 (h) : {h} cm</label>
+                                            <input type="range" min="2" max="30" value={h} onChange={(e) => setH(Number(e.target.value))} className="w-full accent-blue-600" />
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <h4 className="font-bold text-yellow-800 mb-2">📌 試試看：</h4>
+                                    <p className="text-sm text-yellow-700">一邊拖曳數值，一邊觀察右上方動態產生的<strong>展開圖比例</strong>，幫助您「驗證」算式中的每一個區塊！</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-800 text-white rounded-xl p-6 shadow-inner relative overflow-hidden flex flex-col">
+                                <h3 className="text-xl font-bold mb-4 text-blue-300 border-b border-slate-700 pb-2">視覺驗證與計算</h3>
+
+                                {shape === 'cylinder' ? renderCylinderNet() : renderBoxNet()}
+
+                                {shape === 'cylinder' ? (
+                                    <div className="space-y-4 font-mono text-sm lg:text-base mt-2">
+                                        <div className="opacity-90">
+                                            <p className="text-slate-400">1. 求底面積 (B = πr²)</p>
+                                            <p>B = π × {r}² = <span className="text-green-400 font-bold">{r * r}π</span></p>
+                                        </div>
+                                        <div className="opacity-90">
+                                            <p className="text-slate-400">2. 求底面周長 (C = 2πr)</p>
+                                            <p>C = 2 × π × {r} = <span className="text-yellow-400">{2 * r}π</span></p>
+                                        </div>
+                                        <div className="opacity-90">
+                                            <p className="text-slate-400">3. 求側面積 (L = C × h)</p>
+                                            <p>L = {2 * r}π × {h} = <span className="text-purple-400 font-bold">{2 * r * h}π</span></p>
+                                        </div>
+                                        <div className="pt-4 mt-4 border-t border-slate-700">
+                                            <p className="text-slate-300 mb-1">4. 總表面積 = 側面積 + 2 × 底面積</p>
+                                            <p className="text-lg">
+                                                A = <span className="text-purple-400">{2 * r * h}π</span> + 2 × <span className="text-green-400">{r * r}π</span>
+                                            </p>
+                                            <p className="text-2xl font-bold text-blue-400 mt-2">
+                                                = {(2 * r * h) + 2 * (r * r)}π <span className="text-sm text-slate-400">cm²</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 font-mono text-sm lg:text-base mt-2">
+                                        <div className="opacity-90">
+                                            <p className="text-slate-400">1. 上下底面積 (2 × a × b)</p>
+                                            <p>2 × {l} × {w} = <span className="text-green-400 font-bold">{2 * l * w}</span></p>
+                                        </div>
+                                        <div className="opacity-90">
+                                            <p className="text-slate-400">2. 前後側面積 (2 × a × h)</p>
+                                            <p>2 × {l} × {h} = <span className="text-yellow-400 font-bold">{2 * l * h}</span></p>
+                                        </div>
+                                        <div className="opacity-90">
+                                            <p className="text-slate-400">3. 左右側面積 (2 × b × h)</p>
+                                            <p>2 × {w} × {h} = <span className="text-purple-400 font-bold">{2 * w * h}</span></p>
+                                        </div>
+                                        <div className="pt-4 mt-4 border-t border-slate-700">
+                                            <p className="text-slate-300 mb-1">4. 總表面積 (六個面相加)</p>
+                                            <p className="text-lg">
+                                                A = <span className="text-green-400">{2 * l * w}</span> + <span className="text-yellow-400">{2 * l * h}</span> + <span className="text-purple-400">{2 * w * h}</span>
+                                            </p>
+                                            <p className="text-2xl font-bold text-blue-400 mt-2">
+                                                = {(2 * l * w) + (2 * l * h) + (2 * w * h)} <span className="text-sm text-slate-400">cm²</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            );
+        };
+
+        // 3. 逐步學習 (SOP 流程)
+        const StepTutorial = () => {
+            const [revealed, setRevealed] = useState([false, false, false]);
+
+            const handleReveal = (index) => {
+                const newRevealed = [...revealed];
+                newRevealed[index] = true;
+                setRevealed(newRevealed);
+            };
+
+            const reset = () => setRevealed([false, false, false]);
+
+            return (
+                <div className="space-y-6">
+                    <SectionTitle icon={BookOpen} title="基礎範例：SOP 計算步驟" subtitle="透過標準作業程序 (SOP) 拆解題目，點擊按鈕逐步顯示計算過程與對應圖例。" />
+
+                    <Card className="p-6">
+                        <div className="bg-blue-50 p-4 rounded-xl mb-6 flex justify-between items-center">
+                            <div>
+                                <h3 className="font-bold text-blue-900 text-lg">📝 題目：直角三角柱</h3>
+                                <p className="text-blue-800 mt-1">
+                                    一個三角柱的高為 <strong>10 cm</strong>，底面是一個直角三角形（三邊長分別為 <strong>3 cm, 4 cm, 5 cm</strong>），求此柱體的總表面積。
+                                </p>
+                            </div>
+                            <button onClick={reset} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-semibold transition-colors">
+                                <RefreshCw size={16} /> 重新練習
+                            </button>
+                        </div>
+
+                        <StepReveal stepNum="1" title="計算底面積 (上下共兩個面)" isRevealed={revealed[0]} onReveal={() => handleReveal(0)}>
+                            <div className="flex flex-col md:flex-row gap-6 items-center mt-2">
+                                <div className="flex-1 w-full">
+                                    <p className="mb-2">直角三角形的面積 = (底 × 高) ÷ 2。直角邊為 3 和 4 (最長邊 5 為斜邊不作高)。</p>
+                                    <div className="bg-slate-100 p-3 rounded-lg font-mono text-lg border border-slate-200">
+                                        單一底面積 = (3 × 4) ÷ 2 = <span className="text-green-600 font-bold">6</span><br />
+                                        兩個底面積 = 6 × 2 = <span className="text-green-600 font-bold">12</span>
+                                    </div>
+                                </div>
+                                <div className="w-full md:w-1/3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-center">
+                                    <svg viewBox="0 0 160 120" className="w-full h-32">
+                                        <g transform="translate(20, 10)">
+                                            <polygon points="0,0 0,40 30,40" fill="#93c5fd" stroke="#2563eb" strokeWidth="2" strokeLinejoin="round" />
+                                            <polyline points="0,32 8,32 8,40" fill="none" stroke="#2563eb" strokeWidth="1.5" />
+                                            <text x="-12" y="25" fontSize="12" fill="#1e40af">4</text>
+                                            <text x="12" y="55" fontSize="12" fill="#1e40af">3</text>
+                                            <text x="20" y="20" fontSize="12" fill="#1e40af">5</text>
+                                        </g>
+                                        <g transform="translate(70, 60)">
+                                            <polygon points="0,0 0,40 30,40" fill="#93c5fd" stroke="#2563eb" strokeWidth="2" strokeLinejoin="round" />
+                                            <polyline points="0,32 8,32 8,40" fill="none" stroke="#2563eb" strokeWidth="1.5" />
+                                            <text x="-12" y="25" fontSize="12" fill="#1e40af">4</text>
+                                            <text x="12" y="55" fontSize="12" fill="#1e40af">3</text>
+                                            <text x="20" y="20" fontSize="12" fill="#1e40af">5</text>
+                                        </g>
+                                        <text x="120" y="65" fontSize="20" fontWeight="bold" fill="#1e3a8a"></text>
+                                    </svg>
+                                </div>
+                            </div>
+                        </StepReveal>
+
+                        <StepReveal stepNum="2" title="計算側面積 (周長 × 柱高)" isRevealed={revealed[1]} onReveal={() => handleReveal(1)}>
+                            <div className="flex flex-col md:flex-row gap-6 items-center mt-2">
+                                <div className="flex-1 w-full">
+                                    <p className="mb-2">先算出底面三角形的周長，再將展開後的「長度(周長)」乘以「寬度(柱高)」。</p>
+                                    <div className="bg-slate-100 p-3 rounded-lg font-mono text-lg border border-slate-200">
+                                        底面周長 = 3 + 4 + 5 = <span className="text-yellow-600 font-bold">12</span><br />
+                                        側面積 = 12 × 10 = <span className="text-yellow-600 font-bold">120</span>
+                                    </div>
+                                </div>
+                                <div className="w-full md:w-1/3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-center">
+                                    <svg viewBox="0 0 220 140" className="w-full h-32">
+                                        <line x1="15" y1="30" x2="15" y2="110" stroke="#64748b" strokeWidth="1" markerEnd="url(#arrow)" markerStart="url(#arrow)" />
+                                        <text x="-80" y="25" fontSize="12" fill="#475569" transform="rotate(-90)">高 = 10</text>
+                                        <g transform="translate(30, 30)">
+                                            <rect x="0" y="0" width="180" height="80" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" strokeLinejoin="round" />
+                                            <line x1="45" y1="0" x2="45" y2="80" stroke="#2563eb" strokeDasharray="4 4" />
+                                            <line x1="105" y1="0" x2="105" y2="80" stroke="#2563eb" strokeDasharray="4 4" />
+                                            <text x="22" y="-10" fontSize="12" fill="#1e40af">3</text>
+                                            <text x="75" y="-10" fontSize="12" fill="#1e40af">4</text>
+                                            <text x="142" y="-10" fontSize="12" fill="#1e40af">5</text>
+                                            <text x="90" y="45" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#1e3a8a">側面積 = 120</text>
+                                        </g>
+                                        <line x1="30" y1="125" x2="210" y2="125" stroke="#64748b" strokeWidth="1" markerEnd="url(#arrow)" markerStart="url(#arrow)" />
+                                        <text x="120" y="140" textAnchor="middle" fontSize="12" fill="#475569">周長 = 3 + 4 + 5 = 12</text>
+                                        <defs>
+                                            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+                                            </marker>
+                                        </defs>
+                                    </svg>
+                                </div>
+                            </div>
+                        </StepReveal>
+
+                        <StepReveal stepNum="3" title="總和：底面積 + 側面積" isRevealed={revealed[2]} onReveal={() => handleReveal(2)}>
+                            <div className="flex flex-col md:flex-row gap-6 items-center mt-2">
+                                <div className="flex-1 w-full">
+                                    <p className="mb-2">將步驟 1 與步驟 2 的結果相加，並記得補上正確的平方單位。</p>
+                                    <div className="bg-blue-100 border border-blue-200 p-4 rounded-xl font-mono text-xl text-blue-900 font-bold shadow-sm">
+                                        總表面積 = 12 + 120 = 132 cm²
+                                    </div>
+                                    <div className="mt-4 flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
+                                        <CheckCircle size={20} className="shrink-0" /> <span>恭喜！你已經掌握標準的解題 SOP，並能結合圖形理解每個數據的來源。</span>
+                                    </div>
+                                </div>
+                                <div className="w-full md:w-1/3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-center">
+                                    <svg viewBox="0 0 200 150" className="w-full h-32">
+                                        <g transform="translate(60, 20)">
+                                            {/* Top Face */}
+                                            <polygon points="20,40 60,40 80,20" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                            {/* Front Face */}
+                                            <polygon points="20,40 60,40 60,80 20,80" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                            {/* Right Face */}
+                                            <polygon points="60,40 80,20 80,60 60,80" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+
+                                            <text x="40" y="35" fontSize="10" fill="#1e3a8a">3</text>
+                                            <text x="75" y="35" fontSize="10" fill="#1e3a8a">4</text>
+                                            <text x="45" y="25" fontSize="10" fill="#1e3a8a">5</text>
+                                            <text x="85" y="55" fontSize="10" fill="#1e3a8a">h=10</text>
+                                        </g>
+                                        <text x="100" y="145" textAnchor="middle" fontSize="14" fill="#1e40af" fontWeight="bold">
+                                            底×2 + 側面積 = 總表面積
+                                        </text>
+                                    </svg>
+                                </div>
+                            </div>
+                        </StepReveal>
+                    </Card>
+                </div>
+            );
+        };
+
+        const PracticeWidget = ({ title, generateQuestion, renderQuestion, renderSolution, inputs, checkAnswer }) => {
+            const [data, setData] = useState(generateQuestion());
+            const [userAns, setUserAns] = useState(inputs.reduce((acc, curr) => ({ ...acc, [curr.key]: '' }), {}));
+            const [status, setStatus] = useState('idle');
+            const [showSol, setShowSol] = useState(false);
+
+            const handleCheck = () => {
+                if (checkAnswer(data, userAns)) setStatus('correct');
+                else setStatus('wrong');
+            };
+
+            const handleNext = () => {
+                setData(generateQuestion());
+                setUserAns(inputs.reduce((acc, curr) => ({ ...acc, [curr.key]: '' }), {}));
+                setStatus('idle');
+                setShowSol(false);
+            };
+
+            return (
+                <div className="bg-white border-2 border-indigo-100 rounded-xl overflow-hidden mt-6 shadow-sm">
+                    <div className="bg-indigo-50 px-5 py-3 border-b border-indigo-100 flex justify-between items-center">
+                        <h4 className="font-bold text-indigo-900 flex items-center gap-2">
+                            <Calculator size={18} /> {title}
+                        </h4>
+                        <button onClick={handleNext} className="text-indigo-600 hover:text-indigo-800 text-sm font-semibold flex items-center gap-1 transition-colors">
+                            <RefreshCw size={14} /> 換一題
+                        </button>
+                    </div>
+                    <div className="p-5">
+                        <div className="text-slate-700 mb-4 font-medium text-lg">
+                            {renderQuestion(data)}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 mb-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <span className="font-semibold text-slate-700">你的答案：</span>
+                            {inputs.map((input, idx) => (
+                                <React.Fragment key={input.key}>
+                                    {input.prefix && <span className="text-slate-600">{input.prefix}</span>}
+                                    <input
+                                        type="number"
+                                        className={`border-2 rounded-lg p-2 w-24 text-center font-bold focus:outline-none focus:border-indigo-500 transition-colors ${status === 'correct' ? 'border-green-400 bg-green-50 text-green-700' :
+                                            status === 'wrong' ? 'border-red-400 bg-red-50 text-red-700' : 'border-slate-300'
+                                            }`}
+                                        placeholder="數值"
+                                        value={userAns[input.key]}
+                                        onChange={(e) => {
+                                            setUserAns({ ...userAns, [input.key]: e.target.value });
+                                            setStatus('idle');
+                                        }}
+                                        disabled={status === 'correct' || showSol}
+                                    />
+                                    {input.suffix && <span className="text-slate-600 font-medium">{input.suffix}</span>}
+                                </React.Fragment>
+                            ))}
+
+                            <button
+                                onClick={handleCheck}
+                                disabled={status === 'correct' || showSol}
+                                className={`ml-2 px-4 py-2 rounded-lg font-bold text-white transition-colors ${status === 'correct' || showSol ? 'bg-slate-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                                    }`}
+                            >
+                                送出對答
+                            </button>
+                        </div>
+
+                        {status === 'correct' && (
+                            <div className="text-green-600 font-bold flex items-center gap-2 mb-4 animate-fade-in">
+                                <CheckCircle size={20} /> 答對了！非常完美！
+                            </div>
+                        )}
+                        {status === 'wrong' && (
+                            <div className="text-red-500 font-bold flex items-center gap-2 mb-4 animate-fade-in">
+                                😅 答案不對喔！請再檢查一下計算過程。
+                                <button onClick={() => setShowSol(true)} className="ml-2 text-sm text-indigo-600 hover:underline">偷看解析</button>
+                            </div>
+                        )}
+
+                        {(status === 'correct' || showSol) && (
+                            <div className="bg-slate-800 text-slate-200 p-5 rounded-xl font-mono text-sm space-y-2 animate-fade-in shadow-inner">
+                                <h5 className="text-indigo-300 font-bold border-b border-slate-700 pb-2 mb-3">📝 詳細解析</h5>
+                                {renderSolution(data)}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. 進階題型與生活應用
+        const AdvancedTopics = () => {
+            const [activeTab, setActiveTab] = useState('composite');
+
+            const tabs = [
+                { id: 'composite', label: '組合圖形 (疊加)' },
+                { id: 'hollow', label: '中空管狀' },
+                { id: 'life', label: '生活應用 (無蓋)' },
+                { id: 'reverse', label: '反推邊長' },
+                { id: 'ant', label: '幾何思考 (螞蟻題)' }
+            ];
+
+            return (
+                <div className="space-y-6">
+                    <SectionTitle icon={Layers} title="進階題型層次分析" subtitle="掌握變化題型，透過圖例觀察與隨機實戰演練，鍛鍊空間幾何的靈活度。" />
+
+                    <Card>
+                        <div className="flex overflow-x-auto border-b border-slate-200">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`whitespace-nowrap px-6 py-4 font-semibold text-sm transition-colors ${activeTab === tab.id ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-slate-500 hover:bg-slate-50'}`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="p-6 min-h-[600px] flex flex-col lg:flex-row gap-6 items-start">
+                            <div className="flex-1 overflow-hidden min-w-0">
+                                {activeTab === 'composite' && (
+                                    <div className="animate-fade-in space-y-6">
+                                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                                            <div className="flex-1 space-y-4">
+                                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                                    <BoxIcon className="text-indigo-500" /> 長方體上疊加圓柱
+                                                </h3>
+                                                <div className="bg-indigo-50 p-5 rounded-xl border border-indigo-100">
+                                                    <p className="font-semibold text-indigo-900 mb-2">💡 實例解說與捷徑：</p>
+                                                    <p className="text-indigo-800 mb-2">
+                                                        假設長方體為 10×8×5，上方放一個半徑 3、高 6 的圓柱。<br />
+                                                        傳統算法：算出兩者總表面積後，扣除「兩個重疊的圓面積」。
+                                                    </p>
+                                                    <p className="text-indigo-900 font-bold bg-white p-3 rounded-lg border border-indigo-200 shadow-sm">
+                                                        🚀 降維打擊捷徑：<br />
+                                                        因為圓柱的「頂面」剛好可以補足長方體被遮住的「底面洞」！<br />
+                                                        所以總表面積 = <span className="text-blue-600">長方體完整表面積</span> + <span className="text-purple-600">圓柱的側面積</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="w-full md:w-64 h-64 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center shrink-0 shadow-inner relative">
+                                                <svg viewBox="0 0 200 200" className="w-full h-full">
+                                                    <g transform="translate(10, 20)">
+                                                        <polygon points="90,80 170,40 90,0 10,40" fill="#93c5fd" stroke="#2563eb" strokeWidth="1.5" strokeLinejoin="round" />
+                                                        <polygon points="10,40 90,80 90,140 10,100" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1.5" strokeLinejoin="round" />
+                                                        <polygon points="90,80 170,40 170,100 90,140" fill="#60a5fa" stroke="#2563eb" strokeWidth="1.5" strokeLinejoin="round" />
+                                                    </g>
+                                                    <g transform="translate(100, 60)">
+                                                        <path d="M -20,0 L -20,-40 A 20,8 0 0 1 20,-40 L 20,0 Z" fill="#fcd34d" stroke="#d97706" strokeWidth="1.5" strokeLinejoin="round" />
+                                                        <ellipse cx="0" cy="0" rx="20" ry="8" fill="#fcd34d" stroke="#d97706" strokeWidth="1.5" />
+                                                        <ellipse cx="0" cy="-40" rx="20" ry="8" fill="#fde68a" stroke="#d97706" strokeWidth="1.5" />
+                                                        <path d="M 0,-40 Q 40,-60 60,-20" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="4 4" markerEnd="url(#arrow)" />
+                                                        <text x="65" y="-15" fontSize="10" fill="#ef4444" fontWeight="bold">補足底部的洞</text>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <PracticeWidget
+                                            title="隨機練習：組合圖形"
+                                            generateQuestion={() => {
+                                                const l = Math.floor(Math.random() * 6) + 5;
+                                                const w = Math.floor(Math.random() * 6) + 5;
+                                                const h1 = Math.floor(Math.random() * 5) + 3;
+                                                const r = Math.floor(Math.random() * Math.min(l, w) / 2) + 1;
+                                                const h2 = Math.floor(Math.random() * 6) + 4;
+                                                return { l, w, h1, r, h2 };
+                                            }}
+                                            renderQuestion={({ l, w, h1, r, h2 }) => (
+                                                <p>有一個長方體基座，長 <strong>{l}</strong> cm、寬 <strong>{w}</strong> cm、高 <strong>{h1}</strong> cm。<br />其正上方放置了一個底面半徑 <strong>{r}</strong> cm、高 <strong>{h2}</strong> cm 的圓柱體。<br />請計算此組合圖形的總表面積。（整數與帶 π 的部分請分開填寫）</p>
+                                            )}
+                                            inputs={[
+                                                { key: 'boxPart', prefix: '總表面積 = ' },
+                                                { key: 'cylPart', prefix: ' + ', suffix: ' π cm²' }
+                                            ]}
+                                            checkAnswer={(data, ans) => {
+                                                const boxSA = 2 * (data.l * data.w + data.l * data.h1 + data.w * data.h1);
+                                                const cylLat = 2 * data.r * data.h2;
+                                                return parseInt(ans.boxPart) === boxSA && parseInt(ans.cylPart) === cylLat;
+                                            }}
+                                            renderSolution={(data) => {
+                                                const boxSA = 2 * (data.l * data.w + data.l * data.h1 + data.w * data.h1);
+                                                const cylLat = 2 * data.r * data.h2;
+                                                return (
+                                                    <>
+                                                        <p>使用「捷徑算法」：總表面積 = 長方體完整表面積 + 圓柱側面積。</p>
+                                                        <p>1. <span className="text-blue-300">長方體完整表面積</span> = 2 × ({data.l}×{data.w} + {data.l}×{data.h1} + {data.w}×{data.h1}) = <strong>{boxSA}</strong></p>
+                                                        <p>2. <span className="text-yellow-300">圓柱側面積</span> = 2 × {data.r} × {data.h2} × π = <strong>{cylLat}π</strong></p>
+                                                        <p className="text-lg text-white mt-2">解答：<strong>{boxSA} + {cylLat}π</strong></p>
+                                                    </>
+                                                );
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
+                                {activeTab === 'hollow' && (
+                                    <div className="animate-fade-in space-y-6">
+                                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                                            <div className="flex-1 space-y-4">
+                                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                                    <Target className="text-indigo-500" /> 空心管狀 (水泥管)
+                                                </h3>
+                                                <p className="text-slate-600">
+                                                    <strong>觀念解析：</strong>空心管的表面積非常容易漏算！它其實包含了三個部分：<br />
+                                                    1. <strong>外側面積：</strong>外圍那圈最大的長方形。<br />
+                                                    2. <strong>內側面積：</strong>裡面洞孔的那一圈長方形。<br />
+                                                    3. <strong>上下環形底面：</strong>像甜甜圈一樣的形狀（大圓面積扣除小圓面積）。
+                                                </p>
+                                            </div>
+                                            <div className="w-full md:w-64 h-64 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center shrink-0 shadow-inner">
+                                                <svg viewBox="0 0 200 200" className="w-full h-full">
+                                                    <g transform="translate(100, 100)">
+                                                        <path d="M -30,60 A 30,12 0 0 1 30,60" fill="none" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 4" />
+                                                        <path d="M -60,-40 L -60,60 A 60,20 0 0 0 60,60 L 60,-40 Z" fill="#cbd5e1" stroke="#475569" strokeWidth="1.5" />
+                                                        <path d="M -60,60 A 60,20 0 0 0 60,60" fill="none" stroke="#475569" strokeWidth="1.5" />
+                                                        <path d="M -30,-40 L -30,60 A 30,12 0 0 0 30,60 L 30,-40 Z" fill="#f8fafc" stroke="#64748b" strokeWidth="1.5" />
+                                                        <ellipse cx="0" cy="-40" rx="60" ry="20" fill="#94a3b8" stroke="#475569" strokeWidth="1.5" />
+                                                        <ellipse cx="0" cy="-40" rx="30" ry="12" fill="#f8fafc" stroke="#475569" strokeWidth="1.5" />
+
+                                                        <line x1="60" y1="-40" x2="80" y2="-60" stroke="#ef4444" strokeWidth="1.5" />
+                                                        <text x="85" y="-60" fontSize="12" fill="#ef4444" fontWeight="bold">外側</text>
+                                                        <line x1="20" y1="20" x2="40" y2="40" stroke="#3b82f6" strokeWidth="1.5" />
+                                                        <text x="45" y="45" fontSize="12" fill="#3b82f6" fontWeight="bold">內側</text>
+                                                        <line x1="0" y1="-55" x2="0" y2="-80" stroke="#10b981" strokeWidth="1.5" />
+                                                        <text x="-15" y="-85" fontSize="12" fill="#10b981" fontWeight="bold">環形×2</text>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <PracticeWidget
+                                            title="隨機練習：空心圓柱"
+                                            generateQuestion={() => {
+                                                const R = Math.floor(Math.random() * 8) + 8;
+                                                const r = Math.floor(Math.random() * (R - 3)) + 2;
+                                                const h = Math.floor(Math.random() * 10) + 10;
+                                                return { R, r, h };
+                                            }}
+                                            renderQuestion={({ R, r, h }) => (
+                                                <p>一根空心塑膠管，長度 (高) 為 <strong>{h}</strong> cm，外圓半徑 <strong>{R}</strong> cm，內圓半徑 <strong>{r}</strong> cm。<br />請計算此空心管的總表面積。</p>
+                                            )}
+                                            inputs={[{ key: 'ans', prefix: '總表面積 = ', suffix: ' π cm²' }]}
+                                            checkAnswer={(data, ans) => {
+                                                const rings = 2 * (data.R * data.R - data.r * data.r);
+                                                const outL = 2 * data.R * data.h;
+                                                const inL = 2 * data.r * data.h;
+                                                return parseInt(ans.ans) === (rings + outL + inL);
+                                            }}
+                                            renderSolution={(data) => {
+                                                const rings = 2 * (data.R * data.R - data.r * data.r);
+                                                const outL = 2 * data.R * data.h;
+                                                const inL = 2 * data.r * data.h;
+                                                return (
+                                                    <>
+                                                        <p>1. <span className="text-green-300">上下環形底面</span>：2 × (大圓 - 小圓) = 2 × ({data.R}² - {data.r}²) = 2 × ({data.R * data.R} - {data.r * data.r}) = <strong>{rings}π</strong></p>
+                                                        <p>2. <span className="text-red-300">外側面積</span>：外周長 × 高 = 2 × {data.R} × {data.h} = <strong>{outL}π</strong></p>
+                                                        <p>3. <span className="text-blue-300">內側面積</span>：內周長 × 高 = 2 × {data.r} × {data.h} = <strong>{inL}π</strong></p>
+                                                        <p className="text-lg text-white mt-2">總和：{rings} + {outL} + {inL} = <strong>{rings + outL + inL}π</strong></p>
+                                                    </>
+                                                );
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
+                                {activeTab === 'life' && (
+                                    <div className="animate-fade-in space-y-6">
+                                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                                            <div className="flex-1 space-y-4">
+                                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                                    <Layers className="text-indigo-500" /> 無蓋蓄水池 / 玻璃魚缸
+                                                </h3>
+                                                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+                                                    <p className="text-red-800 font-bold mb-1">⚠️ 絕對要注意的陷阱：</p>
+                                                    <p className="text-red-700">
+                                                        題目若提到「無蓋」、「水池內部粉刷」、「敞口箱子」，意味著頂部沒有面。<br />
+                                                        因此，代入公式時，<strong>底面積只能算 1 個</strong>！
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="w-full md:w-64 h-64 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center shrink-0 shadow-inner">
+                                                <svg viewBox="0 0 200 200" className="w-full h-full">
+                                                    <g transform="translate(20, 30)">
+                                                        <polygon points="40,120 100,90 160,120 100,150" fill="#bae6fd" stroke="#0ea5e9" strokeWidth="1" strokeLinejoin="round" />
+                                                        <polygon points="40,60 100,30 100,90 40,120" fill="#e0f2fe" stroke="#0ea5e9" strokeWidth="1" strokeLinejoin="round" />
+                                                        <polygon points="100,30 160,60 160,120 100,90" fill="#7dd3fc" stroke="#0ea5e9" strokeWidth="1" strokeLinejoin="round" />
+                                                        <polygon points="40,60 100,90 100,150 40,120" fill="#38bdf8" fillOpacity="0.4" stroke="#0ea5e9" strokeWidth="1.5" strokeLinejoin="round" />
+                                                        <polygon points="100,90 160,60 160,120 100,150" fill="#0ea5e9" fillOpacity="0.4" stroke="#0ea5e9" strokeWidth="1.5" strokeLinejoin="round" />
+                                                        <polygon points="40,60 100,30 160,60 100,90" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="4 4" strokeLinejoin="round" />
+                                                        <text x="100" y="20" fontSize="12" fill="#ef4444" fontWeight="bold" textAnchor="middle">上方完全淨空 (無蓋)</text>
+                                                        <text x="100" y="125" fontSize="12" fill="#0369a1" fontWeight="bold" textAnchor="middle">內部僅有 5 個面</text>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <PracticeWidget
+                                            title="隨機練習：粉刷水池"
+                                            generateQuestion={() => {
+                                                const l = Math.floor(Math.random() * 6) + 4;
+                                                const w = Math.floor(Math.random() * 4) + 2;
+                                                const d = Math.floor(Math.random() * 4) + 2;
+                                                return { l, w, d };
+                                            }}
+                                            renderQuestion={({ l, w, d }) => (
+                                                <p>學校要建造一個無蓋的長方體蓄水池，長 <strong>{l}</strong> m，寬 <strong>{w}</strong> m，深 <strong>{d}</strong> m。<br />若要在水池的「內部四周圍與底部」貼上磁磚，請問需要貼磁磚的總面積是多少？</p>
+                                            )}
+                                            inputs={[{ key: 'ans', prefix: '總面積 = ', suffix: ' m²' }]}
+                                            checkAnswer={(data, ans) => {
+                                                const bottom = data.l * data.w;
+                                                const walls = 2 * (data.l * data.d + data.w * data.d);
+                                                return parseInt(ans.ans) === (bottom + walls);
+                                            }}
+                                            renderSolution={(data) => {
+                                                const bottom = data.l * data.w;
+                                                const walls = 2 * (data.l * data.d + data.w * data.d);
+                                                return (
+                                                    <>
+                                                        <p>因為是「無蓋」，所以底面只有 1 個。</p>
+                                                        <p>1. <span className="text-blue-300">底部面積</span>：{data.l} × {data.w} = <strong>{bottom}</strong></p>
+                                                        <p>2. <span className="text-indigo-300">四周牆壁面積(側面積)</span>：周長({data.l}+{data.w})×2 × 深度({data.d}) = {2 * (data.l + data.w)} × {data.d} = <strong>{walls}</strong></p>
+                                                        <p className="text-lg text-white mt-2">總和：{bottom} + {walls} = <strong>{bottom + walls} m²</strong></p>
+                                                    </>
+                                                );
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
+                                {activeTab === 'reverse' && (
+                                    <div className="animate-fade-in space-y-6">
+                                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                                            <div className="flex-1 space-y-4">
+                                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                                    <RefreshCw className="text-indigo-500" /> 代數反推 (已知面積求邊長)
+                                                </h3>
+                                                <p className="text-slate-600">
+                                                    <strong>觀念解析：</strong>這類題目考驗學生的逆向思考與方程式解題能力。<br />
+                                                    以「正方體」為例，因為它是由 6 個完全相同的正方形組成，所以只要將總表面積除以 6，就能得到「單一面面積」，再透過開根號求出邊長。
+                                                </p>
+                                            </div>
+                                            <div className="w-full md:w-64 h-64 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center shrink-0 shadow-inner">
+                                                <svg viewBox="0 0 200 200" className="w-full h-full">
+                                                    <g transform="translate(45, 50)">
+                                                        <rect x="0" y="20" width="60" height="60" fill="#93c5fd" stroke="#2563eb" strokeWidth="2" />
+                                                        <polygon points="0,20 20,0 80,0 60,20" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" />
+                                                        <polygon points="60,20 80,0 80,60 60,80" fill="#60a5fa" stroke="#2563eb" strokeWidth="2" />
+                                                        <text x="30" y="55" fontSize="14" fill="#1e3a8a" fontWeight="bold" textAnchor="middle">a²</text>
+                                                        <text x="-15" y="55" fontSize="14" fill="#ef4444" fontWeight="bold">a = ?</text>
+                                                        <line x1="-5" y1="20" x2="-5" y2="80" stroke="#ef4444" strokeWidth="2" />
+                                                        <text x="90" y="45" fontSize="14" fill="#0f766e" fontWeight="bold">總表面積</text>
+                                                        <text x="90" y="65" fontSize="14" fill="#0f766e" fontWeight="bold">= 6 × a²</text>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <PracticeWidget
+                                            title="隨機練習：反推正方體邊長"
+                                            generateQuestion={() => {
+                                                const a = Math.floor(Math.random() * 10) + 3;
+                                                return { a, area: 6 * a * a };
+                                            }}
+                                            renderQuestion={({ area }) => (
+                                                <p>有一個正方體，已知它的總表面積為 <strong>{area}</strong> 平方公分。<br />請問這個正方體的邊長是多少公分？</p>
+                                            )}
+                                            inputs={[{ key: 'ans', prefix: '邊長 = ', suffix: ' cm' }]}
+                                            checkAnswer={(data, ans) => parseInt(ans.ans) === data.a}
+                                            renderSolution={(data) => (
+                                                <>
+                                                    <p>正方體有 6 個完全相同的面，設邊長為 a。</p>
+                                                    <p>公式：6 × a² = 總表面積</p>
+                                                    <p>1. 單一面面積：a² = {data.area} ÷ 6 = <strong>{data.a * data.a}</strong></p>
+                                                    <p>2. 反推邊長：因為 {data.a} × {data.a} = {data.a * data.a}</p>
+                                                    <p className="text-lg text-white mt-2">得出邊長 a = <strong>{data.a} cm</strong></p>
+                                                </>
+                                            )}
+                                        />
+                                    </div>
+                                )}
+
+                                {activeTab === 'ant' && (
+                                    <div className="animate-fade-in space-y-6">
+                                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                                            <div className="flex-1 space-y-4">
+                                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                                    <Maximize className="text-indigo-500" /> 立體表面最短路徑 (螞蟻題)
+                                                </h3>
+                                                <div className="bg-yellow-50 p-5 rounded-xl border border-yellow-200">
+                                                    <p className="font-semibold text-yellow-900 mb-2">🔍 幾何降維破解：</p>
+                                                    <p className="text-yellow-800">
+                                                        立體曲面上的「最短距離」，想像起來很困難。<br />
+                                                        但只要將圓柱的側表面<strong>「剪開並攤平成長方形」</strong>，原來的螺旋曲線就會變成一條筆直的<strong>對角線</strong>！<br />
+                                                        接著只需套用<strong>畢氏定理（勾股定理）</strong>：對角線² = 長² + 寬²，即可秒殺。
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="w-full md:w-64 h-64 bg-slate-50 rounded-xl border border-slate-200 flex flex-col items-center justify-center shrink-0 shadow-inner p-2 gap-4">
+                                                <svg viewBox="0 0 200 80" className="w-full h-1/2">
+                                                    <g transform="translate(60, 10)">
+                                                        <ellipse cx="40" cy="10" rx="30" ry="8" fill="none" stroke="#94a3b8" strokeWidth="1.5" />
+                                                        <path d="M 10,10 L 10,60 A 30,8 0 0 0 70,60 L 70,10" fill="none" stroke="#94a3b8" strokeWidth="1.5" />
+                                                        <path d="M 70,47.5 C 70,30 10,38 10,22.5" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3" opacity="0.6" />
+                                                        <path d="M 40,68 C 60,68 70,60 70,47.5" fill="none" stroke="#ef4444" strokeWidth="2" />
+                                                        <path d="M 10,22.5 C 10,15 25,18 40,18" fill="none" stroke="#ef4444" strokeWidth="2" />
+                                                        <circle cx="40" cy="68" r="3" fill="#ef4444" />
+                                                        <circle cx="40" cy="18" r="3" fill="#ef4444" />
+                                                        <text x="35" y="80" fontSize="10" fill="#ef4444" fontWeight="bold">A</text>
+                                                        <text x="35" y="12" fontSize="10" fill="#ef4444" fontWeight="bold">B</text>
+                                                        <text x="-20" y="40" fontSize="10" fill="#64748b">立體視角</text>
+                                                    </g>
+                                                </svg>
+                                                <svg viewBox="0 0 200 100" className="w-full h-1/2">
+                                                    <g transform="translate(30, 10)">
+                                                        <rect x="0" y="0" width="140" height="70" fill="#e2e8f0" stroke="#64748b" strokeWidth="1.5" />
+                                                        <line x1="0" y1="70" x2="140" y2="0" stroke="#ef4444" strokeWidth="2" />
+                                                        <circle cx="0" cy="70" r="3" fill="#ef4444" />
+                                                        <circle cx="140" cy="0" r="3" fill="#ef4444" />
+                                                        <text x="70" y="85" fontSize="12" fill="#1e293b" textAnchor="middle">底面周長 (長)</text>
+                                                        <text x="-15" y="40" fontSize="12" fill="#1e293b" transform="rotate(-90 -15 40)">柱高 (寬)</text>
+                                                        <text x="70" y="30" fontSize="12" fill="#ef4444" fontWeight="bold" textAnchor="middle" transform="rotate(-26 70 30)">畢氏定理求斜邊</text>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <PracticeWidget
+                                            title="隨機練習：螞蟻爬行最短距離"
+                                            generateQuestion={() => {
+                                                const triples = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25]];
+                                                const [base1, base2, hyp] = triples[Math.floor(Math.random() * triples.length)];
+                                                const multiplier = Math.floor(Math.random() * 3) + 1;
+                                                const isHeightFirst = Math.random() > 0.5;
+                                                const h = (isHeightFirst ? base1 : base2) * multiplier;
+                                                const c = (isHeightFirst ? base2 : base1) * multiplier;
+                                                return { h, c, ans: hyp * multiplier };
+                                            }}
+                                            renderQuestion={({ h, c }) => (
+                                                <p>有一個圓柱體，高度為 <strong>{h}</strong> cm，底面圓周長為 <strong>{c}</strong> cm。<br />一隻螞蟻從底部的 A 點出發，沿著側面繞行一圈，爬到正上方的 B 點。<br />請問這隻螞蟻爬行的最短距離是多少 cm？</p>
+                                            )}
+                                            inputs={[{ key: 'ans', prefix: '最短距離 = ', suffix: ' cm' }]}
+                                            checkAnswer={(data, ans) => parseInt(ans.ans) === data.ans}
+                                            renderSolution={(data) => (
+                                                <>
+                                                    <p>將圓柱側面展開，會形成一個長方形。</p>
+                                                    <p>長方形的寬 = 柱高 = <strong>{data.h}</strong></p>
+                                                    <p>長方形的長 = 底面周長 = <strong>{data.c}</strong></p>
+                                                    <p>最短距離即為此長方形的對角線，套用畢氏定理：</p>
+                                                    <p>距離 = √({data.h}² + {data.c}²) = √({data.h * data.h} + {data.c * data.c}) = √{data.h * data.h + data.c * data.c}</p>
+                                                    <p className="text-lg text-white mt-2">得出最短距離 = <strong>{data.ans} cm</strong></p>
+                                                </>
+                                            )}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            {/* 右側數位計算紙 (Scratchpad) */}
+                            <div className="w-full lg:w-80 shrink-0 sticky top-24 z-10">
+                                <Scratchpad />
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            );
+        };
+
+        // --- 5. 綜合自我測驗題庫與邏輯 ---
+        const QuizSection = () => {
+            // 陣列隨機打亂工具
+            const shuffleArray = (array) => {
+                const arr = [...array];
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            };
+
+            // --- 題庫產生器 ---
+            const generators = {
+                basic: [
+                    () => { // 1. 長方體
+                        const l = Math.floor(Math.random() * 6) + 5;
+                        const w = Math.floor(Math.random() * 4) + 3;
+                        const h = Math.floor(Math.random() * 4) + 2;
+                        const ans = 2 * (l * w + w * h + l * h);
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${l * w * h} cm²`, isCorrect: false },
+                            { text: `${l * w + w * h + l * h} cm²`, isCorrect: false },
+                            { text: `${2 * l * w + w * h + l * h} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '基本', color: 'bg-green-100 text-green-700 border-green-200',
+                            question: `長 ${l}cm、寬 ${w}cm、高 ${h}cm 的長方體，請問總表面積為多少？`,
+                            svg: (
+                                <svg viewBox="0 0 100 80" className="w-32 h-24 mb-4">
+                                    {/* Top Face */}
+                                    <polygon points="50,30 80,15 50,0 20,15" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    {/* Left Face */}
+                                    <polygon points="20,15 50,30 50,70 20,55" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    {/* Right Face */}
+                                    <polygon points="50,30 80,15 80,55 50,70" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    <text x="30" y="60" fontSize="10" fill="#1e3a8a">{l}</text>
+                                    <text x="70" y="60" fontSize="10" fill="#1e3a8a">{w}</text>
+                                    <text x="10" y="40" fontSize="10" fill="#1e3a8a">{h}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `長方體表面積 = 2 × (長×寬 + 寬×高 + 長×高)。\n計算 = 2 × (${l}×${w} + ${w}×${h} + ${l}×${h}) = 2 × (${l * w} + ${w * h} + ${l * h}) = ${ans} cm²。`
+                        };
+                    },
+                    () => { // 2. 正方體
+                        const a = Math.floor(Math.random() * 8) + 4;
+                        const ans = 6 * a * a;
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${4 * a * a} cm²`, isCorrect: false },
+                            { text: `${a * a * a} cm²`, isCorrect: false },
+                            { text: `${12 * a} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '基本', color: 'bg-green-100 text-green-700 border-green-200',
+                            question: `邊長為 ${a}cm 的正方體，求總表面積為多少？`,
+                            svg: (
+                                <svg viewBox="0 0 100 80" className="w-24 h-24 mb-4">
+                                    <polygon points="30,60 60,60 60,30 30,30" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" />
+                                    <polygon points="30,30 50,15 80,15 60,30" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" />
+                                    <polygon points="60,60 80,45 80,15 60,30" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" />
+                                    <text x="40" y="72" fontSize="10" fill="#1e3a8a">{a}</text>
+                                    <text x="75" y="60" fontSize="10" fill="#1e3a8a">{a}</text>
+                                    <text x="15" y="45" fontSize="10" fill="#1e3a8a">{a}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `正方體有 6 個相同的面，表面積公式為 6 × 邊長²。\n單一面面積 = ${a} × ${a} = ${a * a}。\n總表面積 = 6 × ${a * a} = ${ans} cm²。`
+                        };
+                    },
+                    () => { // 3. 圓柱體
+                        const r = Math.floor(Math.random() * 5) + 3;
+                        const h = Math.floor(Math.random() * 10) + 10;
+                        const pi = 3.14;
+                        const ans = Math.round((2 * pi * r * h + 2 * pi * r * r) * 100) / 100;
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${Math.round(pi * r * r * h * 100) / 100} cm²`, isCorrect: false },
+                            { text: `${Math.round((2 * pi * r * h + pi * r * r) * 100) / 100} cm²`, isCorrect: false },
+                            { text: `${Math.round((2 * pi * r * h) * 100) / 100} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '基本', color: 'bg-green-100 text-green-700 border-green-200',
+                            question: `底面半徑 ${r}cm、柱高 ${h}cm 的圓柱，求總表面積。（π 以 3.14 計算）`,
+                            svg: (
+                                <svg viewBox="0 0 100 100" className="w-24 h-24 mb-4">
+                                    <path d="M 30,70 A 20,8 0 0 0 70,70" fill="none" stroke="#2563eb" strokeWidth="1" />
+                                    <path d="M 30,30 L 30,70 A 20,8 0 0 0 70,70 L 70,30 Z" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" />
+                                    <ellipse cx="50" cy="30" rx="20" ry="8" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" />
+                                    <line x1="50" y1="30" x2="70" y2="30" stroke="#1e3a8a" strokeWidth="1" />
+                                    <text x="55" y="25" fontSize="8" fill="#1e3a8a">r={r}</text>
+                                    <text x="10" y="55" fontSize="10" fill="#1e3a8a">h={h}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `側面積 = 2πrh = 2 × 3.14 × ${r} × ${h} = ${Math.round(2 * 3.14 * r * h * 100) / 100}。\n底面積×2 = 2 × πr² = 2 × 3.14 × ${r}² = ${Math.round(2 * 3.14 * r * r * 100) / 100}。\n總和 = ${ans} cm²。`
+                        };
+                    }
+                ],
+                classic: [
+                    () => { // 1. 直角三角柱
+                        const triples = [[3, 4, 5], [6, 8, 10], [5, 12, 13]];
+                        const [a, b, c] = triples[Math.floor(Math.random() * triples.length)];
+                        const h = Math.floor(Math.random() * 10) + 10;
+                        const ans = (a * b) + (a + b + c) * h;
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${(a * b / 2) + (a + b + c) * h} cm²`, isCorrect: false },
+                            { text: `${a * b * h} cm²`, isCorrect: false },
+                            { text: `${(a * b) + (a + b) * h} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '經典', color: 'bg-blue-100 text-blue-700 border-blue-200',
+                            question: `底面為直角三角形，三邊長分別為 ${a}、${b}、${c}cm，柱高為 ${h}cm，求總表面積。`,
+                            svg: (
+                                <svg viewBox="0 0 100 100" className="w-24 h-24 mb-4">
+                                    <polygon points="20,40 60,40 80,20" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="20,40 60,40 60,80 20,80" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="60,40 80,20 80,60 60,80" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    <text x="40" y="35" fontSize="10" fill="#1e3a8a">{a}</text>
+                                    <text x="65" y="40" fontSize="10" fill="#1e3a8a">{b}</text>
+                                    <text x="45" y="25" fontSize="10" fill="#1e3a8a">{c}</text>
+                                    <text x="65" y="55" fontSize="10" fill="#1e3a8a">h={h}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `底面積 = ${a} × ${b} ÷ 2。兩個底面積 = ${a} × ${b} = ${a * b}。\n側面積 = 底面周長 × 高 = (${a} + ${b} + ${c}) × ${h} = ${a + b + c} × ${h} = ${(a + b + c) * h}。\n總表面積 = ${a * b} + ${(a + b + c) * h} = ${ans} cm²。`
+                        };
+                    },
+                    () => { // 2. 梯形柱
+                        const top = Math.floor(Math.random() * 3) + 3; // 上底
+                        const bottom = top + Math.floor(Math.random() * 4) + 2; // 下底
+                        const h_trap = Math.floor(Math.random() * 3) + 3; // 梯形高
+                        const leg = Math.round(Math.sqrt(((bottom - top) / 2) ** 2 + h_trap * h_trap) * 10) / 10; // 等腰
+                        const H = Math.floor(Math.random() * 10) + 10;
+                        const baseArea = (top + bottom) * h_trap / 2;
+                        const perimeter = top + bottom + 2 * leg;
+                        const ans = Math.round((2 * baseArea + perimeter * H) * 10) / 10;
+
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${Math.round((baseArea + perimeter * H) * 10) / 10} cm²`, isCorrect: false },
+                            { text: `${Math.round((2 * baseArea + (top + bottom) * H) * 10) / 10} cm²`, isCorrect: false },
+                            { text: `${Math.round((perimeter * H) * 10) / 10} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '經典', color: 'bg-blue-100 text-blue-700 border-blue-200',
+                            question: `底面為等腰梯形，上底 ${top}cm、下底 ${bottom}cm、梯形高 ${h_trap}cm，兩腰皆為 ${leg}cm。柱高為 ${H}cm，求總表面積。`,
+                            svg: (
+                                <svg viewBox="0 0 100 100" className="w-24 h-24 mb-4">
+                                    {/* Top Face (extruded top) */}
+                                    <polygon points="40,40 60,40 75,25 55,25" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    {/* Front Face (Trapezoid) */}
+                                    <polygon points="30,70 70,70 60,40 40,40" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    {/* Right Face (extruded side) */}
+                                    <polygon points="70,70 85,55 75,25 60,40" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    <text x="45" y="35" fontSize="8" fill="#1e3a8a">{top}</text>
+                                    <text x="45" y="65" fontSize="8" fill="#1e3a8a">{bottom}</text>
+                                    <text x="75" y="45" fontSize="8" fill="#1e3a8a">{leg}</text>
+                                    <text x="70" y="70" fontSize="8" fill="#1e3a8a">H={H}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `底面積 = (上底 + 下底) × 高 ÷ 2 = (${top} + ${bottom}) × ${h_trap} ÷ 2 = ${baseArea}。\n兩個底面積 = ${baseArea} × 2 = ${baseArea * 2}。\n底面周長 = ${top} + ${bottom} + ${leg}×2 = ${perimeter}。\n側面積 = 周長 × 柱高 = ${perimeter} × ${H} = ${Math.round(perimeter * H * 10) / 10}。\n總和 = ${baseArea * 2} + ${Math.round(perimeter * H * 10) / 10} = ${ans} cm²。`
+                        };
+                    },
+                    () => { // 3. 中空角柱
+                        const L = Math.floor(Math.random() * 3) + 8; // 外邊長
+                        const l = Math.floor(Math.random() * 3) + 3; // 內邊長
+                        const h = Math.floor(Math.random() * 10) + 15;
+                        const rings = 2 * (L * L - l * l);
+                        const outL = 4 * L * h;
+                        const inL = 4 * l * h;
+                        const ans = rings + outL + inL;
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${outL + inL} cm²`, isCorrect: false },
+                            { text: `${rings + outL} cm²`, isCorrect: false },
+                            { text: `${4 * L * L - 4 * l * l + outL} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '經典', color: 'bg-blue-100 text-blue-700 border-blue-200',
+                            question: `一個中空的「正方柱」管子，外側底面邊長為 ${L}cm、內側挖空的底面邊長為 ${l}cm、長度 (高) 為 ${h}cm，求「總表面積」。`,
+                            svg: (
+                                <svg viewBox="0 0 100 100" className="w-24 h-24 mb-4">
+                                    <polygon points="50,10 90,30 50,50 10,30" fill="#94a3b8" stroke="#475569" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="10,30 50,50 50,90 10,70" fill="#cbd5e1" stroke="#475569" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="50,50 90,30 90,70 50,90" fill="#94a3b8" stroke="#475569" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="50,20 75,32.5 50,45 25,32.5" fill="#fff" stroke="#475569" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="25,32.5 50,45 50,85 25,72.5" fill="#f1f5f9" stroke="#475569" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="50,45 75,32.5 75,72.5 50,85" fill="#e2e8f0" stroke="#475569" strokeWidth="1" strokeLinejoin="round" />
+                                    <text x="80" y="20" fontSize="8" fill="#ef4444">L={L}</text>
+                                    <text x="45" y="35" fontSize="8" fill="#3b82f6">l={l}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `空心角柱與空心圓柱邏輯相同：\n1. 外側壁面積 = 4 × 外邊長 × 高 = 4 × ${L} × ${h} = ${outL}\n2. 內側壁面積 = 4 × 內邊長 × 高 = 4 × ${l} × ${h} = ${inL}\n3. 環形底面×2 = 2 × (大正方形 - 小正方形) = 2 × (${L}² - ${l}²) = ${rings}\n總和 = ${ans} cm²。`
+                        };
+                    }
+                ],
+                advanced: [
+                    () => { // 1. 切開問題
+                        const l = Math.floor(Math.random() * 10) + 10;
+                        const w = Math.floor(Math.random() * 4) + 4;
+                        const h = Math.floor(Math.random() * 4) + 4;
+                        const cuts = Math.floor(Math.random() * 3) + 2; // 2~4 刀
+                        const ans = 2 * cuts * w * h;
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${cuts * w * h} cm²`, isCorrect: false },
+                            { text: `${2 * (cuts + 1) * w * h} cm²`, isCorrect: false },
+                            { text: `${ans + 2 * l * w} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '進階', color: 'bg-purple-100 text-purple-700 border-purple-200',
+                            question: `將一個長 ${l}cm、寬 ${w}cm、高 ${h}cm 的長方體木塊，平行於寬與高切了 ${cuts} 刀變成 ${cuts + 1} 個小長方體，請問總表面積增加了多少？`,
+                            svg: (
+                                <svg viewBox="0 0 160 80" className="w-40 h-20 mb-4">
+                                    <polygon points="20,50 120,50 140,30 40,30" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" />
+                                    <polygon points="20,50 120,50 120,70 20,70" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" />
+                                    <polygon points="120,50 140,30 140,50 120,70" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" />
+                                    <line x1="50" y1="50" x2="50" y2="70" stroke="#1e3a8a" strokeDasharray="2 2" />
+                                    <line x1="50" y1="50" x2="70" y2="30" stroke="#1e3a8a" strokeDasharray="2 2" />
+                                    <line x1="80" y1="50" x2="80" y2="70" stroke="#1e3a8a" strokeDasharray="2 2" />
+                                    <line x1="80" y1="50" x2="100" y2="30" stroke="#1e3a8a" strokeDasharray="2 2" />
+                                    <text x="70" y="80" fontSize="10" fill="#1e3a8a">切 {cuts} 刀</text>
+                                    <text x="135" y="65" fontSize="10" fill="#1e3a8a">{w}x{h}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `切 1 刀會多出「2 個切面」。切 ${cuts} 刀會多出 ${2 * cuts} 個切面。\n每個切面面積即為寬×高 = ${w} × ${h} = ${w * h}。\n增加總面積 = ${2 * cuts} × ${w * h} = ${ans} cm²。`
+                        };
+                    },
+                    () => { // 2. 展開圖逆推
+                        const r = Math.floor(Math.random() * 5) + 3;
+                        const pi = 3.14;
+                        const c = Math.round(2 * pi * r * 100) / 100;
+                        const h = Math.floor(Math.random() * 10) + 10;
+                        const ans = Math.round((c * h + 2 * pi * r * r) * 100) / 100;
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${Math.round((c * h + pi * r * r) * 100) / 100} cm²`, isCorrect: false },
+                            { text: `${Math.round(c * h * 100) / 100} cm²`, isCorrect: false },
+                            { text: `${Math.round((c * h + 2 * pi * (r / 2) * (r / 2)) * 100) / 100} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '進階', color: 'bg-purple-100 text-purple-700 border-purple-200',
+                            question: `給予一個圓柱的展開圖，已知側面的長方形長為 ${c}cm、寬為 ${h}cm，求此圓柱的總表面積。（π 以 3.14 計算）`,
+                            svg: (
+                                <svg viewBox="0 0 160 100" className="w-40 h-24 mb-4">
+                                    <rect x="40" y="30" width="80" height="40" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" />
+                                    <circle cx="80" cy="15" r="15" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" />
+                                    <circle cx="80" cy="85" r="15" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" />
+                                    <text x="80" y="55" fontSize="10" fill="#1e3a8a" textAnchor="middle">長={c}</text>
+                                    <text x="20" y="55" fontSize="10" fill="#1e3a8a">寬={h}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `側面長方形的「長」即為底面圓周長。\n由 2πr = ${c}，推得半徑 r = ${c} ÷ 6.28 = ${r}。\n側面積 = ${c} × ${h} = ${Math.round(c * h * 100) / 100}。\n兩個底面積 = 2 × 3.14 × ${r}² = ${Math.round(2 * pi * r * r * 100) / 100}。\n總和 = ${ans} cm²。`
+                        };
+                    },
+                    () => { // 3. 組合圖形 (疊加)
+                        const l = Math.floor(Math.random() * 4) + 6;
+                        const w = Math.floor(Math.random() * 4) + 6;
+                        const h1 = Math.floor(Math.random() * 4) + 4;
+                        const r = Math.floor(Math.random() * 2) + 2;
+                        const h2 = Math.floor(Math.random() * 6) + 4;
+                        const boxSA = 2 * (l * w + l * h1 + w * h1);
+                        const cylLat = 2 * r * h2;
+                        const options = shuffleArray([
+                            { text: `(${boxSA} + ${cylLat}π) cm²`, isCorrect: true },
+                            { text: `(${boxSA} + ${cylLat + 2 * r * r}π) cm²`, isCorrect: false },
+                            { text: `(${boxSA} + ${cylLat - r * r}π) cm²`, isCorrect: false },
+                            { text: `(${boxSA - 2 * r * r} + ${cylLat}π) cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '進階', color: 'bg-purple-100 text-purple-700 border-purple-200',
+                            question: `一個長 ${l}cm、寬 ${w}cm、高 ${h1}cm 的長方體，上方正中央放置一個半徑 ${r}cm、高 ${h2}cm 的圓柱體。求此組合立體的總表面積。`,
+                            svg: (
+                                <svg viewBox="0 0 100 100" className="w-24 h-24 mb-4">
+                                    <polygon points="50,40 90,20 50,0 10,20" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="10,20 50,40 50,70 10,50" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    <polygon points="50,40 90,20 90,50 50,70" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    <path d="M 40,20 L 40,-10 A 10,4 0 0 0 60,-10 L 60,20 Z" fill="#fcd34d" stroke="#d97706" strokeWidth="1" strokeLinejoin="round" />
+                                    <ellipse cx="50" cy="20" rx="10" ry="4" fill="#fcd34d" stroke="#d97706" strokeWidth="1" />
+                                    <ellipse cx="50" cy="-10" rx="10" ry="4" fill="#fde68a" stroke="#d97706" strokeWidth="1" />
+                                    <text x="50" y="85" fontSize="10" fill="#1e3a8a" textAnchor="middle">底: {l}x{w}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `捷徑算法：因為圓柱的「頂面」剛好補足長方體被遮蔽的「洞」。\n總表面積 = 長方體完整表面積 + 圓柱側面積。\n長方體表面積 = 2×(${l}×${w} + ${l}×${h1} + ${w}×${h1}) = ${boxSA}。\n圓柱側面積 = 2×${r}×${h2}×π = ${cylLat}π。\n答案為 (${boxSA} + ${cylLat}π) cm²。`
+                        };
+                    }
+                ],
+                variant: [
+                    () => { // 1. L型挖洞正方體
+                        const L = Math.floor(Math.random() * 4) + 6;
+                        const x = Math.floor(Math.random() * 3) + 2;
+                        const ans = 6 * L * L;
+                        const options = shuffleArray([
+                            { text: `${ans} cm²`, isCorrect: true },
+                            { text: `${ans - 3 * x * x} cm²`, isCorrect: false },
+                            { text: `${ans + 3 * x * x} cm²`, isCorrect: false },
+                            { text: `${ans - x * x} cm²`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '變形', color: 'bg-orange-100 text-orange-700 border-orange-200',
+                            question: `一個邊長為 ${L}cm 的大正方體，從其中一個頂點挖掉一個邊長 ${x}cm 的小正方體。請問剩下的立體圖形表面積為多少？`,
+                            svg: (
+                                <svg viewBox="0 0 100 100" className="w-24 h-24 mb-4">
+                                    <g transform="translate(0, 10)">
+                                        <polygon points="50,40 70,50 50,60 30,50" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                        <polygon points="30,30 50,20 50,40 30,50" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                        <polygon points="50,20 70,30 70,50 50,40" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                        <polygon points="50,0 90,20 70,30 50,20 30,30 10,20" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                        <polygon points="10,20 30,30 30,50 50,60 50,80 10,60" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                        <polygon points="90,20 70,30 70,50 50,60 50,80 90,60" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" strokeLinejoin="round" />
+                                    </g>
+                                    <text x="15" y="85" fontSize="10" fill="#1e3a8a">L={L}</text>
+                                    <text x="50" y="10" fontSize="8" fill="#ef4444">挖去 {x}cm</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `這是一道經典的「平移補齊法」變形題。\n從頂點挖掉小正方體後，向內凹陷了 3 個面，但同時也少掉了外側的 3 個面。\n因為凹陷的面平移出來剛好可以補滿缺口，所以【表面積完全沒有改變】！\n總表面積 = 原正方體表面積 = 6 × ${L}² = ${ans} cm²。`
+                        };
+                    },
+                    () => { // 2. 螞蟻題
+                        const triples = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25]];
+                        const [base1, base2, hyp] = triples[Math.floor(Math.random() * triples.length)];
+                        const multiplier = Math.floor(Math.random() * 3) + 1;
+                        const isHeightFirst = Math.random() > 0.5;
+                        const h = (isHeightFirst ? base1 : base2) * multiplier;
+                        const c = (isHeightFirst ? base2 : base1) * multiplier;
+                        const ans = hyp * multiplier;
+                        const options = shuffleArray([
+                            { text: `${ans} cm`, isCorrect: true },
+                            { text: `${h + c} cm`, isCorrect: false },
+                            { text: `${Math.round(Math.sqrt(h * h + c * c / 4))} cm`, isCorrect: false },
+                            { text: `${ans + multiplier} cm`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '變形', color: 'bg-orange-100 text-orange-700 border-orange-200',
+                            question: `螞蟻從圓柱底部的 A 點繞側面一圈爬到正上方頂部的 B 點。已知圓柱高 ${h}cm，底面周長 ${c}cm，求最短路徑為多少？`,
+                            svg: (
+                                <svg viewBox="0 0 100 100" className="w-24 h-24 mb-4">
+                                    <ellipse cx="50" cy="20" rx="30" ry="10" fill="none" stroke="#94a3b8" strokeWidth="1" />
+                                    <path d="M 20,20 L 20,80 A 30,10 0 0 0 80,80 L 80,20" fill="none" stroke="#94a3b8" strokeWidth="1" />
+                                    <path d="M 80,65 C 80,45 20,55 20,35" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+                                    <path d="M 50,90 C 70,90 80,80 80,65" fill="none" stroke="#ef4444" strokeWidth="1.5" />
+                                    <path d="M 20,35 C 20,25 35,28 50,28" fill="none" stroke="#ef4444" strokeWidth="1.5" />
+                                    <circle cx="50" cy="90" r="3" fill="#ef4444" />
+                                    <circle cx="50" cy="28" r="3" fill="#ef4444" />
+                                    <text x="45" y="100" fontSize="10" fill="#ef4444" fontWeight="bold">A</text>
+                                    <text x="45" y="20" fontSize="10" fill="#ef4444" fontWeight="bold">B</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `側表面展開為長方形，寬為柱高(${h})，長為底面周長(${c})。\n螞蟻繞行一圈的最短路徑即為長方形的對角線。\n利用畢氏定理：對角線 = √(${h}² + ${c}²) = √(${h * h} + ${c * c}) = ${ans} cm。`
+                        };
+                    }
+                ],
+                boss: [
+                    () => { // 代數反推
+                        const x = Math.floor(Math.random() * 6) + 3; // 底面邊長 3~8
+                        const H = Math.floor(Math.random() * 10) + 10; // 高 10~19
+                        const S = 2 * x * x + 4 * x * H;
+                        const options = shuffleArray([
+                            { text: `${x} cm`, isCorrect: true },
+                            { text: `${x * 2} cm`, isCorrect: false },
+                            { text: `${x + 2} cm`, isCorrect: false },
+                            { text: `${Math.floor(S / H)} cm`, isCorrect: false }
+                        ]);
+                        return {
+                            difficulty: '魔王', color: 'bg-rose-100 text-rose-800 border-rose-200',
+                            question: `一個「底面為正方形」的長方體，已知高為 ${H} cm，總表面積為 ${S} cm²。求底面的邊長為多少？`,
+                            svg: (
+                                <svg viewBox="0 0 100 120" className="w-24 h-28 mb-4">
+                                    <polygon points="30,90 70,75 70,15 30,30" fill="#93c5fd" stroke="#2563eb" strokeWidth="1" />
+                                    <polygon points="10,75 30,90 30,30 10,15" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" />
+                                    <polygon points="10,15 30,30 70,15 50,0" fill="#60a5fa" stroke="#2563eb" strokeWidth="1" />
+                                    <text x="25" y="105" fontSize="12" fill="#ef4444" fontWeight="bold">x=?</text>
+                                    <text x="55" y="95" fontSize="12" fill="#ef4444" fontWeight="bold">x=?</text>
+                                    <text x="60" y="55" fontSize="12" fill="#1e3a8a">h={H}</text>
+                                </svg>
+                            ),
+                            options, correctAnswer: options.findIndex(o => o.isCorrect),
+                            explanation: `設正方形底面邊長為 x。\n表面積 S = (底面積×2) + 側面積 = 2x² + (4x × h)。\n代入數值：2x² + ${4 * H}x = ${S}。同除以 2 得到 x² + ${2 * H}x - ${S / 2} = 0。\n解方程式後，當 x = ${x} 時，2×(${x})² + ${4 * H}×${x} = ${2 * x * x} + ${4 * x * H} = ${S}。故邊長為 ${x} cm。`
+                        };
+                    }
+                ]
+            };
+
+            const [questions, setQuestions] = useState([]);
+            const [userAnswers, setUserAnswers] = useState(Array(5).fill(null));
+            const [isSubmitted, setIsSubmitted] = useState(false);
+            const [score, setScore] = useState(0);
+
+            const generateQuiz = () => {
+                const q1 = generators.basic[Math.floor(Math.random() * generators.basic.length)]();
+                const q2 = generators.classic[Math.floor(Math.random() * generators.classic.length)]();
+                const q3 = generators.advanced[Math.floor(Math.random() * generators.advanced.length)]();
+                const q4 = generators.variant[Math.floor(Math.random() * generators.variant.length)]();
+                const q5 = generators.boss[Math.floor(Math.random() * generators.boss.length)]();
+
+                setQuestions([q1, q2, q3, q4, q5]);
+                setUserAnswers(Array(5).fill(null));
+                setIsSubmitted(false);
+                setScore(0);
+            };
+
+            useEffect(() => {
+                generateQuiz();
+            }, []);
+
+            const handleSelect = (qIndex, optIndex) => {
+                if (isSubmitted) return;
+                const newAns = [...userAnswers];
+                newAns[qIndex] = optIndex;
+                setUserAnswers(newAns);
+            };
+
+            const handleSubmit = () => {
+                let currentScore = 0;
+                questions.forEach((q, idx) => {
+                    if (userAnswers[idx] === q.correctAnswer) currentScore += 20;
+                });
+                setScore(currentScore);
+                setIsSubmitted(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const isAllAnswered = userAnswers.every(ans => ans !== null);
+
+            if (questions.length === 0) return <div>Loading...</div>;
+
+            return (
+                <div className="flex flex-col lg:flex-row gap-6 relative items-start">
+                    {/* 左側：測驗卷 */}
+                    <div className="flex-1 space-y-6 min-w-0">
+                        <SectionTitle icon={Target} title="綜合實戰測驗" subtitle="系統已為您配發 5 題涵蓋各難度層次的隨機題型，請善用右側數位計算紙輔助思考。完成後即可送出評分。" />
+
+                        {isSubmitted && (
+                            <div className={`p-6 rounded-2xl border-2 flex items-center justify-between mb-8 animate-fade-in ${score >= 80 ? 'bg-green-50 border-green-200' : score >= 60 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
+                                <div>
+                                    <h3 className={`text-2xl font-bold ${score >= 80 ? 'text-green-800' : score >= 60 ? 'text-yellow-800' : 'text-red-800'}`}>
+                                        測驗結果：{score} 分
+                                    </h3>
+                                    <p className="mt-2 text-slate-600">
+                                        {score === 100 ? '太棒了！您已經完全精通柱體表面積的所有概念！' : score >= 80 ? '表現優異！稍微檢閱錯誤的地方，您就能達到完美！' : score >= 60 ? '及格過關。建議再複習一下進階題型的解題邏輯喔！' : '再接再厲！幾何需要多一點時間消化，請參考下方詳解重新挑戰！'}
+                                    </p>
+                                </div>
+                                {score >= 80 ? <AwardIcon size={64} className="text-green-500 opacity-50" /> : <Info size={64} className="text-red-400 opacity-50" />}
+                            </div>
+                        )}
+
+                        <div className="space-y-8">
+                            {questions.map((q, qIndex) => {
+                                const isCorrect = userAnswers[qIndex] === q.correctAnswer;
+                                const showFeedback = isSubmitted;
+
+                                return (
+                                    <Card key={qIndex} className={`p-6 border-l-8 ${showFeedback ? (isCorrect ? 'border-l-green-500' : 'border-l-red-500') : 'border-l-blue-500'}`}>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <span className="flex items-center justify-center w-8 h-8 bg-slate-800 text-white font-bold rounded-full">{qIndex + 1}</span>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${q.color}`}>
+                                                {q.difficulty}
+                                            </span>
+                                            {showFeedback && (
+                                                <span className="ml-auto font-bold flex items-center gap-1">
+                                                    {isCorrect ? <span className="text-green-600 flex"><CheckCircle size={20} /> 答對 (+20分)</span> : <span className="text-red-500 flex"><XCircleIcon size={20} /> 答錯</span>}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row gap-6 mb-5">
+                                            <div className="flex-1">
+                                                <h3 className="text-lg font-bold text-slate-800 leading-relaxed">
+                                                    {q.question}
+                                                </h3>
+                                            </div>
+                                            {q.svg && (
+                                                <div className="w-full sm:w-40 shrink-0 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center p-2">
+                                                    {q.svg}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="grid sm:grid-cols-2 gap-4 mb-2">
+                                            {q.options.map((opt, optIndex) => {
+                                                const isSelected = userAnswers[qIndex] === optIndex;
+                                                const isActualCorrect = optIndex === q.correctAnswer;
+
+                                                let optStyle = 'bg-white border-slate-200 hover:bg-slate-50';
+                                                if (!isSubmitted && isSelected) {
+                                                    optStyle = 'bg-blue-50 border-blue-500 shadow-sm ring-1 ring-blue-500';
+                                                } else if (isSubmitted) {
+                                                    if (isActualCorrect) {
+                                                        optStyle = 'bg-green-50 border-green-500 text-green-800 font-bold';
+                                                    } else if (isSelected && !isActualCorrect) {
+                                                        optStyle = 'bg-red-50 border-red-500 text-red-800 line-through';
+                                                    } else {
+                                                        optStyle = 'bg-slate-50 border-slate-200 opacity-60';
+                                                    }
+                                                }
+
+                                                return (
+                                                    <label
+                                                        key={optIndex}
+                                                        className={`flex items-center p-4 border-2 rounded-xl transition-all ${!isSubmitted && 'cursor-pointer'} ${optStyle}`}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name={`q-${qIndex}`}
+                                                            value={optIndex}
+                                                            onChange={() => handleSelect(qIndex, optIndex)}
+                                                            checked={isSelected}
+                                                            disabled={isSubmitted}
+                                                            className="w-5 h-5 accent-blue-600 mr-3"
+                                                        />
+                                                        <span className="text-base font-medium">{opt.text}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {showFeedback && (
+                                            <div className="mt-6 bg-slate-800 text-slate-200 p-5 rounded-xl font-mono text-sm space-y-2 shadow-inner animate-fade-in">
+                                                <h5 className="text-indigo-300 font-bold border-b border-slate-700 pb-2 mb-3 flex items-center gap-2">
+                                                    <Info size={16} /> 專家解析
+                                                </h5>
+                                                <p className="whitespace-pre-line leading-relaxed">{q.explanation}</p>
+                                            </div>
+                                        )}
+                                    </Card>
+                                );
+                            })}
+                        </div>
+
+                        <div className="pt-6 flex gap-4">
+                            {!isSubmitted ? (
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={!isAllAnswered}
+                                    className={`flex-1 py-4 rounded-xl font-bold text-lg text-white transition-all shadow-md ${isAllAnswered ? 'bg-blue-600 hover:bg-blue-700 hover:-translate-y-1' : 'bg-slate-300 cursor-not-allowed'}`}
+                                >
+                                    {isAllAnswered ? '交卷並觀看解析' : '請完成所有題目後交卷'}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={generateQuiz}
+                                    className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all shadow-md hover:-translate-y-1 flex justify-center items-center gap-2"
+                                >
+                                    <RefreshCw size={20} /> 挑戰新的一局
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 右側：浮動數位計算紙 */}
+                    <div className="w-full lg:w-80 shrink-0 sticky top-24 z-10">
+                        <Scratchpad />
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主應用程式 ---
+        const App = () => {
+            const [activeMenu, setActiveMenu] = useState('concept'); // 預設切換至核心觀念區
+
+            const menuItems = [
+                { id: 'concept', icon: Scissors, label: '核心觀念' },
+                { id: 'interactive', icon: Calculator, label: '互動探索' },
+                { id: 'steps', icon: BookOpen, label: '逐步教學' },
+                { id: 'advanced', icon: Layers, label: '進階應用' },
+                { id: 'quiz', icon: Target, label: '自我測驗' },
+            ];
+
+            return (
+                <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-200">
+                    {/* 導覽列 */}
+                    <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center h-16">
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-blue-600 text-white p-2 rounded-lg">
+                                        <BoxIcon size={24} />
+                                    </div>
+                                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-600 hidden sm:block">
+                                        柱體表面積互動學習系統
+                                    </h1>
+                                </div>
+                                {/* 桌面版選單 */}
+                                <nav className="hidden md:flex space-x-1">
+                                    {menuItems.map(item => {
+                                        const IconComp = item.icon;
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => { setActiveMenu(item.id); window.scrollTo(0, 0); }}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${activeMenu === item.id
+                                                    ? 'bg-blue-50 text-blue-700'
+                                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                                    }`}
+                                            >
+                                                <IconComp size={16} />
+                                                {item.label}
+                                            </button>
+                                        );
+                                    })}
+                                </nav>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* 手機版選單 (水平滾動) */}
+                    <div className="md:hidden bg-white border-b border-slate-200 overflow-x-auto sticky top-16 z-20 shadow-sm">
+                        <div className="flex px-2 py-2 min-w-max">
+                            {menuItems.map(item => {
+                                const IconComp = item.icon;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => { setActiveMenu(item.id); window.scrollTo(0, 0); }}
+                                        className={`px-4 py-2 mx-1 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${activeMenu === item.id
+                                            ? 'bg-blue-600 text-white shadow-md'
+                                            : 'bg-slate-100 text-slate-600'
+                                            }`}
+                                    >
+                                        <IconComp size={14} />
+                                        {item.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* 主內容區 */}
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div className="animate-fade-in">
+                            {activeMenu === 'concept' && <ConceptSection />}
+                            {activeMenu === 'interactive' && <InteractiveExplorer />}
+                            {activeMenu === 'steps' && <StepTutorial />}
+                            {activeMenu === 'advanced' && <AdvancedTopics />}
+                            {activeMenu === 'quiz' && <QuizSection />}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        // 渲染應用程式
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
