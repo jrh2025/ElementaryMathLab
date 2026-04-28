@@ -218,5 +218,14 @@ window.MATH_TOOLS_DATA = [
     "link": "cylinder_surface_area.html",
     "icon": "Cylinder",
     "color": "blue"
+  },
+  {
+    "id": "tool_1777351027589",
+    "title": "公制單位換算全攻略",
+    "grade": "五年級",
+    "description": "「公制單位換算全攻略」為一款採用單一頁面架構（SPA）的純前端互動式教育應用程式。透過視覺化圖解、動態模擬器與隨機生成題庫，協助學生建立一維（長度）、二維（面積）、三維（體積與容積）單位的直覺概念，並克服常見的「厚度陷阱」與「進位錯誤」。自我挑戰同時搭載了 CLI 風格的數位計算紙，提供無縫的計算輔助。\n",
+    "link": "unit_conversion.html",
+    "icon": "Cuboid",
+    "color": "orange"
   }
 ];
