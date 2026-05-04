@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四年級數學：量角器與角度探索</title>
+    <!-- 引入 Tailwind CSS 進行快速且美觀的樣式設計 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 與 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel 以在瀏覽器中編譯 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Lucide Icons 以獲取精美圖示 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: #f0fdf4;
+        }
+
+        .tab-active {
+            background-color: #22c55e;
+            color: white;
+            border-color: #16a34a;
+        }
+
+        .tab-inactive {
+            background-color: white;
+            color: #4b5563;
+            border-color: #d1d5db;
+        }
+
+        .grab-cursor {
+            cursor: grab;
+        }
+
+        .grabbing-cursor {
+            cursor: grabbing;
+        }
+
+        /* 防止選取文字導致拖曳異常 */
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // -----------------------------------------------------
+        // 核心組件：動態生成的互動式量角器 (SVG)
+        // -----------------------------------------------------
+        const Protractor = ({ x, y, rotation, onMoveStart, onRotateStart, highlightMode, showRotateHandle, isRotating }) => {
+            const radius = 160;
+            const ticks = [];
+            const innerTexts = [];
+            const outerTexts = [];
+
+            // 產生刻度與數字
+            for (let i = 0; i <= 180; i++) {
+                const angleRad = (i * Math.PI) / 180;
+                const cosA = Math.cos(angleRad);
+                const sinA = Math.sin(angleRad);
+
+                // SVG Y軸向下，所以要變號
+                const x1 = radius * cosA;
+                const y1 = -radius * sinA;
+
+                let length = 5; // 1度的小刻度
+                if (i % 10 === 0) length = 15; // 10度的大刻度
+                else if (i % 5 === 0) length = 10; // 5度的中刻度
+
+                const x2 = (radius - length) * cosA;
+                const y2 = -(radius - length) * sinA;
+
+                ticks.push(<line key={`tick-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#374151" strokeWidth={i % 10 === 0 ? 2 : 1} />);
+
+                // 產生文字 (每10度)
+                if (i % 10 === 0) {
+                    // 外圈數字 (左到右 0-180) -> 對應數學角度 180 到 0
+                    const outerNum = 180 - i;
+                    const textRadOuter = radius - 25;
+                    outerTexts.push(
+                        <text key={`out-${i}`} x={textRadOuter * cosA} y={-textRadOuter * sinA} fill="#1d4ed8" fontSize="12" textAnchor="middle" alignmentBaseline="middle" transform={`rotate(${90 - i}, ${textRadOuter * cosA}, ${-textRadOuter * sinA})`}>
+                            {outerNum}
+                        </text>
+                    );
+
+                    // 內圈數字 (右到左 0-180) -> 對應數學角度 0 到 180
+                    const innerNum = i;
+                    const textRadInner = radius - 45;
+                    innerTexts.push(
+                        <text key={`in-${i}`} x={textRadInner * cosA} y={-textRadInner * sinA} fill="#b91c1c" fontSize="12" textAnchor="middle" alignmentBaseline="middle" transform={`rotate(${90 - i}, ${textRadInner * cosA}, ${-textRadInner * sinA})`}>
+                            {innerNum}
+                        </text>
+                    );
+                }
+            }
+
+            // 根據高亮模式設定樣式
+            const isCenterHigh = highlightMode === 'center';
+            const isBaseHigh = highlightMode === 'baseline';
+            const isInnerHigh = highlightMode === 'inner';
+            const isOuterHigh = highlightMode === 'outer';
+
+            return (
+                <g transform={`translate(${x}, ${y}) rotate(${rotation})`}>
+                    <g onMouseDown={onMoveStart} className={onMoveStart ? "grab-cursor active:grabbing-cursor" : ""}>
+                        {/* 半透明主體 */}
+                        <path d={`M ${-radius - 10} 0 A ${radius + 10} ${radius + 10} 0 0 1 ${radius + 10} 0 Z`} fill="rgba(224, 242, 254, 0.85)" stroke="#60a5fa" strokeWidth="2" />
+                        <path d={`M ${-radius - 10} 0 L ${-radius - 10} 20 L ${radius + 10} 20 L ${radius + 10} 0 Z`} fill="rgba(224, 242, 254, 0.85)" stroke="#60a5fa" strokeWidth="2" />
+
+                        {/* 內圈鏤空裝飾 */}
+                        <path d={`M ${-radius + 70} 0 A ${radius - 70} ${radius - 70} 0 0 1 ${radius - 70} 0 Z`} fill="rgba(255, 255, 255, 0.5)" stroke="#93c5fd" strokeWidth="1" />
+
+                        {/* 刻度與文字 */}
+                        {ticks}
+                        <g opacity={isOuterHigh ? 1 : (isInnerHigh ? 0.3 : 1)}>
+                            {outerTexts}
+                        </g>
+                        <g opacity={isInnerHigh ? 1 : (isOuterHigh ? 0.3 : 1)}>
+                            {innerTexts}
+                        </g>
+
+                        {/* 0度線 (底線) 與互動拖曳感應區 */}
+                        <g
+                            onMouseDown={showRotateHandle ? onRotateStart : undefined}
+                            className={showRotateHandle ? "cursor-pointer" : ""}
+                        >
+                            {/* 隱藏的加粗感應區，提升滑鼠點擊與觸控體驗 */}
+                            <line x1={-radius} y1={0} x2={radius} y2={0} stroke="transparent" strokeWidth="24" />
+
+                            {/* 步驟2時顯示提示動畫，引導學生拖曳 */}
+                            {showRotateHandle && (
+                                <line x1={-radius} y1={0} x2={radius} y2={0} stroke="#10b981" strokeWidth="8" opacity="0.4" className={isRotating ? "" : "animate-pulse"} style={{ animationDuration: '1.5s' }} />
+                            )}
+
+                            {/* 實際顯示的黑色/紅色底線 */}
+                            <line x1={-radius} y1={0} x2={radius} y2={0} stroke={isBaseHigh ? "#ef4444" : "#111827"} strokeWidth={isBaseHigh ? 4 : 2} />
+                        </g>
+
+                        {/* 中心點 */}
+                        <circle cx="0" cy="0" r={isCenterHigh ? 8 : 4} fill={isCenterHigh ? "#ef4444" : "#111827"} className={isCenterHigh ? "animate-pulse" : ""} />
+                        <line x1={-10} y1={0} x2={10} y2={0} stroke={isCenterHigh ? "#ef4444" : "#111827"} strokeWidth="2" />
+                        <line x1={0} y1={-10} x2={0} y2={10} stroke={isCenterHigh ? "#ef4444" : "#111827"} strokeWidth="2" />
+
+                        {/* 外圈高亮框 */}
+                        {isOuterHigh && <path d={`M ${-radius} 0 A ${radius} ${radius} 0 0 1 ${radius} 0`} fill="none" stroke="#ef4444" strokeWidth="6" opacity="0.6" />}
+                        {/* 內圈高亮框 */}
+                        {isInnerHigh && <path d={`M ${-radius + 20} 0 A ${radius - 20} ${radius - 20} 0 0 1 ${radius - 20} 0`} fill="none" stroke="#ef4444" strokeWidth="6" opacity="0.6" />}
+                    </g>
+
+                    {/* 旋轉把手 (依條件顯示) */}
+                    {showRotateHandle && (
+                        <g transform={`translate(${radius + 30}, 0)`}
+                            onMouseDown={onRotateStart}
+                            className="cursor-pointer">
+                            {/* 增加一個較大的透明固定感應區，避免內部縮放動畫導致滑鼠 hover 狀態閃爍 */}
+                            <circle cx="0" cy="0" r="30" fill="transparent" />
+                            {/* 修正原點為 0,0 (即把手中心)，並縮小 hover 的放大比例讓互動更平滑 */}
+                            <g className={`transition-transform duration-300 ${isRotating ? "" : "hover:scale-105"}`} style={{ transformOrigin: '0px 0px' }}>
+                                <circle cx="0" cy="0" r="20" fill="#10b981" stroke="#047857" strokeWidth="3" className={isRotating ? "" : "animate-pulse"} style={{ animationDuration: '2s' }} />
+                                <text x="0" y="6" fill="white" fontSize="18" fontWeight="bold" textAnchor="middle">↻</text>
+                            </g>
+                        </g>
+                    )}
+                </g>
+            );
+        };
+
+        // -----------------------------------------------------
+        // 單元 1: 認識量角器的構造
+        // -----------------------------------------------------
+        const SectionIntro = () => {
+            const [highlight, setHighlight] = useState(null);
+
+            const parts = [
+                { id: 'center', name: '中心點', desc: '量角器底部水平線的正中央，測量時必須對齊角的「頂點」。' },
+                { id: 'baseline', name: '0 度線 (底線)', desc: '量角器最下方的水平橫線，測量時要對齊角的一條「邊」。' },
+                { id: 'inner', name: '內圈刻度', desc: '從右邊的 0 度開始，逆時針往左邊數到 180 度。紅色數字。' },
+                { id: 'outer', name: '外圈刻度', desc: '從左邊的 0 度開始，順時針往右邊數到 180 度。藍色數字。' }
+            ];
+
+            return (
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-green-100">
+                        <h2 className="text-2xl font-bold text-green-700 mb-4">1. 認識量角器的構造</h2>
+                        <p className="text-gray-700 mb-6 text-lg">在使用之前，必須先看懂量角器上的重要標示。點擊下方的按鈕來觀察：</p>
+                        <div className="space-y-3">
+                            {parts.map(part => (
+                                <button
+                                    key={part.id}
+                                    onClick={() => setHighlight(part.id)}
+                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 ${highlight === part.id ? 'border-green-500 bg-green-50 shadow-md' : 'border-gray-200 hover:border-green-300'}`}
+                                >
+                                    <div className="font-bold text-xl text-gray-800">📍 {part.name}</div>
+                                    {highlight === part.id && (
+                                        <div className="mt-2 text-gray-600 font-medium text-lg animate-fadeIn">{part.desc}</div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                            <p className="text-sm text-yellow-800 font-bold">💡 知識點：量角器上一小格代表 1°，一大格（數字間）代表 10°。</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 flex justify-center items-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 min-h-[400px]">
+                        <svg width="100%" height="400" viewBox="0 0 400 400" className="no-select">
+                            <Protractor x={200} y={250} rotation={0} highlightMode={highlight} />
+                        </svg>
+                    </div>
+                </div>
+            );
+        };
+
+        // -----------------------------------------------------
+        // 單元 2: 測量角度的四個步驟
+        // -----------------------------------------------------
+        const SectionMeasure = () => {
+            const [proX, setProX] = useState(200);
+            const [proY, setProY] = useState(80);
+            const [proRot, setProRot] = useState(0);
+            const [dragMode, setDragMode] = useState(null);
+            const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+            const [startAngle, setStartAngle] = useState(0);
+            const [answer, setAnswer] = useState("");
+
+            const [targetAngle, setTargetAngle] = useState(60);
+            const [targetBaseRotation, setTargetBaseRotation] = useState(0);
+            const targetVertex = { x: 250, y: 220 };
+
+            const svgRef = useRef(null);
+
+            const generateNewProblem = () => {
+                const newAngle = Math.floor(Math.random() * 33 + 2) * 5;
+                const newRotation = Math.floor(Math.random() * 36) * 10;
+                setTargetAngle(newAngle);
+                setTargetBaseRotation(newRotation);
+                setProX(200);
+                setProY(80);
+                setProRot(0);
+                setAnswer("");
+                setDragMode(null);
+            };
+
+            const handleMoveStart = (e) => {
+                e.stopPropagation();
+                const svgRect = svgRef.current.getBoundingClientRect();
+                const mouseX = e.clientX - svgRect.left;
+                const mouseY = e.clientY - svgRect.top;
+                setDragOffset({ x: mouseX - proX, y: mouseY - proY });
+                setDragMode('move');
+            };
+
+            const handleRotateStart = (e) => {
+                e.stopPropagation();
+                const svgRect = svgRef.current.getBoundingClientRect();
+                const mouseX = e.clientX - svgRect.left;
+                const mouseY = e.clientY - svgRect.top;
+                const initialMouseAngle = Math.atan2(mouseY - proY, mouseX - proX) * 180 / Math.PI;
+                setDragMode('rotate');
+                setStartAngle(initialMouseAngle - proRot);
+            };
+
+            const handleMouseMove = (e) => {
+                if (!dragMode) return;
+                const svgRect = svgRef.current.getBoundingClientRect();
+                const mouseX = e.clientX - svgRect.left;
+                const mouseY = e.clientY - svgRect.top;
+
+                if (dragMode === 'move') {
+                    setProX(mouseX - dragOffset.x);
+                    setProY(mouseY - dragOffset.y);
+                } else if (dragMode === 'rotate') {
+                    const currentMouseAngle = Math.atan2(mouseY - proY, mouseX - proX) * 180 / Math.PI;
+                    let newRot = currentMouseAngle - startAngle;
+                    newRot = (newRot % 360 + 360) % 360;
+                    setProRot(Math.round(newRot));
+                }
+            };
+
+            const getValidAlignments = () => {
+                const a1 = (targetBaseRotation % 360 + 360) % 360;
+                const a2 = ((targetBaseRotation - targetAngle) % 360 + 360) % 360;
+                let alignments = [];
+
+                let pRot1 = a1;
+                let oLocal1 = (a2 - pRot1) % 360; if (oLocal1 > 180) oLocal1 -= 360;
+                if (oLocal1 < 0) alignments.push({ rot: pRot1, scale: 'inner', side: 'right' });
+
+                let pRot2 = (a1 - 180 + 360) % 360;
+                let oLocal2 = (a2 - pRot2) % 360; if (oLocal2 > 180) oLocal2 -= 360;
+                if (oLocal2 < 0) alignments.push({ rot: pRot2, scale: 'outer', side: 'left' });
+
+                let pRot3 = a2;
+                let oLocal3 = (a1 - pRot3) % 360; if (oLocal3 > 180) oLocal3 -= 360;
+                if (oLocal3 < 0) alignments.push({ rot: pRot3, scale: 'inner', side: 'right' });
+
+                let pRot4 = (a2 - 180 + 360) % 360;
+                let oLocal4 = (a1 - pRot4) % 360; if (oLocal4 > 180) oLocal4 -= 360;
+                if (oLocal4 < 0) alignments.push({ rot: pRot4, scale: 'outer', side: 'left' });
+
+                return alignments;
+            };
+
+            const handleRotationSnap = () => {
+                const alignments = getValidAlignments();
+                const currentRot = (proRot % 360 + 360) % 360;
+                for (let a of alignments) {
+                    let diff = Math.abs(currentRot - a.rot);
+                    if (diff > 180) diff = Math.abs(360 - diff);
+                    if (diff <= 8) {
+                        setProRot(a.rot);
+                        break;
+                    }
+                }
+            };
+
+            const handleMouseUp = () => {
+                if (dragMode === 'move') {
+                    const dist = Math.sqrt(Math.pow(proX - targetVertex.x, 2) + Math.pow(proY - targetVertex.y, 2));
+                    if (dist < 25) {
+                        setProX(targetVertex.x);
+                        setProY(targetVertex.y);
+                    }
+                } else if (dragMode === 'rotate') {
+                    handleRotationSnap();
+                }
+                setDragMode(null);
+            };
+
+            const isPointAligned = Math.sqrt(Math.pow(proX - targetVertex.x, 2) + Math.pow(proY - targetVertex.y, 2)) < 5;
+
+            const currentMatch = useMemo(() => {
+                const alignments = getValidAlignments();
+                const currentRot = (proRot % 360 + 360) % 360;
+                for (let a of alignments) {
+                    let diff = Math.abs(currentRot - a.rot);
+                    if (diff > 180) diff = Math.abs(360 - diff);
+                    if (diff <= 2) return a;
+                }
+                return null;
+            }, [proRot, targetBaseRotation, targetAngle]);
+
+            const isLineAligned = !!currentMatch;
+            const isAnswerCorrect = Number(answer) === targetAngle;
+
+            let activeHighlight = null;
+            if (!isPointAligned) activeHighlight = 'center';
+            else if (!isLineAligned) activeHighlight = 'baseline';
+            else activeHighlight = currentMatch.scale;
+
+            return (
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-green-100 flex flex-col">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold text-green-700">2. 測量角度的四步驟</h2>
+                            <button onClick={generateNewProblem} className="bg-yellow-400 text-yellow-900 px-3 py-1.5 rounded-lg font-bold hover:bg-yellow-500 shadow-sm flex items-center gap-1 text-sm transition-transform active:scale-95">
+                                🎲 換題練習
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 flex-1">
+                            <div className={`p-4 rounded-xl border-2 transition-all duration-300 ${isPointAligned ? 'border-green-500 bg-green-50' : 'border-blue-400 bg-blue-50 shadow-md'}`}>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-xl text-gray-800">1. 點對點</h3>
+                                    {isPointAligned && <span className="text-green-600 text-xl font-bold">✅ 對齊完成</span>}
+                                </div>
+                                <p className="text-gray-600 mt-1 text-sm">請用滑鼠拖曳量角器，將「中心點」對準紅色角的「頂點」。(接近時會自動吸附)</p>
+                            </div>
+
+                            <div className={`p-4 rounded-xl border-2 transition-all duration-300 ${isLineAligned ? 'border-green-500 bg-green-50' : (isPointAligned ? 'border-blue-400 bg-blue-50 shadow-md' : 'border-gray-200 bg-white opacity-70')}`}>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-xl text-gray-800">2. 線對線</h3>
+                                    {isLineAligned && <span className="text-green-600 text-xl font-bold">✅ 對齊完成</span>}
+                                </div>
+                                <p className="text-gray-600 mt-1 text-sm">
+                                    拖曳量角器上發光的 <b className="text-green-600">0 度線</b> 或右側 <b className="text-green-600">旋轉鈕 ↻</b>，將「0 度線」對齊其中一條邊。
+                                </p>
+                                <div className="mt-3 flex items-center gap-3">
+                                    <span className="font-bold whitespace-nowrap text-sm text-gray-500">微調拉桿:</span>
+                                    <input
+                                        type="range" min="0" max="360"
+                                        value={proRot}
+                                        onChange={(e) => setProRot(Number(e.target.value))}
+                                        onMouseUp={handleRotationSnap}
+                                        onTouchEnd={handleRotationSnap}
+                                        className="w-full accent-green-600 cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={`p-4 rounded-xl border-2 transition-all duration-300 ${isAnswerCorrect ? 'border-green-500 bg-green-50' : (isPointAligned && isLineAligned ? 'border-blue-400 bg-blue-50 shadow-md' : 'border-gray-200 bg-white opacity-70')}`}>
+                                <h3 className="font-bold text-xl text-gray-800">3. 看邊讀數 & 4. 注意方向</h3>
+                                <p className="text-gray-600 mt-1 text-sm">看看角的另一條邊指向哪個刻度？</p>
+
+                                <div className="min-h-[40px] mt-2">
+                                    {isLineAligned && currentMatch && (
+                                        <div className="text-sm font-bold text-blue-800 bg-blue-100 p-2 rounded-lg border border-blue-200 animate-fadeIn">
+                                            💡 提示：0 度線對齊了{currentMatch.side === 'right' ? '右' : '左'}側，請讀
+                                            <span className={currentMatch.scale === 'inner' ? "text-red-600 ml-1 text-base" : "text-blue-700 ml-1 text-base"}>
+                                                {currentMatch.scale === 'inner' ? '紅色的「內圈」' : '藍色的「外圈」'}
+                                            </span>喔！
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <input
+                                        type="number"
+                                        value={answer}
+                                        onChange={(e) => setAnswer(e.target.value)}
+                                        placeholder="輸入度數"
+                                        className="border-2 border-gray-300 p-2 rounded-lg w-28 text-center font-bold text-xl focus:border-green-500 focus:outline-none"
+                                        disabled={!isPointAligned || !isLineAligned}
+                                    />
+                                    <span className="text-xl font-bold text-gray-700">度</span>
+
+                                    {isAnswerCorrect ? (
+                                        <div className="flex items-center gap-2 w-full mt-3 animate-fadeIn">
+                                            <span className="text-green-600 font-bold text-2xl flex items-center">🎉 答對了！</span>
+                                            <button onClick={generateNewProblem} className="ml-auto bg-yellow-400 text-yellow-900 px-5 py-2 rounded-xl font-bold hover:bg-yellow-500 shadow-md flex items-center gap-2 transition-transform active:scale-95">
+                                                🎲 再練一題
+                                            </button>
+                                        </div>
+                                    ) : (answer !== "" && (
+                                        <span className="text-red-500 font-bold w-full mt-2 block bg-red-50 p-2 rounded border border-red-100 text-sm animate-fadeIn">
+                                            ❌ 數字不太對喔，請確認量角器是否有對齊，並參考上方的💡提示。
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex justify-center items-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 relative overflow-hidden min-h-[400px]"
+                        onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+                        <svg ref={svgRef} width="100%" height="400" viewBox="0 0 500 400" className="no-select">
+                            <g transform={`translate(${targetVertex.x}, ${targetVertex.y})`}>
+                                <line x1={0} y1={0}
+                                    x2={180 * Math.cos(targetBaseRotation * Math.PI / 180)}
+                                    y2={180 * Math.sin(targetBaseRotation * Math.PI / 180)}
+                                    stroke="#ef4444" strokeWidth="6" strokeLinecap="round" />
+                                <line x1={0} y1={0}
+                                    x2={180 * Math.cos((targetBaseRotation - targetAngle) * Math.PI / 180)}
+                                    y2={180 * Math.sin((targetBaseRotation - targetAngle) * Math.PI / 180)}
+                                    stroke="#ef4444" strokeWidth="6" strokeLinecap="round" />
+                                <circle cx={0} cy={0} r={8} fill="#ef4444" />
+                            </g>
+
+                            <Protractor
+                                x={proX}
+                                y={proY}
+                                rotation={proRot}
+                                onMoveStart={handleMoveStart}
+                                onRotateStart={handleRotateStart}
+                                showRotateHandle={isPointAligned}
+                                isRotating={dragMode === 'rotate'}
+                                highlightMode={activeHighlight}
+                            />
+                        </svg>
+                    </div>
+                </div>
+            );
+        };
+
+        // -----------------------------------------------------
+        // 單元 3: 繪製指定角度的方法
+        // -----------------------------------------------------
+        const SectionDraw = () => {
+            const [targetAngle, setTargetAngle] = useState(120);
+            const [phase, setPhase] = useState(0);
+            const [vertex, setVertex] = useState(null);
+            const [baseEnd, setBaseEnd] = useState(null);
+            const [isDrawingBase, setIsDrawingBase] = useState(false);
+
+            const [proX, setProX] = useState(480);
+            const [proY, setProY] = useState(100);
+            const [proRot, setProRot] = useState(0);
+            const [dragMode, setDragMode] = useState(null);
+            const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+            const [startAngle, setStartAngle] = useState(0);
+
+            const [markPoint, setMarkPoint] = useState(null);
+            const [finalLine, setFinalLine] = useState(false);
+
+            const [isDrawingFinal, setIsDrawingFinal] = useState(false);
+            const [finalLineEnd, setFinalLineEnd] = useState(null);
+
+            const [hint, setHint] = useState("");
+            const svgRef = useRef(null);
+
+            const getSvgCoords = (e) => {
+                const svg = svgRef.current;
+                if (!svg) return { x: 0, y: 0 };
+                const pt = svg.createSVGPoint();
+                pt.x = e.clientX;
+                pt.y = e.clientY;
+                const cursorPt = pt.matrixTransform(svg.getScreenCTM().inverse());
+                return { x: cursorPt.x, y: cursorPt.y };
+            };
+
+            const generateNewProblem = () => {
+                const newAngle = Math.floor(Math.random() * 33 + 2) * 5;
+                setTargetAngle(newAngle);
+                setPhase(0);
+                setVertex(null);
+                setBaseEnd(null);
+                setProX(480);
+                setProY(100);
+                setProRot(0);
+                setMarkPoint(null);
+                setFinalLine(false);
+                setIsDrawingFinal(false);
+                setFinalLineEnd(null);
+                setHint("");
+                setDragMode(null);
+            };
+
+            const handleMoveStart = (e) => {
+                if (phase === 0 || phase >= 3) return;
+                e.stopPropagation();
+                const { x, y } = getSvgCoords(e);
+                setDragOffset({ x: x - proX, y: y - proY });
+                setDragMode('move');
+            };
+
+            const handleRotateStart = (e) => {
+                if (phase === 0 || phase >= 3) return;
+                e.stopPropagation();
+                const { x, y } = getSvgCoords(e);
+                const initialMouseAngle = Math.atan2(y - proY, x - proX) * 180 / Math.PI;
+                setDragMode('rotate');
+                setStartAngle(initialMouseAngle - proRot);
+            };
+
+            const getExpectedMark = () => {
+                if (!vertex || !baseEnd) return null;
+                const baseAngleRad = Math.atan2(baseEnd.y - vertex.y, baseEnd.x - vertex.x);
+                const baseAngle = (baseAngleRad * 180 / Math.PI + 360) % 360;
+                const currentRot = (proRot % 360 + 360) % 360;
+
+                let diffRight = Math.abs(currentRot - baseAngle);
+                if (diffRight > 180) diffRight = Math.abs(360 - diffRight);
+
+                let diffLeft = Math.abs(currentRot - ((baseAngle + 180) % 360));
+                if (diffLeft > 180) diffLeft = Math.abs(360 - diffLeft);
+
+                let A = null;
+                if (diffRight <= 5) A = targetAngle;
+                else if (diffLeft <= 5) A = 180 - targetAngle;
+
+                if (A !== null) {
+                    const ARad = A * Math.PI / 180;
+                    const cx = 160 * Math.cos(ARad);
+                    const cy = -160 * Math.sin(ARad);
+                    const rotRad = proRot * Math.PI / 180;
+                    const gx = proX + cx * Math.cos(rotRad) - cy * Math.sin(rotRad);
+                    const gy = proY + cx * Math.sin(rotRad) + cy * Math.cos(rotRad);
+                    return { x: gx, y: gy, A: A };
+                }
+                return null;
+            };
+
+            const handleRotationSnap = () => {
+                if (!vertex || !baseEnd) return;
+                const baseAngleRad = Math.atan2(baseEnd.y - vertex.y, baseEnd.x - vertex.x);
+                const baseAngle = (baseAngleRad * 180 / Math.PI + 360) % 360;
+                const currentRot = (proRot % 360 + 360) % 360;
+
+                let diffRight = Math.abs(currentRot - baseAngle);
+                if (diffRight > 180) diffRight = Math.abs(360 - diffRight);
+
+                const leftAngle = (baseAngle + 180) % 360;
+                let diffLeft = Math.abs(currentRot - leftAngle);
+                if (diffLeft > 180) diffLeft = Math.abs(360 - diffLeft);
+
+                if (diffRight <= 8) setProRot(baseAngle);
+                else if (diffLeft <= 8) setProRot(leftAngle);
+            };
+
+            const isPointAligned = vertex && Math.sqrt(Math.pow(proX - vertex.x, 2) + Math.pow(proY - vertex.y, 2)) < 5;
+            const expectedPoint = getExpectedMark();
+            const isLineAligned = !!expectedPoint;
+
+            useEffect(() => {
+                if (phase === 1 && !dragMode) {
+                    if (isPointAligned && isLineAligned) {
+                        setPhase(2);
+                        setHint("");
+                    }
+                }
+                if (phase >= 2 && !dragMode && phase < 3) {
+                    if (!isPointAligned || !isLineAligned) {
+                        setPhase(1);
+                        setMarkPoint(null);
+                    }
+                }
+            }, [phase, dragMode, isPointAligned, isLineAligned]);
+
+            const scaleHint = useMemo(() => {
+                if (phase !== 2 || !vertex || !baseEnd) return null;
+                const baseAngleRad = Math.atan2(baseEnd.y - vertex.y, baseEnd.x - vertex.x);
+                const baseAngle = (baseAngleRad * 180 / Math.PI + 360) % 360;
+                const currentRot = (proRot % 360 + 360) % 360;
+                let diffRight = Math.abs(currentRot - baseAngle);
+                if (diffRight > 180) diffRight = Math.abs(360 - diffRight);
+                return diffRight <= 5 ? 'inner' : 'outer';
+            }, [phase, proRot, vertex, baseEnd]);
+
+            const handleSvgMouseDown = (e) => {
+                const { x, y } = getSvgCoords(e);
+                if (phase === 0) {
+                    setVertex({ x, y });
+                    setBaseEnd({ x, y });
+                    setIsDrawingBase(true);
+                } else if (phase === 3) {
+                    const distToVertex = Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2));
+                    if (distToVertex < 30) {
+                        setIsDrawingFinal(true);
+                        setFinalLineEnd({ x, y });
+                        setHint("");
+                    } else {
+                        setHint("請從紅色的「頂點」開始拖曳畫線喔！");
+                    }
+                }
+            };
+
+            const handleSvgMouseMove = (e) => {
+                const { x, y } = getSvgCoords(e);
+                if (isDrawingBase) {
+                    setBaseEnd({ x, y });
+                } else if (isDrawingFinal) {
+                    setFinalLineEnd({ x, y });
+                } else if (dragMode) {
+                    if (dragMode === 'move') {
+                        setProX(x - dragOffset.x);
+                        setProY(y - dragOffset.y);
+                    } else if (dragMode === 'rotate') {
+                        const currentMouseAngle = Math.atan2(y - proY, x - proX) * 180 / Math.PI;
+                        let newRot = currentMouseAngle - startAngle;
+                        newRot = (newRot % 360 + 360) % 360;
+                        setProRot(Math.round(newRot));
+                    }
+                }
+            };
+
+            const handleSvgMouseUp = () => {
+                if (isDrawingBase) {
+                    setIsDrawingBase(false);
+                    const d = Math.sqrt(Math.pow(baseEnd.x - vertex.x, 2) + Math.pow(baseEnd.y - vertex.y, 2));
+                    if (d < 50) {
+                        setVertex(null);
+                        setBaseEnd(null);
+                        setHint("基準線太短了，請拖曳畫長一點喔！");
+                    } else {
+                        setPhase(1);
+                        setHint("");
+                    }
+                } else if (isDrawingFinal) {
+                    setIsDrawingFinal(false);
+                    const distToMark = Math.sqrt(Math.pow(finalLineEnd.x - markPoint.x, 2) + Math.pow(finalLineEnd.y - markPoint.y, 2));
+                    if (distToMark < 40) {
+                        setFinalLine(true);
+                        setPhase(4);
+                        setHint("");
+                    } else {
+                        setFinalLineEnd(null);
+                        setHint("請準確連到藍色的標記點上喔！");
+                    }
+                } else if (dragMode) {
+                    if (dragMode === 'move') {
+                        if (vertex) {
+                            const dist = Math.sqrt(Math.pow(proX - vertex.x, 2) + Math.pow(proY - vertex.y, 2));
+                            if (dist < 25) {
+                                setProX(vertex.x);
+                                setProY(vertex.y);
+                            }
+                        }
+                    } else if (dragMode === 'rotate') {
+                        handleRotationSnap();
+                    }
+                    setDragMode(null);
+                }
+            };
+
+            const getAngleArcPath = () => {
+                if (!vertex || !baseEnd || !markPoint) return "";
+                const bRad = Math.atan2(baseEnd.y - vertex.y, baseEnd.x - vertex.x);
+                const fRad = Math.atan2(markPoint.y - vertex.y, markPoint.x - vertex.x);
+
+                const r = 40;
+                const startX = vertex.x + r * Math.cos(bRad);
+                const startY = vertex.y + r * Math.sin(bRad);
+                const endX = vertex.x + r * Math.cos(fRad);
+                const endY = vertex.y + r * Math.sin(fRad);
+
+                const cross = Math.cos(bRad) * Math.sin(fRad) - Math.sin(bRad) * Math.cos(fRad);
+                const sweep = cross > 0 ? 1 : 0;
+
+                return `M ${startX} ${startY} A ${r} ${r} 0 0 ${sweep} ${endX} ${endY}`;
+            };
+
+            const getAngleTextPos = () => {
+                if (!vertex || !baseEnd || !markPoint) return { x: 0, y: 0 };
+                const bRad = Math.atan2(baseEnd.y - vertex.y, baseEnd.x - vertex.x);
+                const fRad = Math.atan2(markPoint.y - vertex.y, markPoint.x - vertex.x);
+                let diff = fRad - bRad;
+                while (diff <= -Math.PI) diff += 2 * Math.PI;
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                const midRad = bRad + diff / 2;
+                const r = 65;
+                return {
+                    x: vertex.x + r * Math.cos(midRad),
+                    y: vertex.y + r * Math.sin(midRad)
+                };
+            };
+
+            return (
+                <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="w-full lg:w-[35%] bg-white p-5 rounded-2xl shadow-sm border border-green-100 flex flex-col">
+                        <div className="flex justify-between items-center mb-3">
+                            <h2 className="text-xl font-bold text-green-700">3. 繪製指定角度</h2>
+                            <button onClick={generateNewProblem} className="bg-yellow-400 text-yellow-900 px-3 py-1.5 rounded-lg font-bold hover:bg-yellow-500 shadow-sm flex items-center gap-1 text-xs transition-transform active:scale-95">
+                                🎲 換題
+                            </button>
+                        </div>
+                        <p className="text-gray-700 mb-3 text-md">請畫出 <b className="text-blue-600 text-xl">{targetAngle}°</b> 的角！</p>
+
+                        <div className="space-y-2 flex-1">
+                            <div className={`p-3 rounded-lg border-2 transition-all duration-300 ${phase >= 1 ? 'border-green-400 bg-green-50' : (phase === 0 ? 'border-blue-400 bg-blue-50 shadow-md scale-[1.02]' : 'border-gray-100 bg-white opacity-60')}`}>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-md text-gray-800">1. 畫基準線</h3>
+                                    {phase >= 1 && <span className="text-green-600 font-bold text-sm">✅</span>}
+                                </div>
+                                <p className="text-gray-600 text-xs mt-1">在右方空白處，<b className="text-blue-600">點擊並拖曳</b>畫出底線。</p>
+                            </div>
+
+                            <div className={`p-3 rounded-lg border-2 transition-all duration-300 ${phase >= 2 ? 'border-green-400 bg-green-50' : (phase === 1 ? 'border-blue-400 bg-blue-50 shadow-md scale-[1.02]' : 'border-gray-100 bg-white opacity-60')}`}>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-md text-gray-800">2. 對齊工具</h3>
+                                    {phase >= 2 && <span className="text-green-600 font-bold text-sm">✅</span>}
+                                </div>
+                                <p className="text-gray-600 text-xs mt-1">中心點對齊頂點，0度線對齊底線。</p>
+                            </div>
+
+                            <div className={`p-3 rounded-lg border-2 transition-all duration-300 ${phase >= 3 ? 'border-green-400 bg-green-50' : (phase === 2 ? 'border-blue-400 bg-blue-50 shadow-md scale-[1.02]' : 'border-gray-100 bg-white opacity-60')}`}>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-md text-gray-800">3. 點上標記</h3>
+                                    {phase >= 3 && <span className="text-green-600 font-bold text-sm">✅</span>}
+                                </div>
+                                <p className="text-gray-600 text-xs mt-1">在量角器邊緣，找出 <b className="text-blue-600">{targetAngle}°</b> 刻度並<b className="text-blue-600">點擊標記</b>。</p>
+                                {phase === 2 && scaleHint && (
+                                    <div className="text-xs font-bold text-blue-800 bg-blue-100 p-1.5 rounded mt-1 animate-fadeIn border border-blue-200">
+                                        💡 提示：請找{scaleHint === 'inner' ? <span className="text-red-600 font-bold">紅色「內圈」</span> : <span className="text-blue-700 font-bold">藍色「外圈」</span>}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={`p-3 rounded-lg border-2 transition-all duration-300 ${phase === 4 ? 'border-green-400 bg-green-50' : (phase === 3 ? 'border-blue-400 bg-blue-50 shadow-md scale-[1.02]' : 'border-gray-100 bg-white opacity-60')}`}>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-md text-gray-800">4. 連線成角</h3>
+                                    {phase === 4 && <span className="text-green-600 font-bold text-sm">✅</span>}
+                                </div>
+                                <p className="text-gray-600 text-xs mt-1">從紅色的「頂點」<b className="text-blue-600">按住拖曳</b>到藍色標記點。</p>
+                            </div>
+
+                            <div className="min-h-[20px]">
+                                {hint && <p className="text-red-500 font-bold text-sm animate-bounce">{hint}</p>}
+                                {phase === 4 && <p className="text-green-600 font-bold text-md animate-fadeIn flex items-center">🎉 成功畫出 {targetAngle}°！</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-full lg:w-[65%] flex justify-center items-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 relative overflow-hidden min-h-[400px]"
+                        onMouseDown={handleSvgMouseDown} onMouseMove={handleSvgMouseMove} onMouseUp={handleSvgMouseUp} onMouseLeave={handleSvgMouseUp}>
+                        <svg ref={svgRef} width="100%" height="400" viewBox="0 0 600 400" className="no-select">
+                            {phase === 0 && !isDrawingBase && !vertex && (
+                                <text x="300" y="200" textAnchor="middle" fill="#9ca3af" fontSize="18" fontWeight="bold" className="animate-pulse pointer-events-none">
+                                    ✍️ 在此區域點擊並拖曳，畫出角的基準線
+                                </text>
+                            )}
+
+                            {vertex && baseEnd && (
+                                <g>
+                                    <line x1={vertex.x} y1={vertex.y} x2={baseEnd.x} y2={baseEnd.y} stroke="#1f2937" strokeWidth="6" strokeLinecap="round" />
+                                    <circle cx={vertex.x} cy={vertex.y} r={8} fill="#ef4444" className={phase === 3 ? "animate-pulse" : ""} />
+                                </g>
+                            )}
+
+                            {phase === 3 && isDrawingFinal && finalLineEnd && (
+                                <line x1={vertex.x} y1={vertex.y} x2={finalLineEnd.x} y2={finalLineEnd.y} stroke="#1f2937" strokeWidth="6" strokeLinecap="round" strokeDasharray="6,6" opacity="0.6" />
+                            )}
+
+                            {finalLine && markPoint && (
+                                <g className="animate-fadeIn">
+                                    <line x1={vertex.x} y1={vertex.y} x2={markPoint.x} y2={markPoint.y} stroke="#1f2937" strokeWidth="6" strokeLinecap="round" />
+                                    <path d={getAngleArcPath()} fill="none" stroke="#f59e0b" strokeWidth="4" />
+                                    <text x={getAngleTextPos().x} y={getAngleTextPos().y} fill="#d97706" fontSize="20" fontWeight="bold" textAnchor="middle" alignmentBaseline="middle">
+                                        {targetAngle}°
+                                    </text>
+                                </g>
+                            )}
+
+                            {phase < 3 && (
+                                <g style={{ opacity: phase === 0 ? 0.2 : 1, pointerEvents: phase === 0 ? 'none' : 'auto', transition: 'opacity 0.3s' }}>
+                                    <Protractor
+                                        x={proX}
+                                        y={proY}
+                                        rotation={proRot}
+                                        onMoveStart={handleMoveStart}
+                                        onRotateStart={handleRotateStart}
+                                        showRotateHandle={phase >= 1 && isPointAligned}
+                                        isRotating={dragMode === 'rotate'}
+                                        highlightMode={phase === 1 ? (!isPointAligned ? 'center' : 'baseline') : (phase === 2 ? scaleHint : null)}
+                                    />
+                                </g>
+                            )}
+
+                            {phase === 2 && expectedPoint && (
+                                <g>
+                                    <circle
+                                        cx={expectedPoint.x} cy={expectedPoint.y} r={30}
+                                        fill="rgba(16, 185, 129, 0.25)"
+                                        className="animate-pulse cursor-pointer"
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation();
+                                            setMarkPoint({ x: expectedPoint.x, y: expectedPoint.y });
+                                            setPhase(3);
+                                            setHint("");
+                                        }}
+                                    />
+                                    <circle cx={expectedPoint.x} cy={expectedPoint.y} r={4} fill="#10b981" />
+                                </g>
+                            )}
+
+                            {markPoint && (
+                                <circle cx={markPoint.x} cy={markPoint.y} r={6} fill="#3b82f6" />
+                            )}
+                        </svg>
+                    </div>
+                </div>
+            );
+        };
+
+        // -----------------------------------------------------
+        // 單元 4: 常見角的應用與分類
+        // -----------------------------------------------------
+        const SectionClassify = () => {
+            const [angle, setAngle] = useState(45);
+
+            let typeName = "";
+            let typeColor = "";
+            let description = "";
+
+            if (angle > 0 && angle < 90) {
+                typeName = "銳角"; typeColor = "text-blue-600"; description = "比直角小，看起來尖尖的。";
+            } else if (angle === 90) {
+                typeName = "直角"; typeColor = "text-red-600"; description = "像正方形或長方形的角落。";
+            } else if (angle > 90 && angle < 180) {
+                typeName = "鈍角"; typeColor = "text-orange-500"; description = "比直角大，看起來較平緩。";
+            } else if (angle === 180) {
+                typeName = "平角"; typeColor = "text-purple-600"; description = "剛好是一條直線（兩個直角）。";
+            } else if (angle === 360) {
+                typeName = "周角"; typeColor = "text-pink-600"; description = "繞一圈回到原點。";
+            } else {
+                typeName = "大於平角"; typeColor = "text-gray-600"; description = "在國小四年級階段，我們主要認識到180度喔！";
+            }
+
+            const vertex = { x: 200, y: 200 };
+            const r = 120;
+            const angleRad = -angle * Math.PI / 180;
+
+            const largeArcFlag = angle > 180 ? 1 : 0;
+            const sweepFlag = 0;
+            let arcPath = `M ${vertex.x + 40} ${vertex.y} A 40 40 0 ${largeArcFlag} ${sweepFlag} ${vertex.x + 40 * Math.cos(angleRad)} ${vertex.y + 40 * Math.sin(angleRad)}`;
+            if (angle === 360) {
+                arcPath = `M ${vertex.x + 40} ${vertex.y} A 40 40 0 1 0 ${vertex.x + 39.9} ${vertex.y}`;
+            }
+
+            return (
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-green-100 flex flex-col">
+                        <h2 className="text-2xl font-bold text-green-700 mb-4">4. 角的家族 (分類)</h2>
+                        <p className="text-gray-700 mb-6 text-lg">滑動下方的拉桿改變角度大小，看看角會變成什麼名字！</p>
+
+                        <div className="mb-8">
+                            <input
+                                type="range" min="1" max="360" value={angle}
+                                onChange={(e) => setAngle(Number(e.target.value))}
+                                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                            />
+                            <div className="text-center mt-4">
+                                <span className="text-5xl font-black text-gray-800">{angle}°</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-50 p-6 rounded-xl border-2 border-gray-200 text-center flex-1 flex flex-col justify-center">
+                            <h3 className="text-gray-500 font-bold mb-2">這個角是...</h3>
+                            <div className={`text-5xl font-black mb-4 ${typeColor} animate-pulse`}>{typeName}</div>
+                            <p className="text-xl text-gray-700 font-medium">{description}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col">
+                        <div className="flex-1 flex justify-center items-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 min-h-[300px]">
+                            <svg width="100%" height="300" viewBox="0 0 400 300">
+                                <line x1={vertex.x} y1={vertex.y} x2={vertex.x + r} y2={vertex.y} stroke="#1f2937" strokeWidth="6" strokeLinecap="round" />
+                                <line x1={vertex.x} y1={vertex.y} x2={vertex.x + r * Math.cos(angleRad)} y2={vertex.y + r * Math.sin(angleRad)} stroke="#3b82f6" strokeWidth="6" strokeLinecap="round" />
+                                <circle cx={vertex.x} cy={vertex.y} r={8} fill="#ef4444" />
+                                {angle === 90 ? (
+                                    <path d={`M ${vertex.x + 30} ${vertex.y} L ${vertex.x + 30} ${vertex.y - 30} L ${vertex.x} ${vertex.y - 30}`} fill="none" stroke="#ef4444" strokeWidth="3" />
+                                ) : (
+                                    <path d={arcPath} fill="none" stroke="#ef4444" strokeWidth="3" />
+                                )}
+                            </svg>
+                        </div>
+
+                        <div className="mt-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-sm">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b-2 border-gray-300 text-gray-600">
+                                        <th className="pb-2">名稱</th>
+                                        <th className="pb-2">角度範圍</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr className={angle > 0 && angle < 90 ? 'bg-blue-50 font-bold' : ''}>
+                                        <td className="py-2">銳角</td><td>大於 0°、小於 90°</td>
+                                    </tr>
+                                    <tr className={angle === 90 ? 'bg-red-50 font-bold' : ''}>
+                                        <td className="py-2">直角</td><td>等於 90°</td>
+                                    </tr>
+                                    <tr className={angle > 90 && angle < 180 ? 'bg-orange-50 font-bold' : ''}>
+                                        <td className="py-2">鈍角</td><td>大於 90°、小於 180°</td>
+                                    </tr>
+                                    <tr className={angle === 180 ? 'bg-purple-50 font-bold' : ''}>
+                                        <td className="py-2">平角</td><td>等於 180°</td>
+                                    </tr>
+                                    <tr className={angle === 360 ? 'bg-pink-50 font-bold' : ''}>
+                                        <td className="py-2">周角</td><td>等於 360°</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // -----------------------------------------------------
+        // 單元 5: 自我挑戰 (隨機出題測驗)
+        // -----------------------------------------------------
+        const SectionChallenge = () => {
+            const [questions, setQuestions] = useState([]);
+            const [answers, setAnswers] = useState({});
+            const [submitted, setSubmitted] = useState(false);
+            const [score, setScore] = useState(0);
+
+            const shuffle = (array) => {
+                let currentIndex = array.length, randomIndex;
+                while (currentIndex !== 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            };
+
+            const generateTest = () => {
+                const newQuestions = [];
+
+                // 1. 觀念題型
+                const isRightAligned = Math.random() > 0.5;
+                const conceptAngle = Math.floor(Math.random() * 15 + 3) * 10;
+                const q1CorrectText = isRightAligned ? "紅色的內圈" : "藍色的外圈";
+                const q1WrongText = isRightAligned ? "藍色的外圈" : "紅色的內圈";
+                const q1Options = shuffle([
+                    { text: q1CorrectText, isCorrect: true },
+                    { text: q1WrongText, isCorrect: false },
+                    { text: "兩圈數字加起來", isCorrect: false },
+                    { text: "隨便看哪一圈都可以", isCorrect: false }
+                ]);
+                newQuestions.push({
+                    id: 1, type: "concept",
+                    tag: "觀念題",
+                    text: `小華測量一個角時，把量角器的「0 度線」對齊了角的「${isRightAligned ? '右邊' : '左邊'}」。請問他應該看哪一圈的數字來讀取角度？`,
+                    svgData: { isRightAligned: isRightAligned },
+                    options: q1Options,
+                    explanation: `0度線對齊哪一邊，就要從那一邊的 0 度開始數起。因為${isRightAligned ? '右邊' : '左邊'}的 0 度在${q1CorrectText}，所以要看${q1CorrectText}的數字喔！`
+                });
+
+                // 2. 測量角度題型
+                let measureAngle = Math.floor(Math.random() * 26 + 4) * 5;
+                if (measureAngle === 90) measureAngle += 5;
+                const isLeftVisual = Math.random() > 0.5;
+                const q2Options = shuffle([
+                    { text: `${measureAngle}°`, isCorrect: true },
+                    { text: `${180 - measureAngle}°`, isCorrect: false },
+                    { text: `${measureAngle + 10}°`, isCorrect: false },
+                    { text: `${180 - (measureAngle + 10)}°`, isCorrect: false }
+                ]);
+                newQuestions.push({
+                    id: 2, type: "measure",
+                    tag: "看圖測量",
+                    text: "請問圖中量角器所測量的角是幾度？",
+                    svgData: { angle: measureAngle, isLeft: isLeftVisual },
+                    options: q2Options,
+                    explanation: `角的開口朝向${isLeftVisual ? '左' : '右'}邊，0度線對齊${isLeftVisual ? '左' : '右'}側。因此要讀取從${isLeftVisual ? '左' : '右'}邊 0 開始的圈數（即${isLeftVisual ? '藍色外圈' : '紅色內圈'}），對應到的刻度是 ${measureAngle}°。`
+                });
+
+                // 3. 畫角步驟題型
+                let drawAngle = Math.floor(Math.random() * 26 + 4) * 5;
+                if (drawAngle === 90) drawAngle += 15;
+                const isQ3Right = Math.random() > 0.5;
+                const q3Correct = isQ3Right ? `在「紅色內圈」的 ${drawAngle} 處點上標記` : `在「藍色外圈」的 ${drawAngle} 處點上標記`;
+                const q3Wrong1 = isQ3Right ? `在「藍色外圈」的 ${drawAngle} 處點上標記` : `在「紅色內圈」的 ${drawAngle} 處點上標記`;
+                const q3Wrong2 = isQ3Right ? `在「紅色內圈」的 ${180 - drawAngle} 處點上標記` : `在「藍色外圈」的 ${180 - drawAngle} 處點上標記`;
+                const q3Wrong3 = isQ3Right ? `在「藍色外圈」的 ${180 - drawAngle} 處點上標記` : `在「紅色內圈」的 ${180 - drawAngle} 處點上標記`;
+
+                const q3Options = shuffle([
+                    { text: q3Correct, isCorrect: true },
+                    { text: q3Wrong1, isCorrect: false },
+                    { text: q3Wrong2, isCorrect: false },
+                    { text: q3Wrong3, isCorrect: false }
+                ]);
+                newQuestions.push({
+                    id: 3, type: "draw",
+                    tag: "畫圖步驟",
+                    text: `你想畫一個 ${drawAngle}° 的角。畫好底線後，你將量角器的 0 度線對齊底線的「${isQ3Right ? '右邊' : '左邊'}」。接下來，你應該在哪裡做記號？`,
+                    svgData: { isRight: isQ3Right },
+                    options: q3Options,
+                    explanation: `因為 0 度線對齊「${isQ3Right ? '右邊' : '左邊'}」，所以我們要找從${isQ3Right ? '右' : '左'}邊 0 度開始的「${isQ3Right ? '紅色內圈' : '藍色外圈'}」，然後找到刻度 ${drawAngle} 的地方做記號。`
+                });
+
+                // 4. 生活應用題型
+                const hour = Math.floor(Math.random() * 11) + 1;
+                let clockAngle = hour * 30;
+                if (clockAngle > 180) clockAngle = 360 - clockAngle;
+                let wrongClock1 = clockAngle === 180 ? 90 : 180 - clockAngle;
+                let wrongClock2 = clockAngle + 30;
+                let wrongClock3 = Math.abs(clockAngle - 30) === 0 ? 360 : Math.abs(clockAngle - 30);
+
+                const q4Options = shuffle([
+                    { text: `${clockAngle}°`, isCorrect: true },
+                    { text: `${wrongClock1}°`, isCorrect: false },
+                    { text: `${wrongClock2}°`, isCorrect: false },
+                    { text: `${wrongClock3}°`, isCorrect: false }
+                ]);
+                newQuestions.push({
+                    id: 4, type: "life",
+                    tag: "生活應用",
+                    text: `時鐘的指針也藏著角度！鐘面上有 12 個大格，繞一圈是 360°。請問現在時間是 ${hour} 點整，時針和分針所夾的較小角是幾度？`,
+                    options: q4Options,
+                    explanation: `鐘面一圈 360° 分成 12 個大格，所以一大格是 360 ÷ 12 = 30°。${hour} 點整時，兩針之間相差 ${hour <= 6 ? hour : 12 - hour} 個大格，所以角度是 ${hour <= 6 ? hour : 12 - hour} × 30° = ${clockAngle}°。`
+                });
+
+                // 5. 進階素養題型
+                const a1 = Math.floor(Math.random() * 8 + 2) * 10;
+                const a2 = a1 + Math.floor(Math.random() * 6 + 3) * 10;
+                const finalAngle = a2 - a1;
+                const q5Options = shuffle([
+                    { text: `${finalAngle}°`, isCorrect: true },
+                    { text: `${a2 + a1}°`, isCorrect: false },
+                    { text: `${finalAngle + 10}°`, isCorrect: false },
+                    { text: `${180 - finalAngle}°`, isCorrect: false }
+                ]);
+                newQuestions.push({
+                    id: 5, type: "advanced",
+                    tag: "素養挑戰",
+                    text: `小明的量角器邊緣破了一個洞，0 度線不見了！但他還是把角的「頂點」對準了中心點。角的一邊對齊著外圈的 ${a1}°，另一邊對齊著外圈的 ${a2}°。請問這個角實際是幾度？`,
+                    options: q5Options,
+                    explanation: `只要量角器中心點有對準頂點，不管 0 度線在哪裡，我們只要把兩條邊對齊的刻度「大數減小數」就能算出夾角！所以 ${a2}° - ${a1}° = ${finalAngle}°。`
+                });
+
+                setQuestions(newQuestions);
+                setAnswers({});
+                setSubmitted(false);
+                setScore(0);
+            };
+
+            useEffect(() => {
+                generateTest();
+            }, []);
+
+            const handleOptionChange = (qIndex, oIndex) => {
+                if (submitted) return;
+                setAnswers(prev => ({ ...prev, [qIndex]: oIndex }));
+            };
+
+            const handleSubmit = () => {
+                if (Object.keys(answers).length < 5) {
+                    alert("請作答完所有題目再交卷喔！");
+                    return;
+                }
+                let currentScore = 0;
+                questions.forEach((q, idx) => {
+                    if (q.options[answers[idx]].isCorrect) {
+                        currentScore += 20;
+                    }
+                });
+                setScore(currentScore);
+                setSubmitted(true);
+            };
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-green-100 relative">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-8 border-b-2 border-green-100 pb-4">
+                        <div>
+                            <h2 className="text-3xl font-black text-green-700 mb-2">🏆 自我挑戰測驗</h2>
+                            <p className="text-gray-600 font-medium">請根據前面學到的技巧，完成這 5 道隨機任務題！</p>
+                        </div>
+                        <button onClick={generateTest} className="mt-4 md:mt-0 bg-yellow-400 text-yellow-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 shadow-md flex items-center gap-2 transition-transform active:scale-95">
+                            🎲 產生新測驗
+                        </button>
+                    </div>
+
+                    <div className="space-y-8">
+                        {questions.map((q, qIndex) => (
+                            <div key={q.id} className={`p-6 rounded-2xl border-2 transition-all duration-500 ${submitted ? (q.options[answers[qIndex]]?.isCorrect ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50') : 'border-gray-200 hover:border-blue-300 bg-white'}`}>
+                                <div className="flex items-center gap-3 mb-3">
+                                    <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm">第 {qIndex + 1} 題</span>
+                                    <span className="text-gray-500 font-bold text-sm border border-gray-300 px-2 py-0.5 rounded">{q.tag}</span>
+                                    {submitted && q.options[answers[qIndex]]?.isCorrect && <span className="ml-auto text-green-600 font-black text-xl animate-bounce">⭕ 答對了</span>}
+                                    {submitted && !q.options[answers[qIndex]]?.isCorrect && <span className="ml-auto text-red-500 font-black text-xl">❌ 答錯了</span>}
+                                </div>
+
+                                <h3 className="text-xl font-bold text-gray-800 mb-4 leading-relaxed">{q.text}</h3>
+
+                                {/* 專為第一題產生的視覺化 SVG 區塊 */}
+                                {q.type === 'concept' && (
+                                    <div className="flex justify-center bg-gray-100 rounded-xl border border-gray-300 mb-6 p-4 max-w-lg mx-auto">
+                                        <svg viewBox="0 0 440 240" className="w-full max-w-sm drop-shadow-md">
+                                            <g transform="translate(220, 200)">
+                                                {/* 嵌入靜態量角器 */}
+                                                <Protractor x={0} y={0} rotation={0} />
+                                                {/* 動態畫出底線，閃爍提示使用者對齊的方向 */}
+                                                <line x1={0} y1={0} x2={q.svgData.isRightAligned ? 190 : -190} y2={0} stroke="#ef4444" strokeWidth="6" strokeLinecap="round" className="animate-pulse" opacity="0.8" />
+                                                <circle cx={0} cy={0} r={6} fill="#ef4444" />
+                                            </g>
+                                        </svg>
+                                    </div>
+                                )}
+
+                                {/* 專為第二題產生的視覺化 SVG 區塊 */}
+                                {q.type === 'measure' && (
+                                    <div className="flex justify-center bg-gray-100 rounded-xl border border-gray-300 mb-6 p-4 max-w-lg mx-auto">
+                                        <svg viewBox="0 0 440 240" className="w-full max-w-sm drop-shadow-md">
+                                            <g transform="translate(220, 200)">
+                                                {/* 嵌入靜態量角器 */}
+                                                <Protractor x={0} y={0} rotation={0} />
+                                                {/* 動態畫出角度線，放置在量角器上方並加長以利判讀 */}
+                                                <line x1={0} y1={0} x2={q.svgData.isLeft ? -190 : 190} y2={0} stroke="#ef4444" strokeWidth="4" strokeLinecap="round" opacity="0.85" />
+                                                <line x1={0} y1={0}
+                                                    x2={190 * Math.cos((q.svgData.isLeft ? 180 - q.svgData.angle : q.svgData.angle) * Math.PI / 180)}
+                                                    y2={-190 * Math.sin((q.svgData.isLeft ? 180 - q.svgData.angle : q.svgData.angle) * Math.PI / 180)}
+                                                    stroke="#ef4444" strokeWidth="4" strokeLinecap="round" opacity="0.85" />
+                                                <circle cx={0} cy={0} r={6} fill="#ef4444" />
+                                            </g>
+                                        </svg>
+                                    </div>
+                                )}
+
+                                {/* 專為第三題產生的視覺化 SVG 區塊 */}
+                                {q.type === 'draw' && (
+                                    <div className="flex justify-center bg-gray-100 rounded-xl border border-gray-300 mb-6 p-4 max-w-lg mx-auto">
+                                        <svg viewBox="0 0 440 240" className="w-full max-w-sm drop-shadow-md">
+                                            <g transform="translate(220, 200)">
+                                                {/* 嵌入靜態量角器 */}
+                                                <Protractor x={0} y={0} rotation={0} />
+                                                {/* 動態畫出底線，提示使用者作圖的方向基準 */}
+                                                <line x1={0} y1={0} x2={q.svgData.isRight ? 190 : -190} y2={0} stroke="#ef4444" strokeWidth="6" strokeLinecap="round" opacity="0.8" />
+                                                <circle cx={0} cy={0} r={6} fill="#ef4444" />
+                                            </g>
+                                        </svg>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {q.options.map((opt, oIndex) => {
+                                        let btnClass = "border-2 text-left p-4 rounded-xl font-bold text-lg transition-all ";
+                                        if (submitted) {
+                                            if (opt.isCorrect) btnClass += "border-green-500 bg-green-100 text-green-800 shadow-md";
+                                            else if (answers[qIndex] === oIndex) btnClass += "border-red-500 bg-red-100 text-red-800";
+                                            else btnClass += "border-gray-200 opacity-50";
+                                        } else {
+                                            if (answers[qIndex] === oIndex) btnClass += "border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-[1.02]";
+                                            else btnClass += "border-gray-200 hover:border-blue-400 hover:bg-gray-50 text-gray-700";
+                                        }
+
+                                        return (
+                                            <button
+                                                key={oIndex}
+                                                onClick={() => handleOptionChange(qIndex, oIndex)}
+                                                disabled={submitted}
+                                                className={btnClass}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${answers[qIndex] === oIndex ? 'border-blue-500 bg-blue-500' : 'border-gray-400'}`}>
+                                                        {answers[qIndex] === oIndex && <div className="w-2.5 h-2.5 bg-white rounded-full"></div>}
+                                                    </div>
+                                                    {opt.text}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {submitted && (
+                                    <div className="mt-6 bg-white p-5 rounded-xl border border-blue-200 shadow-sm animate-fadeIn">
+                                        <h4 className="text-blue-700 font-bold mb-2 flex items-center gap-2"><span>💡</span> 老師詳解：</h4>
+                                        <p className="text-gray-700 font-medium leading-relaxed">{q.explanation}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-10 pt-8 border-t-2 border-gray-200 text-center">
+                        {!submitted ? (
+                            <button
+                                onClick={handleSubmit}
+                                className={`px-12 py-4 rounded-full font-black text-2xl shadow-lg transition-all ${Object.keys(answers).length === 5 ? 'bg-green-600 hover:bg-green-700 text-white hover:scale-105' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                            >
+                                📝 送出考卷
+                            </button>
+                        ) : (
+                            <div className="animate-fadeIn">
+                                <h3 className="text-4xl font-black text-gray-800 mb-4">
+                                    你的總分是： <span className={score >= 80 ? "text-green-600 text-6xl" : (score >= 60 ? "text-yellow-500 text-6xl" : "text-red-500 text-6xl")}>{score}</span> 分
+                                </h3>
+                                <p className="text-xl text-gray-600 font-bold mb-6">
+                                    {score === 100 ? "太神啦！你已經是量角器大師了！🏆" : (score >= 80 ? "非常棒！你對角度的觀念很清楚喔！⭐" : (score >= 60 ? "不錯喔！再複習一下錯的題目就會更厲害了！👍" : "沒關係，學習本來就需要時間，再挑戰一次吧！💪"))}
+                                </p>
+                                <button onClick={generateTest} className="bg-blue-600 text-white px-10 py-4 rounded-full font-bold text-2xl hover:bg-blue-700 shadow-lg transition-transform hover:scale-105">
+                                    🔄 再挑戰一次
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // -----------------------------------------------------
+        // 主應用程式 (App)
+        // -----------------------------------------------------
+        const App = () => {
+            const [activeTab, setActiveTab] = useState(1);
+
+            const tabs = [
+                { id: 1, title: '1. 構造認識', icon: '🔍' },
+                { id: 2, title: '2. 測量步驟', icon: '📏' },
+                { id: 3, title: '3. 畫角度', icon: '✏️' },
+                { id: 4, title: '4. 角的分類', icon: '🧩' },
+                { id: 5, title: '5. 自我挑戰', icon: '🏆' },
+            ];
+
+            return (
+                <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
+                    <header className="mb-8 text-center">
+                        <div className="flex justify-center items-center mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 70" className="w-10 h-10 md:w-14 md:h-14 mr-2 md:mr-4 drop-shadow-sm">
+                                <path d="M 10 60 A 50 50 0 0 1 110 60 Z" fill="#dcfce7" stroke="#16a34a" strokeWidth="4" strokeLinejoin="round" />
+                                <path d="M 35 60 A 25 25 0 0 1 85 60 Z" fill="#ffffff" stroke="#16a34a" strokeWidth="3" />
+                                <line x1="10" y1="60" x2="110" y2="60" stroke="#15803d" strokeWidth="4" strokeLinecap="round" />
+                                <circle cx="60" cy="60" r="4" fill="#ef4444" />
+                                <line x1="60" y1="10" x2="60" y2="18" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
+                                <line x1="24.6" y1="24.6" x2="30.3" y2="30.3" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
+                                <line x1="95.4" y1="24.6" x2="89.7" y2="30.3" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
+                                <line x1="16.7" y1="35" x2="23.6" y2="39" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="103.3" y1="35" x2="96.4" y2="39" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="35" y1="16.7" x2="39" y2="23.6" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="85" y1="16.7" x2="81" y2="23.6" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            <h1 className="text-4xl md:text-5xl font-black text-green-800 drop-shadow-sm">魔法量角器教室</h1>
+                        </div>
+                        <p className="text-lg text-green-600 font-medium">跟著步驟動動手，輕鬆學會量角度！</p>
+                    </header>
+
+                    <nav className="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-5 py-3 rounded-full font-bold text-base md:text-lg transition-all duration-300 shadow-sm border-2 
+                                            ${activeTab === tab.id ? 'tab-active scale-105 shadow-md' : 'tab-inactive hover:bg-green-50'}`}
+                            >
+                                {tab.icon} {tab.title}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <main className="bg-white/50 backdrop-blur-sm p-4 md:p-8 rounded-3xl shadow-xl border border-white">
+                        {activeTab === 1 && <SectionIntro />}
+                        {activeTab === 2 && <SectionMeasure />}
+                        {activeTab === 3 && <SectionDraw />}
+                        {activeTab === 4 && <SectionClassify />}
+                        {activeTab === 5 && <SectionChallenge />}
+                    </main>
+
+                    <footer className="mt-12 text-center text-gray-500 text-sm">
+                        <p>專為國小四年級數學設計 · 互動式自學教材</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

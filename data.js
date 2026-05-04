@@ -227,5 +227,14 @@ window.MATH_TOOLS_DATA = [
     "link": "unit_conversion.html",
     "icon": "Cuboid",
     "color": "orange"
+  },
+  {
+    "id": "tool_1777865613653",
+    "title": "魔法量角器教室",
+    "grade": "四年級",
+    "description": "【魔法量角器教室】專為國小四年級數學「角度」單元設計。透過高互動性的向量圖形（SVG）與即時狀態反饋，將傳統的實體量角器操作數位化。系統以「做中學」為核心教育理念，提供從基礎構造認識、動手測量、自主繪圖到隨機測驗的完整學習內容，有效解決學生在空間幾何與工具操作上的認知障礙。",
+    "link": "protractor.html",
+    "icon": "Tractor",
+    "color": "sky"
   }
 ];
