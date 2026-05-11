@@ -236,5 +236,14 @@ window.MATH_TOOLS_DATA = [
     "link": "protractor.html",
     "icon": "Tractor",
     "color": "sky"
+  },
+  {
+    "id": "tool_1778480756826",
+    "title": "隱形的尺-間接測量互動教室",
+    "grade": "六年級",
+    "description": "透過視覺化幾何圖形 (SVG) 與即時互動元件，協助國小高年級學生理解抽象的「間接測量」概念，包含比例、相似三角形、物理特性（聲速、光學、氣壓）等知識。",
+    "link": "invisible_ruler.html",
+    "icon": "Ruler",
+    "color": "sky"
   }
 ];

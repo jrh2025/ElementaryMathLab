@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隱形的尺——間接測量互動教室</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 與 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel 以便在瀏覽器中編譯 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'PingFang TC', 'Heiti TC', '微軟正黑體', sans-serif;
+            background-color: #f0fdf4;
+            scroll-behavior: smooth;
+        }
+
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 0.5rem;
+        }
+
+        .fraction>span:first-child {
+            border-bottom: 2px solid currentColor;
+            padding: 0 0.2rem;
+        }
+
+        .fraction>span:last-child {
+            padding: 0 0.2rem;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 隱藏原生滑桿樣式以配合 Tailwind */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #16a34a;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+
+        .echo-slider::-webkit-slider-thumb {
+            background: #4f46e5;
+        }
+
+        .sound-wave {
+            box-shadow: 0 0 10px #60a5fa, 0 0 20px #93c5fd;
+        }
+
+        .purple-slider::-webkit-slider-thumb {
+            background: #9333ea;
+        }
+
+        .orange-slider::-webkit-slider-thumb {
+            background: #ea580c;
+        }
+
+        .red-slider::-webkit-slider-thumb {
+            background: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 工具元件與函數 ---
+        const Fraction = ({ top, bottom }) => (
+            <div className="fraction text-lg font-bold text-indigo-700">
+                <span>{top}</span>
+                <span>{bottom}</span>
+            </div>
+        );
+
+        // 隨機整數 (包含 min, 不包含 max)
+        const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min)) + min;
+
+        // 洗牌陣列 (不修改原陣列)
+        const shuffleArray = (array) => {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        };
+
+        // --- 單元 1：影子比例法 ---
+        const ShadowMethod = () => {
+            const [stickShadow, setStickShadow] = useState(1.5);
+            const [stickHeight, setStickHeight] = useState(1.5);
+            const treeShadow = 9.0;
+            const treeHeight = parseFloat(((treeShadow / stickShadow) * stickHeight).toFixed(1));
+
+            const scale = 2.0;
+            const groundY = 75;
+            const treeX = 25;
+            const stickX = 115;
+
+            const tH = treeHeight * scale;
+            const tS = treeShadow * scale;
+            const sH = stickHeight * scale;
+            const sS = stickShadow * scale;
+
+            const normHeight = 60;
+            const tNormWidth = (treeShadow / treeHeight) * normHeight;
+            const sNormWidth = (stickShadow / stickHeight) * normHeight;
+
+            return (
+                <div className="fade-in flex flex-col items-center w-full">
+                    <h2 className="text-2xl font-bold text-green-800 mb-4 flex items-center"><i data-lucide="sun" className="mr-2 text-yellow-500"></i> 1. 影子比例法（利用太陽光）</h2>
+                    <p className="text-gray-700 mb-4 bg-green-50 p-4 rounded-lg w-full shadow-sm">
+                        <strong>原理：</strong>太陽光是平行線。同一時間，物體的高度與影長成 <strong>正比</strong>。<br />
+                        也就是說：大樹的「高÷影」會等於標竿的「高÷影」！這就是<strong>相似三角形</strong>的應用。
+                    </p>
+
+                    <div className="w-full bg-sky-50 rounded-xl relative overflow-hidden mb-4 border-2 border-sky-200 flex flex-col">
+                        <svg viewBox="0 0 160 90" className="w-full h-auto drop-shadow-sm">
+                            <defs>
+                                <marker id="arrow-start" markerWidth="4" markerHeight="4" refX="0" refY="2" orient="auto"><path d="M4,0 L0,2 L4,4 z" fill="#64748b" /></marker>
+                                <marker id="arrow-end" markerWidth="4" markerHeight="4" refX="4" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 z" fill="#64748b" /></marker>
+                            </defs>
+                            <circle cx="10" cy="8" r="4" fill="#fbbf24" />
+                            <circle cx="10" cy="8" r="6" fill="#fef08a" opacity="0.5" />
+                            <text x="18" y="10" fontSize="5" fill="#b45309" fontWeight="bold">陽光</text>
+
+                            <rect x="0" y={groundY} width="160" height="15" fill="#bbf7d0" />
+                            <line x1="0" y1={groundY} x2="160" y2={groundY} stroke="#22c55e" strokeWidth="1" />
+
+                            <line x1={treeX} y1={groundY} x2={treeX + tS} y2={groundY} stroke="#334155" strokeWidth="3" opacity="0.7" strokeLinecap="round" />
+                            <line x1={treeX} y1={groundY - tH} x2={treeX + tS} y2={groundY} stroke="#facc15" strokeWidth="1.2" strokeDasharray="3,2" />
+
+                            <rect x={treeX - 3} y={groundY - tH + 5} width="6" height={tH - 5} fill="#15803d" rx="2" />
+                            <circle cx={treeX} cy={groundY - tH + 5} r="5" fill="#166534" />
+
+                            <line x1={treeX - 8} y1={groundY} x2={treeX - 8} y2={groundY - tH} stroke="#64748b" strokeWidth="0.5" markerStart="url(#arrow-start)" markerEnd="url(#arrow-end)" />
+                            <rect x={treeX - 15} y={groundY - tH / 2 - 3.5} width="12" height="7" fill="white" rx="1" opacity="0.9" />
+                            <text x={treeX - 9} y={groundY - tH / 2 + 1.2} fontSize="4.5" fill="#15803d" fontWeight="bold" textAnchor="middle">? m</text>
+
+                            <line x1={treeX} y1={groundY + 6} x2={treeX + tS} y2={groundY + 6} stroke="#64748b" strokeWidth="0.5" markerStart="url(#arrow-start)" markerEnd="url(#arrow-end)" />
+                            <rect x={treeX + tS / 2 - 6} y={groundY + 3.5} width="12" height="5" fill="white" rx="1" />
+                            <text x={treeX + tS / 2} y={groundY + 7.2} fontSize="3.5" fill="#334155" fontWeight="bold" textAnchor="middle">{treeShadow}m</text>
+
+                            <line x1={stickX} y1={groundY} x2={stickX + sS} y2={groundY} stroke="#334155" strokeWidth="2" opacity="0.7" strokeLinecap="round" />
+                            <line x1={stickX} y1={groundY - sH} x2={stickX + sS} y2={groundY} stroke="#facc15" strokeWidth="1" strokeDasharray="2,2" />
+                            <line x1={stickX} y1={groundY} x2={stickX} y2={groundY - sH} stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" />
+
+                            <line x1={stickX - 5} y1={groundY} x2={stickX - 5} y2={groundY - sH} stroke="#64748b" strokeWidth="0.5" markerStart="url(#arrow-start)" markerEnd="url(#arrow-end)" />
+                            <rect x={stickX - 11} y={groundY - sH / 2 - 2.5} width="9" height="5" fill="white" rx="1" opacity="0.9" />
+                            <text x={stickX - 6.5} y={groundY - sH / 2 + 1.2} fontSize="3.5" fill="#dc2626" fontWeight="bold" textAnchor="middle">{stickHeight}m</text>
+
+                            <line x1={stickX} y1={groundY + 6} x2={stickX + sS} y2={groundY + 6} stroke="#64748b" strokeWidth="0.5" markerStart="url(#arrow-start)" markerEnd="url(#arrow-end)" />
+                            <rect x={stickX + sS / 2 - 6} y={groundY + 3.5} width="12" height="5" fill="white" rx="1" />
+                            <text x={stickX + sS / 2} y={groundY + 7.2} fontSize="3.5" fill="#334155" fontWeight="bold" textAnchor="middle">{stickShadow}m</text>
+                        </svg>
+
+                        <div className="bg-white/90 backdrop-blur border-t border-sky-100 p-3 flex justify-around items-center">
+                            <div className="text-xs text-gray-500 font-bold mb-1 absolute top-2 left-3">🔎 相似三角形提取檢視：</div>
+                            <div className="flex flex-col items-center mt-4">
+                                <svg width={tNormWidth + 20} height={normHeight + 20} className="overflow-visible">
+                                    <polygon points={`0,${normHeight} ${tNormWidth},${normHeight} 0,0`} fill="#dcfce7" stroke="#22c55e" strokeWidth="1" />
+                                    <polyline points={`0,${normHeight - 5} 5,${normHeight - 5} 5,${normHeight}`} fill="none" stroke="#22c55e" />
+                                    <text x="-5" y={normHeight / 2} fontSize="10" fill="#15803d" fontWeight="bold" textAnchor="end">H</text>
+                                    <text x={tNormWidth / 2} y={normHeight + 12} fontSize="10" fill="#334155" fontWeight="bold" textAnchor="middle">{treeShadow}m</text>
+                                </svg>
+                                <span className="text-xs text-green-700 mt-1 font-bold">樹木比例</span>
+                            </div>
+                            <div className="text-2xl text-gray-300 font-light">~</div>
+                            <div className="flex flex-col items-center mt-4">
+                                <svg width={sNormWidth + 20} height={normHeight + 20} className="overflow-visible">
+                                    <polygon points={`0,${normHeight} ${sNormWidth},${normHeight} 0,0`} fill="#fee2e2" stroke="#ef4444" strokeWidth="1" />
+                                    <polyline points={`0,${normHeight - 5} 5,${normHeight - 5} 5,${normHeight}`} fill="none" stroke="#ef4444" />
+                                    <text x="-5" y={normHeight / 2} fontSize="10" fill="#dc2626" fontWeight="bold" textAnchor="end">{stickHeight}m</text>
+                                    <text x={sNormWidth / 2} y={normHeight + 12} fontSize="10" fill="#334155" fontWeight="bold" textAnchor="middle">{stickShadow}m</text>
+                                </svg>
+                                <span className="text-xs text-red-700 mt-1 font-bold">標竿比例</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex flex-col justify-center bg-gray-50 p-4 rounded-lg">
+                            <div className="mb-6">
+                                <label className="flex justify-between text-sm font-bold text-gray-700 mb-2">
+                                    <span>調整標竿高度 (m):</span>
+                                    <span className="text-red-600">{stickHeight.toFixed(1)}</span>
+                                </label>
+                                <input type="range" min="0.5" max="2.0" step="0.1" value={stickHeight} onChange={(e) => setStickHeight(Number(e.target.value))} />
+                            </div>
+                            <div>
+                                <label className="flex justify-between text-sm font-bold text-gray-700 mb-2">
+                                    <span>調整標竿影長 (m):</span>
+                                    <span className="text-slate-600">{stickShadow.toFixed(1)}</span>
+                                </label>
+                                <input type="range" min="0.6" max="3.0" step="0.1" value={stickShadow} onChange={(e) => setStickShadow(Number(e.target.value))} />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center bg-green-50 rounded-lg p-5 border border-green-100 relative overflow-hidden">
+                            <h3 className="font-bold text-green-900 mb-3 bg-white px-4 py-1 rounded-full text-sm shadow-sm">🪄 魔法公式計算中</h3>
+                            <div className="flex items-center text-xl text-gray-700 bg-white px-4 py-3 rounded-lg shadow-inner mb-2 w-full justify-center">
+                                <span className="font-bold mr-2 text-green-700">樹高 =</span>
+                                <div className="flex items-center mx-2 text-slate-700">
+                                    <span className="text-2xl">(</span>
+                                    <Fraction top={treeShadow.toFixed(1)} bottom={stickShadow.toFixed(1)} />
+                                    <span className="text-2xl">)</span>
+                                </div>
+                                <span className="font-bold text-red-600">× {stickHeight.toFixed(1)}</span>
+                            </div>
+                            <div className="mt-2 text-4xl font-extrabold text-green-600 tracking-wider">
+                                = {treeHeight} <span className="text-lg text-green-800">公尺</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 單元 2：聲音回響法 ---
+        const EchoMethod = () => {
+            const speed = 340;
+            const [time, setTime] = useState(2.0);
+            const [animState, setAnimState] = useState('idle');
+            const [stopwatch, setStopwatch] = useState(0);
+            const [soundEnabled, setSoundEnabled] = useState(true);
+
+            useEffect(() => { setAnimState('idle'); setStopwatch(0); }, [time]);
+
+            const depth = parseFloat(((speed * time) / 2).toFixed(1));
+
+            const playTone = (type) => {
+                if (!soundEnabled) return;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    const ctx = new AudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    const now = ctx.currentTime;
+                    if (type === 'shout') {
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(440, now);
+                        osc.frequency.exponentialRampToValueAtTime(220, now + 0.3);
+                        gain.gain.setValueAtTime(0.5, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                        osc.start(now);
+                        osc.stop(now + 0.3);
+                    } else if (type === 'echo') {
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(330, now);
+                        osc.frequency.exponentialRampToValueAtTime(165, now + 0.4);
+                        gain.gain.setValueAtTime(0.3, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                        osc.start(now);
+                        osc.stop(now + 0.4);
+                    }
+                } catch (e) {
+                    console.log("Audio not supported");
+                }
+            };
+
+            const handleShout = () => {
+                if (animState === 'down' || animState === 'up') return;
+                setAnimState('down');
+                setStopwatch(0);
+                playTone('shout');
+
+                const startTime = Date.now();
+                const totalMs = time * 1000;
+
+                const timerId = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    if (elapsed >= totalMs) {
+                        setStopwatch(time);
+                        clearInterval(timerId);
+                    } else {
+                        setStopwatch((elapsed / 1000).toFixed(2));
+                    }
+                }, 30);
+
+                setTimeout(() => { setAnimState('up'); }, totalMs / 2);
+                setTimeout(() => {
+                    setAnimState('done');
+                    playTone('echo');
+                }, totalMs);
+            };
+
+            let waveTop = '10%';
+            let waveOpacity = 0;
+            let waveColor = '#3b82f6';
+            let waveTransform = 'scaleY(1)';
+
+            if (animState === 'down') {
+                waveTop = '85%'; waveOpacity = 1; waveTransform = 'scaleY(1)';
+            } else if (animState === 'up') {
+                waveTop = '10%'; waveOpacity = 1; waveColor = '#f59e0b'; waveTransform = 'scaleY(-1)';
+            } else if (animState === 'done') {
+                waveOpacity = 0;
+            }
+
+            return (
+                <div className="fade-in flex flex-col items-center w-full">
+                    <h2 className="text-2xl font-bold text-indigo-800 mb-4 flex items-center"><i data-lucide="mic" className="mr-2"></i> 2. 聲音回響法（測量深度）</h2>
+                    <p className="text-gray-700 mb-4 bg-indigo-50 p-4 rounded-lg w-full shadow-sm text-sm md:text-base">
+                        <strong>原理：</strong>常溫下聲音傳播速度約 <strong>340 公尺/秒</strong>。<br />
+                        最大的陷阱是：聲音「下去」碰到谷底，還要「上來」回到耳朵！<br />
+                        因此，<strong>真正下墜的時間只有「總時間的一半」</strong>。
+                    </p>
+
+                    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                        <div className="flex flex-col items-center bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                            <div className="absolute top-3 right-3 z-20">
+                                <button onClick={() => setSoundEnabled(!soundEnabled)}
+                                    className={`p-2 rounded-full shadow-sm border ${soundEnabled ? 'bg-white text-indigo-600 border-indigo-200' : 'bg-slate-200 text-slate-400 border-slate-300'} hover:bg-indigo-50 transition-colors`}
+                                    title={soundEnabled ? "關閉音效" : "開啟音效"}>
+                                    {soundEnabled ? <i data-lucide="volume-2" className="w-4 h-4"></i> : <i data-lucide="volume-x" className="w-4 h-4"></i>}
+                                </button>
+                            </div>
+                            <div className="w-full flex justify-between items-center mb-3 px-4">
+                                <div className="text-sm font-bold text-slate-500">
+                                    {animState === 'down' ? <span className="text-blue-600">⬇️ 去程計時中...</span> :
+                                        animState === 'up' ? <span className="text-amber-500">⬆️ 回程計時中...</span> :
+                                            animState === 'done' ? <span className="text-green-600">✅ 測量完成</span> :
+                                                "等待測量"}
+                                </div>
+                                <div className="font-mono text-2xl font-black text-slate-800 bg-white px-3 py-1 rounded shadow-inner border border-slate-200">
+                                    ⏱️ {stopwatch}s
+                                </div>
+                            </div>
+                            <div className="relative w-48 h-64 bg-slate-800 rounded-lg border-x-[12px] border-b-[12px] border-slate-600 overflow-hidden flex flex-col items-center shadow-inner">
+                                <div className="w-full h-10 bg-sky-200 relative border-b-2 border-green-500">
+                                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-2xl z-10">🧍‍♂️</div>
+                                </div>
+                                <div className="absolute w-20 h-4 rounded-[50%] blur-[2px] transition-all z-0 sound-wave flex items-center justify-center"
+                                    style={{
+                                        top: waveTop, opacity: waveOpacity, backgroundColor: waveColor,
+                                        transitionDuration: animState === 'idle' ? '0s' : `${time / 2}s`,
+                                        transitionTimingFunction: 'linear', transform: waveTransform
+                                    }}>
+                                    <div className="w-16 h-1 border-t-2 border-white/80 rounded-[50%] absolute top-0"></div>
+                                    <div className="w-12 h-1 border-t-2 border-white/50 rounded-[50%] absolute top-1"></div>
+                                </div>
+                                <div className={`absolute left-2 w-8 h-[80%] top-[15%] transition-opacity duration-500 ${animState === 'done' ? 'opacity-100' : 'opacity-0'}`}>
+                                    <div className="h-full border-l-2 border-dashed border-green-400 relative">
+                                        <div className="absolute -top-1 -left-[5px] w-2 h-2 bg-green-400 rounded-full"></div>
+                                        <div className="absolute -bottom-1 -left-[5px] w-2 h-2 bg-green-400 rounded-full"></div>
+                                        <div className="absolute top-1/2 -translate-y-1/2 left-2 bg-slate-800/80 text-green-300 font-bold text-xs px-1 rounded whitespace-nowrap">
+                                            {depth} m
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onClick={handleShout} disabled={animState === 'down' || animState === 'up'}
+                                className={`mt-6 px-8 py-3 w-full rounded-full font-bold text-white transition-all shadow-md flex items-center justify-center
+                                    ${(animState === 'down' || animState === 'up') ? 'bg-slate-400 scale-95 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-1'}`}>
+                                <i data-lucide="volume-2" className="mr-2"></i>
+                                {(animState === 'down' || animState === 'up') ? '聲音傳遞中...' : '對著洞口大喊！'}
+                            </button>
+                        </div>
+                        <div className="flex flex-col h-full">
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-indigo-100 mb-4">
+                                <label className="flex justify-between text-sm font-bold text-indigo-900 mb-3">
+                                    <span>設定聽到回聲的時間：</span>
+                                    <span className="text-indigo-600 text-lg bg-indigo-50 px-2 py-0.5 rounded">{time.toFixed(1)} 秒</span>
+                                </label>
+                                <input type="range" min="0.5" max="5.0" step="0.5" value={time}
+                                    onChange={(e) => setTime(Number(e.target.value))}
+                                    disabled={animState === 'down' || animState === 'up'}
+                                    className="echo-slider w-full mb-2" />
+                            </div>
+                            <div className="flex-grow bg-indigo-50 rounded-xl p-5 border border-indigo-100 flex flex-col justify-center">
+                                <h3 className="font-bold text-indigo-900 mb-4 flex items-center border-b border-indigo-200 pb-2">
+                                    <i data-lucide="calculator" className="mr-2 w-5 h-5"></i> 思考拆解圖：
+                                </h3>
+                                <div className={`flex items-center justify-between mb-3 p-2 rounded transition-colors ${animState === 'done' ? 'bg-white shadow-sm' : ''}`}>
+                                    <span className="text-sm font-bold text-slate-600">1️⃣ 總來回時間</span>
+                                    <span className="font-mono text-lg font-bold text-slate-800">{time.toFixed(1)} <span className="text-xs">秒</span></span>
+                                </div>
+                                <div className={`flex items-center justify-between mb-3 p-2 rounded transition-colors ${animState === 'done' ? 'bg-blue-100/50 shadow-sm' : ''}`}>
+                                    <span className="text-sm font-bold text-blue-700">2️⃣ 單趟時間 (除以2)</span>
+                                    <span className="font-mono text-lg font-bold text-blue-800">{(time / 2).toFixed(2)} <span className="text-xs">秒</span></span>
+                                </div>
+                                <div className={`flex flex-col items-end mt-2 pt-3 border-t-2 border-indigo-200 transition-opacity duration-500 ${animState === 'done' ? 'opacity-100' : 'opacity-30'}`}>
+                                    <div className="text-xs font-bold text-slate-500 mb-1">340(聲速) × {(time / 2).toFixed(2)}(單趟時間)</div>
+                                    <div className="text-3xl font-black text-indigo-700">
+                                        = {depth} <span className="text-lg">m</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`w-full overflow-hidden transition-all duration-700 ${animState === 'done' ? 'max-h-[500px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                        <div className="bg-white border-2 border-indigo-100 rounded-xl shadow-sm p-6 relative">
+                            <div className="absolute top-0 left-0 w-2 h-full bg-indigo-500 rounded-l-xl"></div>
+                            <h4 className="text-xl font-bold text-indigo-900 mb-3 flex items-center">
+                                <i data-lucide="book-open" className="mr-2 text-indigo-600"></i> 完整原理解說
+                            </h4>
+                            <p className="text-gray-700 leading-relaxed mb-4">
+                                聲音會以每秒 <strong>340公尺</strong> 的速度往下傳遞（去程）。碰到谷底後，聲音像撞到牆壁的球一樣反彈，再次回到我們的耳朵（回程）。
+                            </p>
+                            <div className="bg-indigo-50/70 p-4 rounded-lg mb-5 border border-indigo-100">
+                                <p className="font-bold text-red-700 mb-1 flex items-center"><i data-lucide="alert-triangle" className="w-5 h-5 mr-1"></i> 為什麼公式要除以 2？</p>
+                                <p className="text-sm text-gray-700">我們用碼錶計時的「總時間」，其實包含了聲音「下去」和「上來」兩趟。所以，要計算洞穴的<strong>單趟實際深度</strong>，必須把總時間除以 2。</p>
+                            </div>
+                            <div className="flex flex-col md:flex-row items-center justify-center gap-4 bg-slate-800 text-white p-4 rounded-xl font-mono text-lg shadow-inner">
+                                <div className="text-indigo-200">深度 = ( 聲速 × 總時間 ) ÷ 2</div>
+                                <div className="hidden md:block text-slate-500">➜</div>
+                                <div>深度 = ( <span className="text-green-400">340</span> × <span className="text-blue-400">{time.toFixed(1)}</span> ) ÷ 2 = <span className="text-yellow-400 font-bold">{depth}</span> m</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 單元 3：鏡面反射法與 45度測角器 ---
+        const MirrorAndTool = () => {
+            const [personDist, setPersonDist] = useState(1.5);
+            const fixedEye = 1.5;
+            const fixedMirrorToTower = 12.0;
+            const mirrorTowerHeight = parseFloat(((fixedEye / personDist) * fixedMirrorToTower).toFixed(1));
+
+            const mScale = 5;
+            const mGroundY = 100;
+            const mMirrorX = 80;
+            const mTowerX = mMirrorX + fixedMirrorToTower * mScale;
+            const mPersonX = mMirrorX - personDist * mScale;
+            const mEyeY = mGroundY - fixedEye * mScale;
+            const mTowerTopY = mGroundY - mirrorTowerHeight * mScale;
+
+            const [walkDist, setWalkDist] = useState(4.0);
+            const clinoEye = 1.5;
+            const targetTreeH = 8.5;
+            const currentSightHeight = parseFloat((walkDist + clinoEye).toFixed(1));
+            const isAligned = walkDist === 7.0;
+
+            const cScale = 6;
+            const cGroundY = 100;
+            const cTreeX = 160;
+            const cTreeTopY = cGroundY - targetTreeH * cScale;
+            const cPersonX = cTreeX - walkDist * cScale;
+            const cEyeY = cGroundY - clinoEye * cScale;
+            const cSightHitY = cEyeY - walkDist * cScale;
+
+            return (
+                <div className="fade-in flex flex-col items-center w-full">
+                    <h2 className="text-2xl font-bold text-purple-800 mb-6 flex items-center"><i data-lucide="triangle-right" className="mr-2"></i> 3. 進階神器：實地測量與操作</h2>
+
+                    <div className="flex flex-col gap-8 w-full">
+                        {/* 鏡面反射法 */}
+                        <div className="bg-purple-50 p-6 rounded-2xl border-2 border-purple-200 shadow-sm flex flex-col relative overflow-hidden">
+                            <h3 className="font-bold text-xl text-purple-900 mb-3">📀 鏡面反射法</h3>
+
+                            <div className="mb-6 bg-white p-5 rounded-xl border border-purple-100 shadow-sm text-sm text-gray-700">
+                                <h4 className="font-bold text-purple-800 mb-2 flex items-center"><i data-lucide="info" className="w-4 h-4 mr-1"></i> 操作技巧與原理</h4>
+                                <ul className="list-disc list-inside space-y-1 mb-2">
+                                    <li><strong>步驟 1：</strong>將一面鏡子平放於目標物與你之間的平坦地面上。</li>
+                                    <li><strong>步驟 2：</strong>沿著直線往後退，直到你能在「鏡子正中心」看到目標物的最頂端。</li>
+                                    <li><strong>步驟 3：</strong>請同學幫忙量測「你的眼高」、「你到鏡子的距離」、「鏡子到目標物的距離」。</li>
+                                </ul>
+                                <p className="bg-purple-50 p-2 rounded text-purple-900 mt-2">
+                                    <strong>💡 數學原理：</strong>基於光學「入射角＝反射角」，人與建築物皆垂直於地面，兩側會形成兩個完美的<strong>相似直角三角形 (AA相似)</strong>。
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                                <div className="lg:col-span-3 bg-white rounded-xl border border-purple-100 shadow-inner p-2 relative">
+                                    <svg viewBox="0 0 180 120" className="w-full h-auto">
+                                        <defs>
+                                            <marker id="arr-m" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 z" fill="#94a3b8" /></marker>
+                                            <marker id="arr-m-rev" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M4,0 L0,2 L4,4 z" fill="#94a3b8" /></marker>
+                                        </defs>
+                                        <line x1="0" y1={mGroundY} x2="180" y2={mGroundY} stroke="#cbd5e1" strokeWidth="2" />
+                                        <polyline points={`${mPersonX},${mEyeY} ${mMirrorX},${mGroundY} ${mTowerX},${mTowerTopY}`} fill="none" stroke="#facc15" strokeWidth="2" strokeDasharray="4,2" />
+                                        <rect x={mMirrorX - 6} y={mGroundY - 2} width="12" height="4" fill="#a855f7" rx="1" />
+                                        <text x={mMirrorX} y={mGroundY + 12} fontSize="5" fill="#9333ea" textAnchor="middle" fontWeight="bold">鏡子</text>
+                                        <line x1={mPersonX} y1={mGroundY} x2={mPersonX} y2={mEyeY} stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+                                        <circle cx={mPersonX} cy={mEyeY - 2} r="4" fill="#2563eb" />
+                                        <text x={mPersonX} y={mEyeY - 8} fontSize="5" fill="#2563eb" textAnchor="middle" fontWeight="bold">眼高 {fixedEye}m</text>
+
+                                        <rect x={mTowerX - 6} y={mTowerTopY} width="12" height={mGroundY - mTowerTopY} fill="#475569" rx="1" />
+
+                                        <path d={`M ${mMirrorX - 10} ${mGroundY} A 10 10 0 0 1 ${mMirrorX - 8} ${mGroundY - 6}`} fill="none" stroke="#a855f7" strokeWidth="1" />
+                                        <path d={`M ${mMirrorX + 10} ${mGroundY} A 10 10 0 0 0 ${mMirrorX + 8} ${mGroundY - 6}`} fill="none" stroke="#a855f7" strokeWidth="1" />
+                                        <text x={mMirrorX} y={mGroundY - 10} fontSize="5" fill="#a855f7" textAnchor="middle">θ = θ</text>
+                                        <line x1={mPersonX} y1={mGroundY + 6} x2={mMirrorX} y2={mGroundY + 6} stroke="#94a3b8" strokeWidth="0.5" markerStart="url(#arr-m-rev)" markerEnd="url(#arr-m)" />
+                                        <text x={(mPersonX + mMirrorX) / 2} y={mGroundY + 12} fontSize="5" fill="#dc2626" textAnchor="middle" fontWeight="bold">{personDist.toFixed(1)}m</text>
+                                        <line x1={mMirrorX} y1={mGroundY + 6} x2={mTowerX} y2={mGroundY + 6} stroke="#94a3b8" strokeWidth="0.5" markerStart="url(#arr-m-rev)" markerEnd="url(#arr-m)" />
+                                        <text x={(mMirrorX + mTowerX) / 2} y={mGroundY + 12} fontSize="5" fill="#475569" textAnchor="middle" fontWeight="bold">{fixedMirrorToTower}m (固定)</text>
+                                    </svg>
+                                </div>
+                                <div className="lg:col-span-2 flex flex-col justify-center">
+                                    <label className="block text-sm font-bold text-purple-900 mb-2">👉 走動調整「你到鏡子的距離」：</label>
+                                    <div className="flex items-center mb-6">
+                                        <input type="range" min="1.0" max="3.0" step="0.1" value={personDist} onChange={(e) => setPersonDist(Number(e.target.value))} className="purple-slider w-full" />
+                                        <span className="ml-3 font-mono font-bold text-red-600 w-12">{personDist.toFixed(1)}m</span>
+                                    </div>
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-purple-100 flex-grow flex flex-col justify-center">
+                                        <h4 className="text-sm text-purple-800 font-bold mb-3 border-b border-purple-100 pb-2">📐 完整範例計算 (代入公式)：</h4>
+                                        <div className="text-sm text-gray-700 flex items-center justify-center mb-3">
+                                            <span className="font-bold mr-2 text-slate-700">建築高 =</span>
+                                            <div className="flex items-center mx-1">
+                                                <span>(</span><Fraction top={fixedMirrorToTower} bottom={<span className="text-red-600">{personDist.toFixed(1)}</span>} /><span>)</span>
+                                            </div>
+                                            <span className="ml-1">× <span className="text-blue-600">{fixedEye}</span></span>
+                                        </div>
+                                        <div className="text-center mt-2">
+                                            <span className="text-3xl font-black text-purple-700">{mirrorTowerHeight}</span> <span className="text-sm font-normal text-gray-500">公尺</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 45度測角器 */}
+                        <div className="bg-orange-50 p-6 rounded-2xl border-2 border-orange-200 shadow-sm flex flex-col relative overflow-hidden">
+                            <h3 className="font-bold text-xl text-orange-900 mb-3">📐 DIY 45度測角器</h3>
+
+                            <div className="mb-6 bg-white p-5 rounded-xl border border-orange-100 shadow-sm text-sm text-gray-700">
+                                <h4 className="font-bold text-orange-800 mb-2 flex items-center"><i data-lucide="wrench" className="w-4 h-4 mr-1"></i> 操作技巧與原理</h4>
+                                <ul className="list-disc list-inside space-y-1 mb-2">
+                                    <li><strong>步驟 1 (製作)：</strong>剪一個「等腰直角三角形」厚紙板 (內角 45-45-90度)。在斜邊貼上吸管當作觀察孔，直角頂點綁上含重物的棉線（鉛垂線）。</li>
+                                    <li><strong>步驟 2 (瞄準)：</strong>將三角形舉至眼高，透過吸管瞄準樹頂。並確認重垂線與垂直邊緣「完全貼合平行」。這確保了三角形的底邊是絕對水平的。</li>
+                                    <li><strong>步驟 3 (測量)：</strong>一旦對準，請量測「你到樹的水平距離」。</li>
+                                </ul>
+                                <p className="bg-orange-50 p-2 rounded text-orange-900 mt-2">
+                                    <strong>💡 數學原理：</strong>因為是等腰直角三角形，所以<strong>「水平底邊 ＝ 垂直高」</strong>。當視線呈 45 度角時，視線以上的目標物高度，精準等於你與目標物的水平距離！
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                                <div className="lg:col-span-2 flex flex-col justify-center order-2 lg:order-1">
+                                    <label className="block text-sm font-bold text-orange-900 mb-2">👉 往前 / 往後走，嘗試對準樹頂：</label>
+                                    <div className="flex items-center mb-6">
+                                        <span className="text-xl mr-2">🚶</span>
+                                        <input type="range" min="3.0" max="11.0" step="0.5" value={walkDist} onChange={(e) => setWalkDist(Number(e.target.value))} className="orange-slider w-full" />
+                                        <span className="ml-3 font-mono font-bold text-orange-700 w-12">{walkDist.toFixed(1)}m</span>
+                                    </div>
+
+                                    <div className={`p-5 rounded-xl border-2 transition-all duration-300 flex-grow flex flex-col justify-center ${isAligned ? 'bg-green-100 border-green-400 shadow-md transform scale-105' : 'bg-white border-orange-100 shadow-sm'}`}>
+                                        <h4 className="text-sm text-gray-800 font-bold mb-3 border-b border-gray-200 pb-2">📏 完整高度推算：</h4>
+                                        <div className="text-sm text-gray-700 space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span>視線上方高度 (距離)：</span>
+                                                <span className="font-mono text-lg font-bold text-orange-600">{walkDist.toFixed(1)} m</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span>+ 你的眼睛高度：</span>
+                                                <span className="font-mono text-lg font-bold text-blue-600">{clinoEye.toFixed(1)} m</span>
+                                            </div>
+                                            <div className="flex justify-between items-end pt-3 border-t-2 border-gray-300">
+                                                <span className="font-bold text-gray-900">目前看準的總高度：</span>
+                                                <span className={`text-3xl font-black ${isAligned ? 'text-green-700' : 'text-slate-800'}`}>{currentSightHeight.toFixed(1)} m</span>
+                                            </div>
+                                        </div>
+                                        {isAligned && (
+                                            <div className="mt-4 text-center text-sm font-bold text-white bg-green-600 py-2 rounded-lg animate-pulse shadow-sm">
+                                                ✨ 完美 45度角對準樹頂！這棵樹高 {targetTreeH} 公尺！
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="lg:col-span-3 bg-white rounded-xl border border-orange-100 shadow-inner p-2 relative order-1 lg:order-2">
+                                    <svg viewBox="0 0 180 120" className="w-full h-auto">
+                                        <defs>
+                                            <marker id="arr-c" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 z" fill="#94a3b8" /></marker>
+                                            <marker id="arr-c-rev" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M4,0 L0,2 L4,4 z" fill="#94a3b8" /></marker>
+                                        </defs>
+                                        <line x1="0" y1={cGroundY} x2="180" y2={cGroundY} stroke="#cbd5e1" strokeWidth="2" />
+                                        <rect x={cTreeX - 4} y={cTreeTopY + 14} width="8" height={targetTreeH * cScale - 14} fill="#854d0e" rx="1" />
+                                        <circle cx={cTreeX} cy={cTreeTopY + 14} r="14" fill="#15803d" />
+                                        <circle cx={cTreeX - 10} cy={cTreeTopY + 22} r="10" fill="#166534" />
+                                        <circle cx={cTreeX + 10} cy={cTreeTopY + 22} r="10" fill="#166534" />
+
+                                        <line x1={cTreeX - 25} y1={cTreeTopY} x2={cTreeX + 25} y2={cTreeTopY} stroke="#94a3b8" strokeWidth="0.5" strokeDasharray="2,2" />
+
+                                        <line x1={cPersonX} y1={cGroundY} x2={cPersonX} y2={cEyeY} stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+                                        <circle cx={cPersonX} cy={cEyeY - 2} r="4" fill="#2563eb" />
+                                        <polygon points={`${cPersonX},${cEyeY} ${cPersonX + 8},${cEyeY} ${cPersonX + 8},${cEyeY - 8}`} fill="#fdba74" stroke="#ea580c" strokeWidth="0.5" />
+                                        <line x1={cPersonX} y1={cEyeY} x2={cPersonX + 8} y2={cEyeY - 8} stroke="#dc2626" strokeWidth="1" />
+                                        <line x1={cPersonX + 8} y1={cEyeY - 8} x2={cPersonX + 8} y2={cEyeY + 4} stroke="#475569" strokeWidth="0.5" />
+                                        <circle cx={cPersonX + 8} cy={cEyeY + 4} r="1.5" fill="#334155" />
+                                        <line x1={cPersonX} y1={cEyeY} x2={cTreeX} y2={cEyeY} stroke="#94a3b8" strokeWidth="1" strokeDasharray="2,2" />
+                                        <line x1={cPersonX} y1={cEyeY} x2={cTreeX} y2={cSightHitY} stroke={isAligned ? "#22c55e" : "#ea580c"} strokeWidth="1.5" strokeDasharray="4,2" />
+
+                                        <line x1={cPersonX} y1={cGroundY + 6} x2={cTreeX} y2={cGroundY + 6} stroke="#94a3b8" strokeWidth="0.5" markerStart="url(#arr-c-rev)" markerEnd="url(#arr-c)" />
+                                        <text x={(cPersonX + cTreeX) / 2} y={cGroundY + 12} fontSize="5" fill="#ea580c" textAnchor="middle" fontWeight="bold">距離: {walkDist.toFixed(1)}m</text>
+                                        <line x1={cTreeX + 18} y1={cGroundY} x2={cTreeX + 18} y2={cEyeY} stroke="#3b82f6" strokeWidth="0.5" markerStart="url(#arr-c-rev)" markerEnd="url(#arr-c)" />
+                                        <text x={cTreeX + 20} y={(cGroundY + cEyeY) / 2 + 2} fontSize="4.5" fill="#2563eb" fontWeight="bold">眼高 {clinoEye}</text>
+                                        <line x1={cTreeX + 18} y1={cEyeY} x2={cTreeX + 18} y2={cSightHitY} stroke="#ea580c" strokeWidth="0.5" markerStart="url(#arr-c-rev)" markerEnd="url(#arr-c)" />
+                                        <text x={cTreeX + 20} y={(cEyeY + cSightHitY) / 2 + 2} fontSize="4.5" fill="#ea580c" fontWeight="bold">=距離 {walkDist.toFixed(1)}</text>
+
+                                        <g transform={`translate(${cTreeX}, ${cSightHitY})`}>
+                                            <circle cx="0" cy="0" r="5" fill="none" stroke={isAligned ? "#22c55e" : "red"} strokeWidth="1.5" />
+                                            <line x1="-7" y1="0" x2="7" y2="0" stroke={isAligned ? "#22c55e" : "red"} strokeWidth="1" />
+                                            <line x1="0" y1="-7" x2="0" y2="7" stroke={isAligned ? "#22c55e" : "red"} strokeWidth="1" />
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 單元 4：氣壓挑戰 ---
+        const PressureChallenge = () => {
+            const entrancePressure = 1013;
+            const [bottomPressure, setBottomPressure] = useState(1015);
+            const pressureDiff = bottomPressure - entrancePressure;
+            const depth = pressureDiff * 9;
+            const shaftMaxHeight = 100;
+            const currentShaftHeight = (pressureDiff / 17) * shaftMaxHeight + 10;
+
+            return (
+                <div className="fade-in w-full text-center">
+                    <h2 className="text-3xl font-bold text-red-700 mb-6 flex items-center justify-center"><i data-lucide="award" className="mr-3 w-8 h-8"></i> 綜合氣壓挑戰</h2>
+                    <div className="bg-red-50 p-6 md:p-8 rounded-2xl text-left border border-red-200 shadow-md max-w-4xl mx-auto flex flex-col gap-6">
+
+                        <div className="bg-white p-5 rounded-xl shadow-sm border border-red-100 relative">
+                            <div className="absolute top-0 right-0 bg-red-600 text-white px-4 py-1 rounded-bl-xl text-sm font-bold shadow-sm">
+                                終極關卡
+                            </div>
+                            <p className="text-lg text-gray-800 mb-3 leading-relaxed pr-24">
+                                阿志去洞穴探險，若無法使用聲音回響法，他改用<strong>氣壓計</strong>。<br />
+                                他在洞口測得氣壓為 <strong className="text-red-700 text-xl">{entrancePressure} hPa</strong>。當他垂降到洞底時，氣壓計的數值發生了變化。
+                            </p>
+                            <div className="bg-red-50 p-3 rounded-lg border border-red-100 flex items-start">
+                                <i data-lucide="info" className="text-red-600 w-5 h-5 mr-2 mt-0.5 flex-shrink-0"></i>
+                                <p className="text-sm text-gray-700">
+                                    <strong>物理原理：</strong>越往低處走，上方累積的空氣柱越多，空氣密度越大，氣壓也就越高。<br />
+                                    經科學家測量，在這個環境下，<strong>氣壓每增加 1 hPa，代表深度下降了 9 公尺</strong>。
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white rounded-xl border border-red-200 shadow-inner p-4 relative overflow-hidden flex justify-center items-center h-[320px]">
+                                <h4 className="absolute top-3 left-4 text-sm font-bold text-slate-500 z-10 flex items-center">
+                                    <i data-lucide="mountain" className="w-4 h-4 mr-1"></i> 地質剖面圖
+                                </h4>
+                                <svg viewBox="0 0 200 160" className="w-full h-full max-h-full drop-shadow-sm">
+                                    <defs>
+                                        <linearGradient id="airDensity" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="rgba(255,255,255,0.1)" />
+                                            <stop offset="100%" stopColor="rgba(147, 197, 253, 0.6)" />
+                                        </linearGradient>
+                                        <marker id="arr-p" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 z" fill="#ef4444" /></marker>
+                                        <marker id="arr-p-rev" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M4,0 L0,2 L4,4 z" fill="#ef4444" /></marker>
+                                    </defs>
+
+                                    <rect x="0" y="0" width="200" height="40" fill="#e0f2fe" />
+                                    <path d="M 0 40 Q 40 10 80 40 L 120 40 Q 160 10 200 40 L 200 160 L 0 160 Z" fill="#64748b" />
+                                    <path d="M 20 60 Q 40 50 60 70 M 140 80 Q 160 70 180 90 M 30 110 Q 50 120 70 100 M 130 130 Q 150 120 170 140" fill="none" stroke="#475569" strokeWidth="1" strokeLinecap="round" />
+
+                                    <rect x="80" y="40" width="40" height={currentShaftHeight} fill="#0f172a" />
+                                    <rect x="80" y="40" width="40" height={currentShaftHeight} fill="url(#airDensity)" />
+
+                                    <circle cx="75" cy="35" r="4" fill="#f59e0b" />
+                                    <line x1="75" y1="39" x2="75" y2="45" stroke="#f59e0b" strokeWidth="2" />
+                                    <line x1="75" y1="40" x2="100" y2="40" stroke="#94a3b8" strokeWidth="1" strokeDasharray="2,2" />
+                                    <rect x="30" y="28" width="40" height="12" fill="white" rx="2" stroke="#cbd5e1" strokeWidth="0.5" />
+                                    <text x="50" y="36" fontSize="5" fill="#334155" textAnchor="middle" fontWeight="bold">洞口: {entrancePressure} hPa</text>
+
+                                    <circle cx="100" cy={40 + currentShaftHeight - 5} r="4" fill="#ef4444" />
+                                    <line x1="100" y1="40" x2="100" y2={40 + currentShaftHeight - 9} stroke="#ef4444" strokeWidth="0.5" strokeDasharray="1,1" />
+                                    <line x1="100" y1={40 + currentShaftHeight} x2="150" y2={40 + currentShaftHeight} stroke="#94a3b8" strokeWidth="1" strokeDasharray="2,2" />
+                                    <rect x="130" y={40 + currentShaftHeight - 6} width="40" height="12" fill="white" rx="2" stroke="#fca5a5" strokeWidth="1" />
+                                    <text x="150" y={40 + currentShaftHeight + 2} fontSize="5" fill="#dc2626" textAnchor="middle" fontWeight="bold">底部: {bottomPressure} hPa</text>
+
+                                    {pressureDiff > 0 && (
+                                        <g>
+                                            <line x1="125" y1="40" x2="125" y2={40 + currentShaftHeight} stroke="#ef4444" strokeWidth="1" markerStart="url(#arr-p-rev)" markerEnd="url(#arr-p)" />
+                                            <rect x="117" y={40 + currentShaftHeight / 2 - 6} width="16" height="12" fill="#fee2e2" rx="2" />
+                                            <text x="125" y={40 + currentShaftHeight / 2 + 2} fontSize="6" fill="#b91c1c" textAnchor="middle" fontWeight="bold">{depth}m</text>
+                                        </g>
+                                    )}
+                                </svg>
+                            </div>
+
+                            <div className="flex flex-col justify-between">
+                                <div className="bg-white p-5 rounded-xl shadow-sm border border-red-200 mb-4">
+                                    <label className="flex justify-between items-center text-sm font-bold text-red-900 mb-4">
+                                        <span>👉 調整探測器在洞底讀取的氣壓：</span>
+                                        <span className="text-xl text-red-700 bg-red-50 px-3 py-1 rounded-lg border border-red-100">{bottomPressure} hPa</span>
+                                    </label>
+                                    <input type="range" min="1013" max="1030" step="1" value={bottomPressure} onChange={(e) => setBottomPressure(Number(e.target.value))} className="red-slider w-full mb-2" />
+                                    <div className="flex justify-between text-xs text-slate-400 font-mono">
+                                        <span>1013 (洞口)</span>
+                                        <span>1030 (深淵)</span>
+                                    </div>
+                                </div>
+
+                                <div className={`flex-grow p-6 rounded-xl border-2 transition-all duration-300 flex flex-col justify-center ${bottomPressure === 1015 ? 'bg-yellow-50 border-yellow-400 shadow-md' : 'bg-red-50 border-red-100'}`}>
+                                    <h4 className="font-bold text-gray-800 mb-4 flex items-center border-b border-gray-200 pb-2">
+                                        <i data-lucide="calculator" className="mr-2 w-5 h-5 text-red-600"></i> 計算拆解圖：
+                                    </h4>
+
+                                    <div className="space-y-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-bold text-slate-600 mb-1">1️⃣ 計算氣壓差 (底部 - 洞口)：</span>
+                                            <div className="flex items-center text-lg font-mono bg-white p-2 rounded shadow-sm">
+                                                <span className="text-red-600 font-bold">{bottomPressure}</span>
+                                                <span className="mx-2">-</span>
+                                                <span className="text-slate-600">{entrancePressure}</span>
+                                                <span className="mx-2">=</span>
+                                                <span className="text-blue-600 font-bold text-xl">{pressureDiff}</span>
+                                                <span className="ml-1 text-sm text-slate-500">hPa</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-bold text-slate-600 mb-1">2️⃣ 換算深度 (氣壓差 × 9公尺)：</span>
+                                            <div className="flex items-center text-lg font-mono bg-white p-2 rounded shadow-sm">
+                                                <span className="text-blue-600 font-bold">{pressureDiff}</span>
+                                                <span className="mx-2 text-sm text-slate-400">hPa</span>
+                                                <span className="mx-2">×</span>
+                                                <span className="text-slate-600 font-bold">9</span>
+                                                <span className="mx-2 text-sm text-slate-400">m/hPa</span>
+                                                <span className="mx-2">=</span>
+                                                <span className="text-red-700 font-black text-3xl">{depth}</span>
+                                                <span className="ml-1 text-sm text-slate-500">m</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 單元 5：素養挑戰測驗 ---
+        const QuizChallenge = () => {
+            const [questions, setQuestions] = useState([]);
+            const [userAnswers, setUserAnswers] = useState({});
+            const [isSubmitted, setIsSubmitted] = useState(false);
+            const [score, setScore] = useState(0);
+
+            // 選項去重演算法，確保所有隨機生成的誘答選項與正確答案不會重複
+            const deduplicateOptions = (options) => {
+                const correctOpt = options.find(o => o.isCorrect);
+                const unique = [correctOpt];
+                const seen = new Set([correctOpt.val]);
+
+                options.filter(o => !o.isCorrect).forEach(opt => {
+                    let val = opt.val;
+                    let currentExp = opt.exp;
+                    let isFloat = val.includes('.');
+                    let num = parseFloat(val);
+
+                    if (seen.has(val)) {
+                        // 如果發生碰撞，更改錯誤詳解為泛用提示，並調整數值直到不重複為止
+                        currentExp = "錯誤！注意公式的邏輯，不要掉進數字陷阱囉。";
+                        while (seen.has(val)) {
+                            num += isFloat ? 0.3 : 3;
+                            val = isFloat ? num.toFixed(1) : Math.round(num).toString();
+                        }
+                    }
+                    seen.add(val);
+                    unique.push({ ...opt, val, exp: currentExp });
+                });
+
+                return unique;
+            };
+
+            // 產生隨機題目的邏輯
+            const generateQuiz = () => {
+                const newQuestions = [];
+
+                // Q1: 影子比例法
+                // 強制標竿高與標竿影長不相等，從根源降低數學運算結果碰撞機率
+                let q1_sh = [1.0, 1.5, 2.0][getRandomInt(0, 3)];
+                let q1_ss = getRandomInt(1, 4);
+                while (q1_sh === q1_ss) {
+                    q1_ss = getRandomInt(1, 4);
+                }
+                const q1_multiplier = getRandomInt(3, 8);
+                const q1_ts = q1_ss * q1_multiplier;
+                const q1_ans = (q1_ts / q1_ss) * q1_sh;
+
+                // 動態幾何計算 (Q1)
+                const q1_totalX = q1_ts + q1_ss + 2;
+                const q1_maxH = Math.max(q1_sh, q1_ans);
+                const q1_scale = Math.min(130 / q1_totalX, 55 / q1_maxH);
+                const q1_gY = 70;
+                const q1_treeX = 20;
+                const q1_stickX = q1_treeX + q1_ts * q1_scale + 20;
+                const q1_treeY = q1_gY - q1_ans * q1_scale;
+                const q1_stickY = q1_gY - q1_sh * q1_scale;
+
+                const raw_q1_options = [
+                    { val: q1_ans.toFixed(1), isCorrect: true, exp: "正確！樹影 ÷ 標竿影 × 標竿高" },
+                    { val: (q1_ts * q1_ss).toFixed(1), isCorrect: false, exp: "錯誤，不應該將兩個影長相乘。" },
+                    { val: ((q1_ts / q1_sh) * q1_ss).toFixed(1), isCorrect: false, exp: "錯誤，比例關係代錯了，應為 樹影/竿影。" },
+                    { val: (q1_ts + q1_sh).toFixed(1), isCorrect: false, exp: "錯誤，這是加法，不是比例放大。" }
+                ];
+                newQuestions.push({
+                    type: "shadow",
+                    title: "1. 影子魔法",
+                    text: `小明想知道公園裡大樹的高度。他在地上直立了一根 ${q1_sh.toFixed(1)} 公尺長的標竿，量出標竿的影子長度是 ${q1_ss.toFixed(1)} 公尺。同一時間，他量出大樹的影子長度高達 ${q1_ts.toFixed(1)} 公尺。請問這棵大樹有多高？`,
+                    options: shuffleArray(deduplicateOptions(raw_q1_options)),
+                    correctExplanation: `大樹高度 = ( 大樹影長 ${q1_ts} ÷ 標竿影長 ${q1_ss} ) × 標竿高度 ${q1_sh} = ${q1_ans.toFixed(1)} 公尺。`,
+                    svg: <svg viewBox="0 0 180 80" className="w-full h-32 bg-sky-50 rounded mt-4 shadow-inner">
+                        <line x1="0" y1={q1_gY} x2="180" y2={q1_gY} stroke="#22c55e" strokeWidth="1.5" />
+
+                        <rect x={q1_treeX - 4} y={q1_treeY + 5} width="8" height={q1_ans * q1_scale - 5} fill="#15803d" rx="2" />
+                        <circle cx={q1_treeX} cy={q1_treeY + 5} r="7" fill="#166534" />
+
+                        <line x1={q1_treeX} y1={q1_gY} x2={q1_treeX + q1_ts * q1_scale} y2={q1_gY} stroke="#334155" strokeWidth="4" opacity="0.6" strokeLinecap="round" />
+                        <line x1={q1_treeX} y1={q1_treeY} x2={q1_treeX + q1_ts * q1_scale} y2={q1_gY} stroke="#facc15" strokeWidth="1.5" strokeDasharray="3,2" />
+                        <text x={q1_treeX + (q1_ts * q1_scale) / 2} y={q1_gY + 8} fontSize="4" fill="#334155" textAnchor="middle" fontWeight="bold">大樹影長 {q1_ts.toFixed(1)}m</text>
+
+                        <line x1={q1_stickX} y1={q1_gY} x2={q1_stickX} y2={q1_stickY} stroke="#dc2626" strokeWidth="3" strokeLinecap="round" />
+                        <line x1={q1_stickX} y1={q1_gY} x2={q1_stickX + q1_ss * q1_scale} y2={q1_gY} stroke="#334155" strokeWidth="3" opacity="0.6" strokeLinecap="round" />
+                        <line x1={q1_stickX} y1={q1_stickY} x2={q1_stickX + q1_ss * q1_scale} y2={q1_gY} stroke="#facc15" strokeWidth="1.5" strokeDasharray="3,2" />
+                        <text x={q1_stickX + (q1_ss * q1_scale) / 2} y={q1_gY + 8} fontSize="4" fill="#334155" textAnchor="middle" fontWeight="bold">標竿影長 {q1_ss.toFixed(1)}m</text>
+                        <text x={q1_stickX - 3} y={(q1_stickY + q1_gY) / 2} fontSize="4" fill="#dc2626" textAnchor="end" fontWeight="bold">標竿高 {q1_sh.toFixed(1)}m</text>
+                    </svg>
+                });
+
+                // Q2: 聲音回響法
+                const q2_time = getRandomInt(2, 9);
+                const q2_ans = (q2_time * 340) / 2;
+                const raw_q2_options = [
+                    { val: q2_ans.toString(), isCorrect: true, exp: "正確！別忘了總時間要除以 2。" },
+                    { val: (q2_time * 340).toString(), isCorrect: false, exp: "錯誤！掉入陷阱了，聲音下去又上來，你算到『雙倍』的深度了！" },
+                    { val: ((q2_time / 2) * 300).toString(), isCorrect: false, exp: "錯誤，空氣中的聲速大約是 340 m/s 才對喔。" },
+                    { val: (q2_time * 340 * 2).toString(), isCorrect: false, exp: "錯誤，怎麼反而乘上 2 了呢？" }
+                ];
+                newQuestions.push({
+                    type: "echo",
+                    title: "2. 深淵探測",
+                    text: `探險隊來到一個漆黑的垂直洞穴。隊長對著洞口大喊一聲「喂！」，經過了 ${q2_time} 秒後，聽到了從谷底傳來的回聲。假設當時聲速為 340 公尺/秒，請問這個洞穴有多深？`,
+                    options: shuffleArray(deduplicateOptions(raw_q2_options)),
+                    correctExplanation: `深度 = ( 聲速 340 × 總時間 ${q2_time} ) ÷ 2 = ${q2_ans} 公尺。聲音去程與回程各佔了一半的時間。`,
+                    svg: <svg viewBox="0 0 180 80" className="w-full h-32 bg-slate-800 rounded mt-4 overflow-hidden shadow-inner">
+                        <rect x="0" y="0" width="180" height="20" fill="#e0f2fe" />
+                        <path d="M 60 20 L 60 80 M 120 20 L 120 80" stroke="#475569" strokeWidth="6" />
+                        <circle cx="85" cy="15" r="4" fill="#f59e0b" />
+                        <path d="M 90 20 Q 110 50 90 80" fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="4,2" />
+                        <path d="M 90 80 Q 70 50 90 20" fill="none" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4,2" />
+                        <text x="90" y="50" fill="#cbd5e1" fontSize="7" textAnchor="middle" fontWeight="bold">來回 {q2_time} 秒</text>
+                    </svg>
+                });
+
+                // Q3: 鏡面反射法
+                const q3_eye = (getRandomInt(14, 18) / 10).toFixed(1);
+                const q3_pd = getRandomInt(1, 4);
+                const q3_multiplier = getRandomInt(4, 9);
+                const q3_md = q3_pd * q3_multiplier;
+                const q3_ans = (q3_md / q3_pd) * q3_eye;
+
+                // 動態幾何計算 (Q3) - 確保隨機數字與圖形比例完全吻合
+                const q3_totalX = q3_pd + q3_md;
+                const q3_maxH = Math.max(parseFloat(q3_eye), q3_ans);
+                const q3_scale = Math.min(140 / q3_totalX, 55 / q3_maxH);
+                const q3_gY = 70;
+                const q3_pX = 20;
+                const q3_mX = q3_pX + q3_pd * q3_scale;
+                const q3_tX = q3_mX + q3_md * q3_scale;
+                const q3_pY = q3_gY - q3_eye * q3_scale;
+                const q3_tY = q3_gY - q3_ans * q3_scale;
+
+                const raw_q3_options = [
+                    { val: q3_ans.toFixed(1), isCorrect: true, exp: "正確！(鏡到塔 ÷ 人到鏡) × 眼高" },
+                    { val: ((q3_pd / q3_md) * q3_eye).toFixed(1), isCorrect: false, exp: "錯誤，比例弄反了，塔的距離比較長，應該是放大。" },
+                    { val: (q3_md * q3_pd).toFixed(1), isCorrect: false, exp: "錯誤，相似形使用的是除法(比例)，不是將兩段距離相乘。" },
+                    { val: (q3_md + parseFloat(q3_eye)).toFixed(1), isCorrect: false, exp: "錯誤，那是 45度測角器的算法喔！" }
+                ];
+                newQuestions.push({
+                    type: "mirror",
+                    title: "3. 鏡子倒影",
+                    text: `為了測量學校鐘樓的高度，小華在地上放了一面鏡子。小華的眼睛距離地面 ${q3_eye} 公尺。當他站在距離鏡子 ${q3_pd} 公尺的地方時，剛好能在鏡中看到鐘樓的最高點。若鏡子距離鐘樓底部是 ${q3_md} 公尺，鐘樓有多高？`,
+                    options: shuffleArray(deduplicateOptions(raw_q3_options)),
+                    correctExplanation: `鐘樓高度 = ( 鏡到鐘樓距 ${q3_md} ÷ 人到鏡子距 ${q3_pd} ) × 眼睛高度 ${q3_eye} = ${q3_ans.toFixed(1)} 公尺。`,
+                    svg: <svg viewBox="0 0 180 80" className="w-full h-32 bg-purple-50 rounded mt-4 shadow-inner">
+                        <line x1="0" y1={q3_gY} x2="180" y2={q3_gY} stroke="#cbd5e1" strokeWidth="2" />
+
+                        <rect x={q3_mX - 5} y={q3_gY - 2} width="10" height="2" fill="#a855f7" rx="1" />
+                        <text x={q3_mX} y={q3_gY + 8} fontSize="4" fill="#9333ea" textAnchor="middle" fontWeight="bold">鏡子</text>
+
+                        <line x1={q3_pX} y1={q3_gY} x2={q3_pX} y2={q3_pY} stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+                        <circle cx={q3_pX} cy={q3_pY - 2} r="4" fill="#2563eb" />
+
+                        <rect x={q3_tX - 6} y={q3_tY} width="12" height={q3_gY - q3_tY} fill="#475569" rx="1" />
+
+                        <polyline points={`${q3_pX},${q3_pY} ${q3_mX},${q3_gY} ${q3_tX},${q3_tY}`} fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4,2" />
+
+                        <line x1={q3_pX} y1={q3_gY + 4} x2={q3_mX} y2={q3_gY + 4} stroke="#94a3b8" strokeWidth="0.5" />
+                        <text x={(q3_pX + q3_mX) / 2} y={q3_gY + 8} fontSize="4" fill="#dc2626" textAnchor="middle" fontWeight="bold">{q3_pd}m</text>
+
+                        <line x1={q3_mX} y1={q3_gY + 4} x2={q3_tX} y2={q3_gY + 4} stroke="#94a3b8" strokeWidth="0.5" />
+                        <text x={(q3_mX + q3_tX) / 2} y={q3_gY + 8} fontSize="4" fill="#475569" textAnchor="middle" fontWeight="bold">{q3_md}m</text>
+
+                        <text x={q3_pX - 4} y={(q3_pY + q3_gY) / 2} fontSize="4" fill="#2563eb" textAnchor="end" fontWeight="bold">眼高 {q3_eye}m</text>
+                    </svg>
+                });
+
+                // Q4: DIY 45度測角器
+                const q4_eye = (getRandomInt(14, 18) / 10).toFixed(1);
+                const q4_dist = getRandomInt(5, 20);
+                const q4_ans = parseFloat(q4_eye) + q4_dist;
+
+                // 動態幾何計算 (Q4) - 確保隨機數字與圖形比例完全吻合
+                const q4_scale = Math.min(130 / q4_dist, 55 / q4_ans);
+                const q4_gY = 70;
+                const q4_pX = 25;
+                const q4_tX = q4_pX + q4_dist * q4_scale;
+                const q4_eyeY = q4_gY - q4_eye * q4_scale;
+                const q4_topY = q4_gY - q4_ans * q4_scale;
+
+                const raw_q4_options = [
+                    { val: q4_ans.toFixed(1), isCorrect: true, exp: "正確！等腰直角三角形底邊=高，最後要記得加上眼高！" },
+                    { val: q4_dist.toFixed(1), isCorrect: false, exp: "錯誤！陷阱題！你算出來的只是『視線以上』的高度，忘記加回你自己的眼睛高度了。" },
+                    { val: (q4_dist - parseFloat(q4_eye)).toFixed(1), isCorrect: false, exp: "錯誤，眼睛高度應該是往上加，而不是減掉。" },
+                    { val: (q4_dist * parseFloat(q4_eye)).toFixed(1), isCorrect: false, exp: "錯誤，這是等腰直角三角形(1:1)，不需要相乘。" }
+                ];
+                newQuestions.push({
+                    type: "clinometer",
+                    title: "4. 仰角 45 度",
+                    text: `小美帶著自製的「等腰直角測角器」去量旗桿。她一直往後退，直到測角器的鉛垂線完全對齊，且透過吸管剛好看到旗桿頂端。此時，她距離旗桿 ${q4_dist} 公尺，且小美的眼睛高度是 ${q4_eye} 公尺。旗桿的總高度是多少？`,
+                    options: shuffleArray(deduplicateOptions(raw_q4_options)),
+                    correctExplanation: `因為是 45 度角，視線以上的旗桿高度 = 水平距離 ${q4_dist}m。旗桿總高 = ${q4_dist} + 眼睛高度 ${q4_eye} = ${q4_ans.toFixed(1)} 公尺。`,
+                    svg: <svg viewBox="0 0 180 80" className="w-full h-32 bg-orange-50 rounded mt-4 shadow-inner">
+                        <line x1="0" y1={q4_gY} x2="180" y2={q4_gY} stroke="#cbd5e1" strokeWidth="2" />
+
+                        <rect x={q4_tX - 2} y={q4_topY} width="4" height={q4_gY - q4_topY} fill="#94a3b8" />
+                        <polygon points={`${q4_tX + 2},${q4_topY} ${q4_tX - 10},${q4_topY + 6} ${q4_tX + 2},${q4_topY + 12}`} fill="#ef4444" />
+
+                        <line x1={q4_pX} y1={q4_gY} x2={q4_pX} y2={q4_eyeY} stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+                        <circle cx={q4_pX} cy={q4_eyeY - 2} r="3" fill="#2563eb" />
+                        <polygon points={`${q4_pX},${q4_eyeY} ${q4_pX + 8},${q4_eyeY} ${q4_pX + 8},${q4_eyeY - 8}`} fill="#fdba74" stroke="#ea580c" strokeWidth="0.5" />
+
+                        <line x1={q4_pX} y1={q4_eyeY} x2={q4_tX} y2={q4_eyeY} stroke="#94a3b8" strokeWidth="1" strokeDasharray="2,2" />
+                        <line x1={q4_pX} y1={q4_eyeY} x2={q4_tX} y2={q4_topY} stroke="#ea580c" strokeWidth="1.5" strokeDasharray="4,2" />
+
+                        <line x1={q4_pX} y1={q4_gY + 4} x2={q4_tX} y2={q4_gY + 4} stroke="#94a3b8" strokeWidth="0.5" />
+                        <text x={(q4_pX + q4_tX) / 2} y={q4_gY + 8} fontSize="4" fill="#ea580c" textAnchor="middle" fontWeight="bold">距離: {q4_dist}m</text>
+                        <text x={q4_pX - 4} y={(q4_gY + q4_eyeY) / 2} fontSize="4" fill="#2563eb" textAnchor="end" fontWeight="bold">眼高 {q4_eye}m</text>
+                    </svg>
+                });
+
+                // Q5: 氣壓挑戰
+                const q5_p1 = getRandomInt(1005, 1015);
+                const q5_diff = getRandomInt(3, 8);
+                const q5_p2 = q5_p1 + q5_diff;
+                const q5_ans = q5_diff * 9;
+                const raw_q5_options = [
+                    { val: q5_ans.toString(), isCorrect: true, exp: "正確！算出氣壓差再乘以 9 公尺。" },
+                    { val: (q5_diff * 10).toString(), isCorrect: false, exp: "錯誤，在這個條件下，每增加 1hPa 是下降 9 公尺喔。" },
+                    { val: (q5_p2 - q5_p1).toString(), isCorrect: false, exp: "錯誤，這只是氣壓的差值，還沒換算成深度距離。" },
+                    { val: (q5_p2 * 9).toString(), isCorrect: false, exp: "錯誤，應該是用「變化量(氣壓差)」來計算，而不是把總氣壓拿去乘。" }
+                ];
+                newQuestions.push({
+                    type: "pressure",
+                    title: "5. 氣壓計探勘",
+                    text: `科學家帶著高靈敏度的氣壓計搭乘電梯進入地下礦坑。在地面一樓時，氣壓顯示為 ${q5_p1} hPa。到達礦坑最底層時，氣壓顯示為 ${q5_p2} hPa。若已知氣壓每增加 1 hPa，代表深度下降了 9 公尺，礦坑底部的深度是多少？`,
+                    options: shuffleArray(deduplicateOptions(raw_q5_options)),
+                    correctExplanation: `氣壓差 = ${q5_p2} - ${q5_p1} = ${q5_diff} hPa。深度 = ${q5_diff} × 9 = ${q5_ans} 公尺。`,
+                    svg: <svg viewBox="0 0 180 80" className="w-full h-32 bg-red-50 rounded mt-4 shadow-inner">
+                        <rect x="0" y="0" width="180" height="20" fill="#e0f2fe" />
+                        <path d="M 0 20 L 70 20 L 70 80 L 0 80 Z" fill="#64748b" />
+                        <path d="M 110 20 L 180 20 L 180 80 L 110 80 Z" fill="#64748b" />
+                        <rect x="70" y="20" width="40" height="60" fill="#0f172a" />
+
+                        <circle cx="60" cy="15" r="4" fill="#f59e0b" />
+                        <circle cx="90" cy="70" r="4" fill="#ef4444" />
+
+                        <text x="50" y="17" fontSize="6" fill="#334155" textAnchor="end" fontWeight="bold">洞口: {q5_p1} hPa</text>
+                        <text x="100" y="72" fontSize="6" fill="#ef4444" textAnchor="start" fontWeight="bold">底部: {q5_p2} hPa</text>
+
+                        <line x1="90" y1="20" x2="90" y2="65" stroke="#ef4444" strokeWidth="1" strokeDasharray="2,2" />
+                    </svg>
+                });
+
+                setQuestions(newQuestions);
+                setUserAnswers({});
+                setIsSubmitted(false);
+                setScore(0);
+            };
+
+            // 初始載入時產生題目
+            useEffect(() => {
+                generateQuiz();
+            }, []);
+
+            const handleOptionSelect = (qIndex, optionVal) => {
+                if (isSubmitted) return;
+                setUserAnswers(prev => ({ ...prev, [qIndex]: optionVal }));
+            };
+
+            const handleSubmit = () => {
+                if (Object.keys(userAnswers).length < 5) {
+                    alert("請完成所有 5 題後再交卷喔！");
+                    return;
+                }
+                let currentScore = 0;
+                questions.forEach((q, idx) => {
+                    const selectedOpt = q.options.find(opt => opt.val === userAnswers[idx]);
+                    if (selectedOpt && selectedOpt.isCorrect) {
+                        currentScore += 20;
+                    }
+                });
+                setScore(currentScore);
+                setIsSubmitted(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+                <div className="fade-in w-full max-w-3xl mx-auto">
+                    <div className="text-center mb-8">
+                        <h2 className="text-3xl font-bold text-slate-800 mb-2 flex items-center justify-center">
+                            <i data-lucide="brain-circuit" className="mr-3 w-8 h-8 text-indigo-600"></i> 生活素養挑戰
+                        </h2>
+                        <p className="text-slate-600">這些數字每次都會改變！請實際動筆算算看，檢驗你的真實理解力。</p>
+                    </div>
+
+                    {isSubmitted && (
+                        <div className={`p-6 rounded-2xl mb-8 text-center border-4 shadow-lg ${score >= 80 ? 'bg-green-50 border-green-400' : 'bg-yellow-50 border-yellow-400'}`}>
+                            <h3 className="text-2xl font-bold mb-2">測驗結果</h3>
+                            <div className="text-5xl font-black mb-4">
+                                <span className={score >= 80 ? 'text-green-600' : 'text-yellow-600'}>{score}</span> / 100
+                            </div>
+                            <p className="text-slate-700 font-bold mb-6">
+                                {score === 100 ? "🎉 太神了！你是真正的間接測量大師！" :
+                                    score >= 60 ? "👍 表現不錯！去看看底下詳解把不會的補齊吧！" :
+                                        "💪 沒關係，失敗為成功之母，仔細看詳解後再挑戰一次！"}
+                            </p>
+                            <button onClick={generateQuiz} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 flex items-center mx-auto">
+                                <i data-lucide="refresh-cw" className="mr-2"></i> 重新隨機測驗
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="space-y-8">
+                        {questions.map((q, qIndex) => {
+                            const selectedVal = userAnswers[qIndex];
+                            const isCorrect = q.options.find(o => o.val === selectedVal)?.isCorrect;
+
+                            return (
+                                <div key={qIndex} className={`bg-white p-6 rounded-xl border-2 shadow-sm transition-all ${isSubmitted ? (isCorrect ? 'border-green-300 bg-green-50/30' : 'border-red-300 bg-red-50/30') : 'border-slate-200 hover:border-indigo-300'}`}>
+                                    <h4 className="text-lg font-bold text-slate-800 mb-3">{q.title}</h4>
+                                    <p className="text-slate-700 leading-relaxed mb-4">{q.text}</p>
+
+                                    {/* 視覺圖解 */}
+                                    <div className="mb-6 max-w-md mx-auto">
+                                        {q.svg}
+                                    </div>
+
+                                    {/* 選項區 */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {q.options.map((opt, oIndex) => {
+                                            const isSelected = selectedVal === opt.val;
+                                            let optClass = "border-slate-200 hover:bg-slate-50";
+                                            if (isSelected) optClass = "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200";
+
+                                            // 提交後的樣式覆蓋
+                                            if (isSubmitted) {
+                                                if (opt.isCorrect) {
+                                                    optClass = "border-green-500 bg-green-100 font-bold"; // 正確答案永遠標示綠色
+                                                } else if (isSelected && !opt.isCorrect) {
+                                                    optClass = "border-red-500 bg-red-100"; // 選錯的標示紅色
+                                                } else {
+                                                    optClass = "border-slate-200 opacity-50"; // 沒選且錯誤的變淡
+                                                }
+                                            }
+
+                                            return (
+                                                <div key={oIndex}
+                                                    onClick={() => handleOptionSelect(qIndex, opt.val)}
+                                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all flex items-center ${optClass} ${isSubmitted ? 'cursor-default' : ''}`}
+                                                >
+                                                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${isSelected ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'}`}>
+                                                        {isSelected && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                                                    </div>
+                                                    <span className="text-lg">{opt.val} <span className="text-sm text-slate-500">{q.type === 'echo' && opt.val.length > 3 ? '' : '公尺'}</span></span>
+
+                                                    {/* 提交後在選項旁顯示小圖示 */}
+                                                    {isSubmitted && opt.isCorrect && <i data-lucide="check-circle-2" className="ml-auto text-green-600 w-5 h-5"></i>}
+                                                    {isSubmitted && isSelected && !opt.isCorrect && <i data-lucide="x-circle" className="ml-auto text-red-600 w-5 h-5"></i>}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* 提交後的詳解與誘答分析 */}
+                                    {isSubmitted && (
+                                        <div className={`mt-6 p-5 rounded-lg border ${isCorrect ? 'bg-green-100/50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                            <div className="font-bold mb-2 flex items-center">
+                                                {isCorrect ? <span className="text-green-700 flex items-center"><i data-lucide="check" className="mr-1"></i> 答對了！</span>
+                                                    : <span className="text-red-700 flex items-center"><i data-lucide="x" className="mr-1"></i> 答錯了，請看解析：</span>}
+                                            </div>
+                                            {!isCorrect && (
+                                                <div className="mb-3 text-sm text-red-800 bg-white p-2 rounded border border-red-100">
+                                                    <strong>你的盲點：</strong> {q.options.find(o => o.val === selectedVal)?.exp}
+                                                </div>
+                                            )}
+                                            <p className="text-slate-800">
+                                                <strong>💡 正確解析：</strong><br />
+                                                {q.correctExplanation}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {!isSubmitted && (
+                        <button onClick={handleSubmit} className="mt-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-12 rounded-full shadow-xl transition transform hover:scale-105 flex items-center mx-auto text-xl">
+                            <i data-lucide="send" className="mr-2"></i> 交卷看成績
+                        </button>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 數位計算紙 (CLI) 浮動模組 ---
+        const CalculatorCLI = () => {
+            const [input, setInput] = useState('');
+            const [history, setHistory] = useState([]);
+            const endRef = useRef(null);
+
+            // 自動捲動到最底部
+            useEffect(() => {
+                endRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [history]);
+
+            const handleEval = (e) => {
+                if (e.key === 'Enter') {
+                    if (!input.trim()) return;
+
+                    let expr = input;
+                    // 1. 字元替換預處理
+                    expr = expr.replace(/[xX×]/g, '*');
+                    // 2. 百分比轉換
+                    expr = expr.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+                    // 3. 次方轉換
+                    expr = expr.replace(/\^/g, '**');
+                    // 4. 常數與函數對應
+                    expr = expr.replace(/pi|π/gi, '3.14');
+                    expr = expr.replace(/sqrt/gi, 'Math.sqrt');
+
+                    try {
+                        // 5. 安全執行環境 (利用 new Function 隔離運算)
+                        let result = new Function(`return ${expr}`)();
+                        if (typeof result === 'number' && isFinite(result)) {
+                            // 6. 浮點數誤差處理 (四捨五入至小數點後四位)
+                            result = Math.round(result * 10000) / 10000;
+                        }
+                        setHistory(prev => [...prev, { id: Date.now(), expr: input, result: result }]);
+                    } catch (err) {
+                        setHistory(prev => [...prev, { id: Date.now(), expr: input, result: 'Error' }]);
+                    }
+                    setInput('');
+                }
+            };
+
+            const deleteLine = (id) => {
+                setHistory(prev => prev.filter(h => h.id !== id));
+            };
+
+            return (
+                <div className="bg-slate-900 text-green-400 font-mono p-4 rounded-xl shadow-xl w-full h-[400px] flex flex-col border-2 border-slate-700">
+                    <div className="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+                        <span className="text-slate-300 text-sm font-bold flex items-center"><i data-lucide="terminal" className="w-4 h-4 mr-2"></i> 數位計算紙 (CLI)</span>
+                        <button onClick={() => setHistory([])} className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors">CLEAR</button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-2 mb-2 text-sm pr-1">
+                        {history.length === 0 && <div className="text-slate-500 italic mt-2">等待指令...</div>}
+                        {history.map(item => (
+                            <div key={item.id} className="group flex justify-between items-start bg-slate-800/50 p-2 rounded">
+                                <div>
+                                    <div className="text-slate-400">&gt; {item.expr}</div>
+                                    <div className="text-green-300 font-bold">= {item.result}</div>
+                                </div>
+                                <button onClick={() => deleteLine(item.id)} className="text-red-400 opacity-0 group-hover:opacity-100 px-1 hover:text-red-300 transition-opacity" title="刪除此行">×</button>
+                            </div>
+                        ))}
+                        <div ref={endRef} />
+                    </div>
+
+                    <div className="flex items-center text-sm border-t border-slate-700 pt-3">
+                        <span className="mr-2 text-green-500 font-bold">&gt;</span>
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyDown={handleEval}
+                            placeholder="輸入算式..."
+                            className="bg-transparent outline-none flex-1 text-green-400 placeholder-slate-600 w-full"
+                            autoComplete="off"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主應用程式 ---
+        const App = () => {
+            const [step, setStep] = useState(0);
+
+            useEffect(() => {
+                lucide.createIcons();
+            }, [step]);
+
+            const steps = [
+                {
+                    title: "歡迎挑戰", component:
+                        <div className="text-center fade-in">
+                            <div className="relative inline-block mb-6">
+                                <div className="absolute inset-0 bg-green-200 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=measure&backgroundColor=d1fae5" alt="機器人助手" className="relative w-32 h-32 mx-auto rounded-full border-4 border-white shadow-xl" />
+                            </div>
+                            <h1 className="text-4xl md:text-5xl font-extrabold text-green-800 mb-4 tracking-wider drop-shadow-sm">隱形的尺</h1>
+                            <h2 className="text-xl md:text-2xl text-gray-600 mb-8 font-medium">間接測量的藝術</h2>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-green-50 max-w-xl mx-auto mb-8">
+                                <p className="text-lg text-gray-700 leading-relaxed text-left">
+                                    大樹太高爬不上去？山洞太深看不到底？<br />
+                                    別擔心！只要學會幾招<strong className="text-green-700">「物理與數學的魔法」</strong>，<br />
+                                    我們就能在不直接接觸的情況下，量出這個世界的尺寸！
+                                </p>
+                            </div>
+                            <button onClick={() => setStep(1)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-10 rounded-full shadow-lg shadow-green-200 transform transition hover:scale-105 hover:-translate-y-1 text-lg flex items-center mx-auto">
+                                開始探索旅程 <i data-lucide="rocket" className="ml-2 w-5 h-5"></i>
+                            </button>
+                        </div>
+                },
+                { title: "影子法", component: <ShadowMethod /> },
+                { title: "回聲法", component: <EchoMethod /> },
+                { title: "進階神器", component: <MirrorAndTool /> },
+                { title: "終極挑戰", component: <PressureChallenge /> },
+                { title: "素養測驗", component: <QuizChallenge /> }
+            ];
+
+            return (
+                <div className="min-h-screen py-6 md:py-10 px-4 flex flex-col items-center bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiNkY2ZceDciLz48L3N2Zz4=')]">
+                    {/* 頂部導航進度列 */}
+                    <div className={`w-full ${step === 5 ? 'max-w-6xl' : 'max-w-4xl'} mb-6 flex flex-col md:flex-row justify-between items-center bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-green-100 gap-4 md:gap-0 transition-all duration-500`}>
+                        <div className="text-xl font-extrabold text-green-700 flex items-center tracking-wide">
+                            <i data-lucide="ruler" className="mr-2 text-green-600"></i> 測量大師學院
+                        </div>
+                        <div className="flex flex-wrap justify-center space-x-2 md:space-x-3">
+                            {steps.map((s, idx) => (
+                                <div key={idx}
+                                    onClick={() => setStep(idx)}
+                                    className={`flex items-center px-3 py-1.5 rounded-full cursor-pointer transition-all duration-300 ${idx === step ? 'bg-green-500 text-white shadow-md font-bold' : 'bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700'}`}
+                                    title={s.title}
+                                >
+                                    <span className="text-xs md:text-sm">{s.title}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className={`w-full ${step === 5 ? 'max-w-6xl' : 'max-w-4xl'} bg-white min-h-[550px] rounded-3xl shadow-xl shadow-green-900/5 p-6 md:p-10 flex flex-col lg:flex-row items-start relative border-t-[10px] border-green-500 gap-8 transition-all duration-500`}>
+
+                        {/* 左側主內容區 */}
+                        <div className="flex-1 w-full flex flex-col items-center justify-center min-w-0">
+                            {steps[step].component}
+
+                            {/* 底部「上一單元/下一單元」按鈕 (首尾微調) */}
+                            {step > 0 && step < steps.length && (
+                                <div className="w-full flex justify-between mt-12 border-t border-slate-100 pt-6">
+                                    <button onClick={() => setStep(Math.max(0, step - 1))} className="flex items-center text-gray-500 hover:text-green-700 font-bold transition px-4 py-2 rounded-full hover:bg-gray-50">
+                                        <i data-lucide="arrow-left" className="mr-1 w-5 h-5"></i> 上一單元
+                                    </button>
+                                    {step < steps.length - 1 && (
+                                        <button onClick={() => setStep(step + 1)} className="flex items-center text-white bg-green-500 hover:bg-green-600 font-bold transition px-6 py-2 rounded-full shadow-md hover:shadow-lg">
+                                            下一單元 <i data-lucide="arrow-right" className="ml-1 w-5 h-5"></i>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 右側數位計算紙 (CLI) - 利用隱藏而非卸載來維持歷史紀錄狀態 */}
+                        <div className={step === 5 ? "w-full lg:w-80 flex-shrink-0 sticky top-24 z-10" : "hidden"}>
+                            <CalculatorCLI />
+                            <p className="text-xs text-slate-500 mt-2 text-center">💡 支援: <code className="bg-slate-100 px-1 rounded">x</code>, <code className="bg-slate-100 px-1 rounded">%</code>, <code className="bg-slate-100 px-1 rounded">^</code>, <code className="bg-slate-100 px-1 rounded">pi</code>, <code className="bg-slate-100 px-1 rounded">sqrt( )</code></p>
+                        </div>
+                    </div>
+
+                    <footer className="mt-10 text-center text-green-800/60 text-sm font-medium">
+                        設計給對世界充滿好奇的你。數學（相似形）與自然（聲波、光學）完美結合。
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
