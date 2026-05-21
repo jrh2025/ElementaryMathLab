@@ -1,0 +1,2973 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>梯形面積探索樂園</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 適用於小圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f9ff;
+        }
+
+        /* 可愛粉嫩卡通風格陰影與動畫 */
+        .bubble-shadow {
+            box-shadow: 0 8px 0px 0px #e0f2fe, 0 15px 20px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .bubble-btn-blue {
+            box-shadow: 0 4px 0px 0px #1d4ed8;
+            transition: all 0.1s ease;
+        }
+
+        .bubble-btn-blue:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px 0px #1d4ed8;
+        }
+
+        .bubble-btn-green {
+            box-shadow: 0 4px 0px 0px #15803d;
+            transition: all 0.1s ease;
+        }
+
+        .bubble-btn-green:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px 0px #15803d;
+        }
+
+        .bubble-btn-orange {
+            box-shadow: 0 4px 0px 0px #c2410c;
+            transition: all 0.1s ease;
+        }
+
+        .bubble-btn-orange:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px 0px #c2410c;
+        }
+
+        .bubble-btn-purple {
+            box-shadow: 0 4px 0px 0px #7e22ce;
+            transition: all 0.1s ease;
+        }
+
+        .bubble-btn-purple:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px 0px #7e22ce;
+        }
+
+        /* 旋轉與平移動畫 */
+        .transition-all-1200 {
+            transition: all 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 鎖定步驟置灰 */
+        .step-locked {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* 撒花與特效 */
+        @keyframes float-flower {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .animate-flower {
+            animation: float-flower 2s ease-out infinite;
+        }
+
+        /* 抓取手勢與樣式 */
+        .cursor-grab {
+            cursor: grab;
+            cursor: -webkit-grab;
+        }
+
+        .cursor-grabbing {
+            cursor: grabbing;
+            cursor: -webkit-grabbing;
+        }
+
+        /* 單選按鈕自訂樣式 */
+        .radio-custom:checked+div {
+            background-color: #f3e8ff;
+            border-color: #a855f7;
+        }
+
+        .radio-custom:checked+div .radio-indicator {
+            background-color: #a855f7;
+            border-color: #a855f7;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col pb-12">
+
+    <!-- 頂部歡樂導覽列 -->
+    <header class="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 text-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between">
+            <div class="flex items-center space-x-3 mb-2 md:mb-0">
+                <div
+                    class="bg-white text-blue-600 p-2 rounded-full w-10 h-10 flex items-center justify-center font-bold text-xl shadow">
+                    梯
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-wider">梯形面積探索樂園</h1>
+                    <p class="text-xs text-blue-100 font-bold">國小高年級自主探究學習系統</p>
+                </div>
+            </div>
+            <!-- 自主學分指示器 -->
+            <div class="bg-white/20 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
+                <i class="fa-solid fa-crown text-yellow-300"></i>
+                <span>我的學習星：<span id="star-count" class="text-yellow-300 font-black">0</span> / 5 顆</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 核心單元切換選單 -->
+    <nav class="max-w-6xl mx-auto w-full px-4 mt-6">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 bg-white p-2 rounded-2xl shadow-sm border-2 border-blue-100">
+            <button onclick="switchTab(1)" id="tab-1"
+                class="tab-btn py-3 px-2 rounded-xl font-bold text-sm transition-all text-center flex flex-col items-center justify-center gap-1 bg-blue-500 text-white shadow-sm">
+                <span class="text-lg">📐</span>
+                <span>1. 畫高挑戰</span>
+            </button>
+            <button onclick="switchTab(2)" id="tab-2"
+                class="tab-btn py-3 px-2 rounded-xl font-bold text-sm transition-all text-center flex flex-col items-center justify-center gap-1 text-slate-600 hover:bg-slate-50">
+                <span class="text-lg">✂️</span>
+                <span>2. 公式推導</span>
+            </button>
+            <button onclick="switchTab(3)" id="tab-3"
+                class="tab-btn py-3 px-2 rounded-xl font-bold text-sm transition-all text-center flex flex-col items-center justify-center gap-1 text-slate-600 hover:bg-slate-50">
+                <span class="text-lg">🎛️</span>
+                <span>3. 面積算盤</span>
+            </button>
+            <button onclick="switchTab(4)" id="tab-4"
+                class="tab-btn py-3 px-2 rounded-xl font-bold text-sm transition-all text-center flex flex-col items-center justify-center gap-1 text-slate-600 hover:bg-slate-50">
+                <span class="text-lg">🧩</span>
+                <span>4. 複合拆解</span>
+            </button>
+            <button onclick="switchTab(5)" id="tab-5"
+                class="tab-btn py-3 px-2 rounded-xl font-bold text-sm transition-all text-center flex flex-col items-center justify-center gap-1 text-slate-600 hover:bg-slate-50 col-span-2 md:col-span-1">
+                <span class="text-lg">🏆</span>
+                <span>5. 素養挑戰</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主要學習內容區域 -->
+    <main class="max-w-6xl mx-auto w-full px-4 mt-6 flex-grow">
+
+        <!-- =================== 單元一：認識梯形與畫高 =================== -->
+        <section id="unit-1-content" class="tab-content block">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左側與中央：動態畫布 -->
+                <div
+                    class="lg:col-span-2 bg-white rounded-3xl p-6 border-4 border-blue-200 bubble-shadow flex flex-col justify-between min-h-[500px]">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span
+                                class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-black">單元一：認識梯形與虛擬三角尺畫高</span>
+                            <button
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs bubble-btn-blue flex items-center gap-1 animate-pulse"
+                                onclick="generateRandomTrapezoidUnit1()">
+                                <i class="fa-solid fa-arrows-spin"></i> 🎲 隨機變換與旋轉梯形
+                            </button>
+                        </div>
+
+                        <!-- SVG 畫布 -->
+                        <div
+                            class="relative bg-sky-50 rounded-2xl border-2 border-dashed border-sky-200 p-4 h-80 flex items-center justify-center overflow-hidden">
+                            <!-- 輔助網格 -->
+                            <div
+                                class="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:20px_20px] opacity-30">
+                            </div>
+
+                            <!-- 拖曳提示 -->
+                            <div
+                                class="absolute top-2 left-2 bg-white/90 border border-amber-200 rounded-lg px-2 py-1 text-[11px] font-bold text-amber-700 pointer-events-none z-10 shadow-sm leading-relaxed">
+                                <i class="fa-solid fa-gamepad animate-bounce mr-1"></i>
+                                使用下方<b>控制台</b>，調整三角尺的角度與位置，使其平行吸附底邊！
+                            </div>
+
+                            <svg id="unit1-svg" class="w-full h-full touch-none select-none" viewBox="0 0 500 240">
+                                <!-- 幾何圖形外框旋轉組，中心點在 (250, 120) -->
+                                <g id="u1-geometry-group" transform="rotate(0, 250, 120)">
+                                    <!-- 延伸外高虛線 (預設隱藏) -->
+                                    <line id="u1-ext-line" x1="150" y1="50" x2="50" y2="50" stroke="#94a3b8"
+                                        stroke-width="2" stroke-dasharray="5,5" class="hidden" />
+                                    <line id="u1-ext-bottom" x1="100" y1="190" x2="50" y2="190" stroke="#94a3b8"
+                                        stroke-width="2" stroke-dasharray="5,5" class="hidden" />
+
+                                    <!-- 梯形本體 (動態變換) -->
+                                    <polygon id="u1-trapezoid" points="150,50 300,50 400,190 100,190" fill="#bae6fd"
+                                        stroke="#0284c7" stroke-width="4" stroke-linejoin="round" />
+
+                                    <!-- 上底、下底標示 -->
+                                    <text id="u1-label-upper" x="225" y="40" fill="#0369a1" font-weight="bold"
+                                        font-size="14" text-anchor="middle">上底</text>
+                                    <text id="u1-label-lower" x="250" y="215" fill="#0369a1" font-weight="bold"
+                                        font-size="14" text-anchor="middle">下底</text>
+
+                                    <!-- 畫出來的高 (動態觸發) -->
+                                    <g id="u1-height-group" class="opacity-0 transition-opacity duration-500">
+                                        <line id="u1-height-line" x1="150" y1="50" x2="150" y2="190" stroke="#ef4444"
+                                            stroke-width="3" stroke-dasharray="5,5" />
+                                        <!-- 直角記號 ┐ -->
+                                        <path id="u1-square-mark" d="M 150 180 L 160 180 L 160 190" fill="none"
+                                            stroke="#ef4444" stroke-width="2" />
+                                        <text id="u1-height-text" x="135" y="125" fill="#ef4444" font-weight="bold"
+                                            font-size="14" text-anchor="end">高 (垂直距離)</text>
+                                    </g>
+
+                                    <!-- 外部高 (動態觸發) -->
+                                    <g id="u1-ext-height-group" class="hidden">
+                                        <line x1="50" y1="50" x2="50" y2="190" stroke="#e11d48" stroke-width="3"
+                                            stroke-dasharray="5,5" />
+                                        <path d="M 50 180 L 60 180 L 60 190" fill="none" stroke="#e11d48"
+                                            stroke-width="2" />
+                                        <text x="35" y="125" fill="#e11d48" font-weight="bold" font-size="14"
+                                            text-anchor="end">外部的高</text>
+                                    </g>
+
+                                    <!-- 頂點指示燈 -->
+                                    <circle id="vertex-left" cx="150" cy="50" r="8" fill="#f59e0b"
+                                        class="animate-pulse hidden" />
+                                    <circle id="vertex-right" cx="300" cy="50" r="8" fill="#f59e0b"
+                                        class="animate-pulse hidden" />
+                                </g>
+
+                                <!-- 獨立直角三角尺 (改為控制台操作) -->
+                                <g id="u1-ruler-container" transform="translate(280, 100) rotate(0)"
+                                    class="touch-none select-none">
+                                    <!-- 黃色半透明直角三角尺本體 -->
+                                    <polygon points="0,0 -100,0 0,-140" fill="rgba(245, 158, 11, 0.65)" stroke="#d97706"
+                                        stroke-width="2.5" />
+                                    <!-- 直角記號 inside ruler -->
+                                    <path d="M 0,-10 L -10,-10 L -10,0" fill="none" stroke="#d97706"
+                                        stroke-width="1.5" />
+
+                                    <!-- 視覺裝飾中心點 (移除舊有拖曳把手文字) -->
+                                    <g id="u1-drag-handle">
+                                        <circle cx="-35" cy="-45" r="8" fill="#fff" stroke="#d97706" stroke-width="2"
+                                            class="filter drop-shadow" />
+                                        <circle cx="-35" cy="-45" r="3" fill="#d97706" />
+                                    </g>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- 替代方案：虛擬三角尺控制台 -->
+                    <div id="u1-ruler-sliders"
+                        class="mt-4 bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm relative">
+                        <div class="absolute top-2 right-4 text-xs font-black text-amber-700 opacity-60">
+                            梯形傾斜：<span id="trapezoid-angle-label">0°</span>
+                        </div>
+                        <h4 class="text-sm font-black text-amber-800 mb-3 flex items-center gap-1">
+                            <i class="fa-solid fa-sliders"></i> 虛擬三角尺控制台 (拖曳滑桿操作)
+                        </h4>
+                        <div class="space-y-4">
+                            <!-- 旋轉 -->
+                            <div class="flex items-center gap-3">
+                                <label class="text-xs font-bold text-slate-700 w-16 shrink-0">🔄 旋轉</label>
+                                <input type="range" id="slider-ruler-angle" min="0" max="360" value="0"
+                                    class="flex-grow accent-amber-500 cursor-pointer"
+                                    oninput="updateRulerFromSliders('angle')">
+                                <span id="slider-val-angle"
+                                    class="text-xs font-black text-amber-700 w-10 text-right">0°</span>
+                            </div>
+                            <!-- 上下 -->
+                            <div class="flex items-center gap-3">
+                                <label class="text-xs font-bold text-slate-700 w-16 shrink-0">↕️ 上下</label>
+                                <input type="range" id="slider-ruler-y" min="-50" max="300" value="100"
+                                    class="flex-grow accent-amber-500 cursor-pointer"
+                                    oninput="updateRulerFromSliders('y')">
+                                <span id="slider-val-y"
+                                    class="text-xs font-black text-amber-700 w-10 text-right">100</span>
+                            </div>
+                            <!-- 左右 -->
+                            <div class="flex items-center gap-3">
+                                <label class="text-xs font-bold text-slate-700 w-16 shrink-0">↔️ 左右</label>
+                                <input type="range" id="slider-ruler-x" min="-100" max="600" value="280"
+                                    class="flex-grow accent-amber-500 cursor-pointer"
+                                    oninput="updateRulerFromSliders('x')">
+                                <span id="slider-val-x"
+                                    class="text-xs font-black text-amber-700 w-10 text-right">280</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：引導與對話說明面板 -->
+                <div
+                    class="bg-white rounded-3xl p-6 border-4 border-blue-200 bubble-shadow flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 mb-4 flex items-center gap-2">
+                            <span
+                                class="bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span>
+                            親自「拖曳三角尺」畫高
+                        </h3>
+
+                        <div class="space-y-4">
+                            <!-- 步驟 1 -->
+                            <div id="u1-step1"
+                                class="p-3 bg-green-50 rounded-xl border border-green-200 transition-all duration-300">
+                                <h4 class="text-sm font-black text-green-800 flex items-center gap-1">
+                                    <i class="fa-regular fa-square-check"></i> 步驟 1：底邊貼齊
+                                </h4>
+                                <p class="text-xs text-green-700 mt-1">三角尺的底邊已隨時貼在斜底軌道上。</p>
+                            </div>
+
+                            <!-- 步驟 2 -->
+                            <div id="u1-step2"
+                                class="p-3 bg-blue-50 rounded-xl border border-blue-200 transition-all duration-300">
+                                <h4 class="text-sm font-black text-blue-800 flex items-center gap-1">
+                                    <span id="step2-icon"><i
+                                            class="fa-solid fa-arrows-up-down-left-right animate-pulse text-indigo-500"></i></span>
+                                    步驟 2：操作控制台對齊
+                                </h4>
+                                <p class="text-xs text-blue-700 mt-1" id="u1-step2-desc">
+                                    請滑動左方的「虛擬三角尺控制台」，調整旋轉角度與上下左右，使其貼齊梯形下底。</p>
+                            </div>
+
+                            <!-- 步驟 3 -->
+                            <div id="u1-step3"
+                                class="p-3 bg-slate-100 rounded-xl border border-slate-200 step-locked transition-all duration-300">
+                                <h4 class="text-sm font-black text-slate-800 flex items-center gap-1">
+                                    <i class="fa-solid fa-pencil"></i> 步驟 3：畫線作記
+                                </h4>
+                                <p class="text-xs text-slate-600 mt-1">對齊成功吸附後，點擊下方按鈕，畫出垂直的高與直角記號！</p>
+                                <button id="btn-draw-height"
+                                    class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs bubble-btn-blue hidden"
+                                    onclick="drawHeightEffect()">
+                                    ✍️ 畫出這條垂直的高！
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 延伸提醒便利貼 -->
+                        <div class="mt-6 bg-amber-50 p-4 rounded-xl border-2 border-dashed border-amber-200 text-xs">
+                            <h5 class="font-black text-amber-800 mb-1"><i class="fa-solid fa-lightbulb"></i> 老師小叮嚀：</h5>
+                            <p class="text-amber-700 leading-relaxed">
+                                梯形不論朝向哪裡、怎麼傾斜，上底和下底之間的「高」都必須是**垂直距離**！不信的話，點擊下方延伸看畫在「外面」的高。
+                            </p>
+                            <button id="btn-u1-ext"
+                                class="mt-2 bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded text-[10px]"
+                                onclick="toggleExtHeight()">
+                                🔍 看看畫在「外面」的高
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 導航到下一步 -->
+                    <div id="u1-next-card" class="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2 hidden">
+                        <span class="text-xs text-green-600 font-bold text-center"><i
+                                class="fa-solid fa-circle-check"></i> 完成此關！獲得 1 顆學習星 ⭐</span>
+                        <button
+                            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs bubble-btn-green"
+                            onclick="switchTab(2)">
+                            前往公式推導 <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================== 單元二：公式推導 =================== -->
+        <section id="unit-2-content" class="tab-content hidden">
+            <!-- 推導模式選擇 -->
+            <div class="flex justify-center gap-4 mb-6">
+                <button id="btn-mode-a" onclick="switchDeriveMode('A')"
+                    class="px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-orange-500 bg-orange-500 text-white transition-all">
+                    方法 A：雙梯形拼湊法 (手動拼圖)
+                </button>
+                <button id="btn-mode-b" onclick="switchDeriveMode('B')"
+                    class="px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all">
+                    方法 B：對角線分割法 (手動切割)
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左側與中央：動態展示區 -->
+                <div
+                    class="lg:col-span-2 bg-white rounded-3xl p-6 border-4 border-orange-200 bubble-shadow flex flex-col justify-between min-h-[500px]">
+
+                    <!-- 模式 A：雙梯形手動拼湊 -->
+                    <div id="mode-a-canvas" class="block">
+                        <div class="flex justify-between items-center mb-4">
+                            <span
+                                class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-black">手動挑戰：請拖曳【梯形
+                                B】並將其旋轉，與【梯形 A】拼在一起！</span>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    class="bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs bubble-btn-orange flex items-center gap-1"
+                                    onclick="rotateTrapezoidB()">
+                                    <i class="fa-solid fa-rotate-right"></i> 🔄 旋轉 180°
+                                </button>
+                                <button id="btn-reset-join"
+                                    class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs bubble-btn-orange flex items-center gap-1 hidden"
+                                    onclick="resetJoinMode()">
+                                    <i class="fa-solid fa-arrows-rotate"></i> 🔄 重新拼圖
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 幾何手動拼圖框 -->
+                        <div
+                            class="relative bg-orange-50/50 rounded-2xl border-2 border-dashed border-orange-100 p-4 h-80 flex items-center justify-center overflow-hidden select-none">
+                            <div
+                                class="absolute top-2 left-2 bg-white/90 border border-orange-200 rounded-lg p-2 text-xs text-orange-800 pointer-events-none space-y-1">
+                                <p class="font-bold">👉 拼圖指南：</p>
+                                <p>1. 點擊上方按鈕將【梯形 B】旋轉 180°</p>
+                                <p>2. 直接「拖曳梯形 B」到右側的【虛線目標框】</p>
+                            </div>
+
+                            <svg id="u2-svg-a" class="w-full h-full touch-none select-none" viewBox="0 0 500 240">
+                                <!-- 梯形 A (左側固定) -->
+                                <g>
+                                    <polygon points="50,60 130,60 180,180 20,180" fill="#bae6fd" stroke="#0284c7"
+                                        stroke-width="3" />
+                                    <text x="90" y="50" fill="#0369a1" font-size="12" font-weight="bold"
+                                        text-anchor="middle">上底 (80)</text>
+                                    <text x="100" y="200" fill="#0369a1" font-size="12" font-weight="bold"
+                                        text-anchor="middle">下底 (160)</text>
+                                    <text x="100" y="125" fill="#0369a1" font-size="16" font-weight="black"
+                                        text-anchor="middle">梯形 A</text>
+                                    <!-- 高 -->
+                                    <line x1="50" y1="60" x2="50" y2="180" stroke="#ef4444" stroke-width="2"
+                                        stroke-dasharray="3,3" />
+                                    <text x="42" y="125" fill="#ef4444" font-size="11" font-weight="bold"
+                                        text-anchor="end">高 (120)</text>
+                                </g>
+
+                                <!-- Flipped B 完美結合位置 (虛線幽靈目標框) -->
+                                <polygon id="u2-para-target" points="130,60 290,60 260,180 180,180"
+                                    fill="rgba(34, 197, 94, 0.05)" stroke="#22c55e" stroke-width="2"
+                                    stroke-dasharray="6,4" />
+                                <text x="215" y="110" fill="#22c55e" font-size="11" font-weight="black"
+                                    text-anchor="middle" class="opacity-70 pointer-events-none">在這裡拼合！</text>
+
+                                <!-- 合體成功後的整體標註 (大括號與底) -->
+                                <g id="u2-para-labels"
+                                    class="opacity-0 transition-opacity duration-500 pointer-events-none">
+                                    <path d="M 20,185 L 20,195 L 140,195 L 140,200 L 140,195 L 260,195 L 260,185"
+                                        fill="none" stroke="#15803d" stroke-width="2" />
+                                    <text x="140" y="215" fill="#15803d" font-size="12" font-weight="black"
+                                        text-anchor="middle">大平行四邊形的底 = (梯形下底 + 梯形上底)</text>
+                                </g>
+
+                                <!-- 梯形 B (可拖曳與旋轉) -->
+                                <g id="u2-draggable-b" transform="translate(300, 40) rotate(0, 50, 70)"
+                                    class="cursor-grab select-none touch-none">
+                                    <polygon points="0,10 80,10 130,130 -30,130" fill="#fecdd3" stroke="#ea580c"
+                                        stroke-width="3" />
+                                    <text x="40" y="0" fill="#ea580c" font-size="11" font-weight="bold"
+                                        text-anchor="middle">上底</text>
+                                    <text x="50" y="145" fill="#ea580c" font-size="11" font-weight="bold"
+                                        text-anchor="middle">下底</text>
+                                    <text x="50" y="75" fill="#ea580c" font-size="14" font-weight="black"
+                                        text-anchor="middle">梯形 B</text>
+                                    <circle cx="50" cy="70" r="4" fill="#ea580c" />
+                                    <!-- 拖拽標示 -->
+                                    <rect x="15" y="45" width="70" height="20" rx="4" fill="white" stroke="#ea580c"
+                                        stroke-width="1" />
+                                    <text x="50" y="59" fill="#ea580c" font-size="10" font-weight="black"
+                                        text-anchor="middle">🤝 按住拖曳</text>
+                                </g>
+                            </svg>
+                        </div>
+
+                        <!-- 拼湊驗證提問 -->
+                        <div id="derive-a-question-box"
+                            class="mt-4 bg-orange-50 p-4 rounded-xl border border-orange-100 text-sm hidden">
+                            <p class="font-bold text-slate-700 leading-relaxed">
+                                💡 <span class="text-orange-600 font-black">思考引導：</span>
+                                恭喜你成功手動拼好拼圖！這兩個完全相同的梯形拼在一起，組成了什麼圖形呢？
+                            </p>
+                            <div class="grid grid-cols-3 gap-2 mt-3">
+                                <button onclick="checkDeriveAAnswer(false)"
+                                    class="bg-white hover:bg-red-50 border border-slate-200 py-2 rounded-lg font-bold text-xs text-slate-600">A.
+                                    三角形</button>
+                                <button onclick="checkDeriveAAnswer(true)"
+                                    class="bg-white hover:bg-green-50 border border-slate-200 py-2 rounded-lg font-bold text-xs text-slate-600">B.
+                                    平行四邊形</button>
+                                <button onclick="checkDeriveAAnswer(false)"
+                                    class="bg-white hover:bg-red-50 border border-slate-200 py-2 rounded-lg font-bold text-xs text-slate-600">C.
+                                    梯形</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 模式 B：對角線切割 -->
+                    <div id="mode-b-canvas" class="hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <span
+                                class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-black">手動切割：請將【剪刀】沿著紫色虛線拖曳到左下角，剪開梯形！</span>
+                            <button id="btn-reset-split"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded-lg text-xs bubble-btn-blue hidden"
+                                onclick="resetSplitMode()">
+                                🔄 重新切割
+                            </button>
+                        </div>
+
+                        <!-- 幾何剪裁與拖曳框 -->
+                        <div
+                            class="relative bg-indigo-50/50 rounded-2xl border-2 border-dashed border-indigo-100 p-4 h-80 flex items-center justify-center overflow-hidden select-none">
+                            <div
+                                class="absolute top-2 left-2 bg-white/90 border border-indigo-200 rounded-lg p-2 text-xs text-indigo-800 pointer-events-none space-y-1">
+                                <p class="font-bold">👉 切割指南：</p>
+                                <p id="split-instruction-text">1. 拖曳【✂️ 剪刀】沿著斜線剪到底</p>
+                            </div>
+
+                            <svg id="u2-svg-b" class="w-full h-full max-w-[440px] touch-none select-none"
+                                viewBox="0 0 400 240">
+                                <!-- 未切割時的完整梯形 (剪裁完成後隱藏) -->
+                                <polygon id="u2-b-full-trapezoid" points="100,50 260,50 320,170 40,170" fill="#ccfbf1"
+                                    stroke="#0d9488" stroke-width="3" />
+
+                                <!-- 待剪斜對角線 -->
+                                <line id="u2-b-diagonal" x1="260" y1="50" x2="40" y2="170" stroke="#8b5cf6"
+                                    stroke-width="3" stroke-dasharray="6,4" />
+
+                                <!-- 切割後的三角形 1 (上底) - 可拖曳 -->
+                                <g id="u2-tri-upper" class="hidden cursor-grab select-none touch-none">
+                                    <polygon points="100,50 260,50 40,170" fill="#fecdd3" stroke="#e11d48"
+                                        stroke-width="3" />
+                                    <text x="180" y="38" fill="#be123c" font-size="12" font-weight="bold"
+                                        text-anchor="middle">上底 (底)</text>
+                                    <line x1="100" y1="50" x2="100" y2="170" stroke="#be123c" stroke-width="1.5"
+                                        stroke-dasharray="3,3" />
+                                    <text x="106" y="110" fill="#be123c" font-size="10" font-weight="bold">高 (h)</text>
+                                    <text x="140" y="100" fill="#be123c" font-size="14" font-weight="black"
+                                        text-anchor="middle">三角形 ①</text>
+                                </g>
+
+                                <!-- 切割後的三角形 2 (下底) - 可拖曳 -->
+                                <g id="u2-tri-lower" class="hidden cursor-grab select-none touch-none">
+                                    <polygon points="260,50 320,170 40,170" fill="#ccfbf1" stroke="#0d9488"
+                                        stroke-width="3" />
+                                    <text x="180" y="190" fill="#0f766e" font-size="12" font-weight="bold"
+                                        text-anchor="middle">下底 (底)</text>
+                                    <line x1="260" y1="50" x2="260" y2="170" stroke="#0d9488" stroke-width="1.5"
+                                        stroke-dasharray="3,3" />
+                                    <text x="252" y="110" fill="#0d9488" font-size="10" font-weight="bold">高 (h)</text>
+                                    <text x="210" y="130" fill="#0f766e" font-size="14" font-weight="black"
+                                        text-anchor="middle">三角形 ②</text>
+                                </g>
+
+                                <!-- 可拖曳的剪刀 group -->
+                                <g id="u2-scissors" transform="translate(260, 50)"
+                                    class="cursor-grab select-none touch-none">
+                                    <circle cx="0" cy="0" r="14" fill="#8b5cf6" opacity="0.2" />
+                                    <text x="-10" y="6" font-family="FontAwesome" font-size="20"
+                                        fill="#8b5cf6">✂️</text>
+                                </g>
+                            </svg>
+                        </div>
+
+                        <!-- 剪開後的對話提示 -->
+                        <div id="derive-b-question-box"
+                            class="mt-4 bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-sm hidden">
+                            <p class="font-bold text-slate-700 leading-relaxed">
+                                💡 <span class="text-indigo-600 font-black">發現了什麼？</span>
+                                剪刀將梯形切成了兩個三角形！請用手指/滑鼠「按住並向外拖拉」這兩個三角形，將它們分開看看！
+                            </p>
+                            <div class="flex justify-center mt-2">
+                                <button onclick="checkDeriveBAnswer(true)"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-xl text-xs bubble-btn-blue">
+                                    我已經將兩個三角形拉開，確實理解了！
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：公式推導文字進度 -->
+                <div
+                    class="bg-white rounded-3xl p-6 border-4 border-orange-200 bubble-shadow flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 mb-4 flex items-center gap-2">
+                            <span
+                                class="bg-orange-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span>
+                            公式是怎麼來的？
+                        </h3>
+
+                        <!-- 動態公式看板 -->
+                        <div class="space-y-4">
+                            <!-- 模式 A 公式 -->
+                            <div id="formula-desc-a" class="block space-y-3 text-slate-700">
+                                <p class="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 leading-relaxed">
+                                    我們手動將兩個一樣的梯形，拼成了一個**大平行四邊形**。
+                                </p>
+                                <div class="bg-orange-50 p-3 rounded-xl border border-orange-200 space-y-2">
+                                    <div class="text-xs font-bold text-slate-500">大平行四邊形的面積：</div>
+                                    <div class="text-sm font-black text-slate-800 flex items-center gap-1">
+                                        <span>底 × 高</span>
+                                        <span class="text-slate-400 font-normal">=</span>
+                                        <span class="text-green-600">(上底 + 下底) × 高</span>
+                                    </div>
+                                </div>
+                                <div class="bg-blue-50 p-3 rounded-xl border border-blue-200 space-y-2">
+                                    <div class="text-xs font-bold text-slate-500">因為是用 2 個一樣的梯形拼成：</div>
+                                    <div class="text-sm font-black text-slate-800 flex items-center gap-1">
+                                        <span>單個梯形面積要 ÷ 2</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 模式 B 公式 (預設隱藏) -->
+                            <div id="formula-desc-b" class="hidden space-y-3 text-slate-700">
+                                <p class="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 leading-relaxed">
+                                    沿對角線切成「粉色三角形 ①」和「綠色三角形 ②」。
+                                </p>
+                                <div class="bg-rose-50 p-3 rounded-xl border border-rose-200 space-y-1">
+                                    <div class="text-xs font-bold text-rose-800">🔴 三角形 ① 面積：</div>
+                                    <div class="text-xs font-black">上底 × 高 ÷ 2</div>
+                                </div>
+                                <div class="bg-teal-50 p-3 rounded-xl border border-teal-200 space-y-1">
+                                    <div class="text-xs font-bold text-teal-800">🟢 三角形 ② 面積：</div>
+                                    <div class="text-xs font-black">下底 × 高 ÷ 2</div>
+                                </div>
+                                <div
+                                    class="bg-indigo-50 p-3 rounded-xl border border-indigo-200 text-xs leading-relaxed">
+                                    將兩個三角形相加，即可得到：<br>
+                                    <span class="font-black text-indigo-700 text-sm">(上底 + 下底) × 高 ÷ 2</span>
+                                </div>
+                            </div>
+
+                            <!-- 終極公式卡片 (大底色) -->
+                            <div
+                                class="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-4 rounded-2xl shadow-md text-center">
+                                <div class="text-xs font-bold text-orange-100">梯形面積公式 🏆</div>
+                                <div class="text-base font-black mt-2 leading-loose">
+                                    (上底 + 下底) × 高 ÷ 2
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 導航到下一步 -->
+                    <div id="u2-next-card"
+                        class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between hidden">
+                        <span class="text-xs text-green-600 font-bold"><i class="fa-solid fa-circle-check"></i> 觀念打通！獲得
+                            1 學習星 ⭐</span>
+                        <button
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs bubble-btn-green"
+                            onclick="switchTab(3)">
+                            前往面積算盤 <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================== 單元三：面積算盤與無限出題挑戰 =================== -->
+        <section id="unit-3-content" class="tab-content hidden">
+            <!-- 實時面積探索算盤 -->
+            <div class="bg-white rounded-3xl p-6 border-4 border-emerald-200 bubble-shadow mb-6">
+                <span
+                    class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-black">沙盒探索：自由變形梯形算盤</span>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+                    <!-- 左：SVG 即時圖形 -->
+                    <div
+                        class="relative bg-emerald-50/50 rounded-2xl border-2 border-dashed border-emerald-100 p-4 h-64 flex items-center justify-center overflow-hidden">
+                        <svg id="u3-live-svg" class="w-full h-full max-w-[360px] touch-none select-none"
+                            viewBox="0 0 300 200">
+                            <!-- 即時變形梯形 -->
+                            <polygon id="u3-live-trapezoid" points="90,40 180,40 240,160 60,160" fill="#a7f3d0"
+                                stroke="#059669" stroke-width="4" />
+                            <!-- 標註文字 -->
+                            <text id="u3-text-upper" x="135" y="30" fill="#047857" font-weight="bold" font-size="12"
+                                text-anchor="middle">上底: 6cm</text>
+                            <text id="u3-text-lower" x="150" y="180" fill="#047857" font-weight="bold" font-size="12"
+                                text-anchor="middle">下底: 10cm</text>
+
+                            <!-- 高 -->
+                            <line id="u3-live-height" x1="90" y1="40" x2="90" y2="160" stroke="#ef4444" stroke-width="2"
+                                stroke-dasharray="4,4" />
+                            <text id="u3-text-height" x="80" y="105" fill="#ef4444" font-weight="bold" font-size="12"
+                                text-anchor="end">高: 5cm</text>
+                        </svg>
+                    </div>
+
+                    <!-- :控制滑桿與公式計算 -->
+                    <div class="flex flex-col justify-between">
+                        <div class="space-y-4">
+                            <!-- 上底 slider -->
+                            <div>
+                                <div class="flex justify-between text-xs font-black text-slate-600 mb-1">
+                                    <span>調整 上底 (a)</span>
+                                    <span id="label-u3-upper" class="text-emerald-600">6 公分</span>
+                                </div>
+                                <input id="slider-u3-upper" type="range" min="2" max="12" value="6"
+                                    class="w-full accent-emerald-600 cursor-pointer" oninput="updateLiveTrapezoid()">
+                            </div>
+                            <!-- 下底 slider -->
+                            <div>
+                                <div class="flex justify-between text-xs font-black text-slate-600 mb-1">
+                                    <span>調整 下底 (b)</span>
+                                    <span id="label-u3-lower" class="text-emerald-600">10 公分</span>
+                                </div>
+                                <input id="slider-u3-lower" type="range" min="13" max="25" value="18"
+                                    class="w-full accent-emerald-600 cursor-pointer" oninput="updateLiveTrapezoid()">
+                            </div>
+                            <!-- 高 slider -->
+                            <div>
+                                <div class="flex justify-between text-xs font-black text-slate-600 mb-1">
+                                    <span>調整 高 (h)</span>
+                                    <span id="label-u3-height" class="text-emerald-600">5 公分</span>
+                                </div>
+                                <input id="slider-u3-height" type="range" min="3" max="12" value="8"
+                                    class="w-full accent-emerald-600 cursor-pointer" oninput="updateLiveTrapezoid()">
+                            </div>
+                        </div>
+
+                        <!-- 實時公式板 -->
+                        <div class="mt-4 bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-100">
+                            <div class="text-xs font-bold text-emerald-800">📖 即時面積計算：</div>
+                            <div class="flex items-center gap-2 mt-2 text-sm font-black text-slate-700 flex-wrap">
+                                <span>面積 =</span>
+                                <div class="flex flex-col items-center border-b border-slate-600 pb-0.5 px-2">
+                                    <span>( <span id="calc-upper" class="text-blue-600">6</span> + <span id="calc-lower"
+                                            class="text-green-600">10</span> ) × <span id="calc-height"
+                                            class="text-red-500">5</span></span>
+                                </div>
+                                <span class="mx-1">÷ 2</span>
+                                <span>=</span>
+                                <span id="calc-result"
+                                    class="text-lg text-emerald-700 bg-white px-3 py-1 rounded-lg shadow-sm border border-emerald-200">40</span>
+                                <span>平方公分</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 無限隨機出題挑戰系統 -->
+            <div class="bg-white rounded-3xl p-6 border-4 border-amber-200 bubble-shadow">
+                <!-- 模式切換 Tabs -->
+                <div class="flex justify-center gap-2 mb-6 bg-slate-100 p-1 rounded-2xl max-w-md mx-auto">
+                    <button id="btn-u3-mode-normal" onclick="setU3ChallengeMode('normal')"
+                        class="flex-1 py-2 rounded-xl text-xs font-black transition-all bg-white text-slate-800 shadow">
+                        📝 面積公式列式挑戰
+                    </button>
+                    <button id="btn-u3-mode-reverse" onclick="setU3ChallengeMode('reverse')"
+                        class="flex-1 py-2 rounded-xl text-xs font-black transition-all text-slate-600 hover:text-slate-800">
+                        🔄 逆向思考求高/求底挑戰
+                    </button>
+                </div>
+
+                <!-- 模式一：列式挑戰卡片 -->
+                <div id="u3-normal-challenge-card" class="block">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                        <span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-black">🔥 公式代入挑戰
+                            (自動計算答案)</span>
+                        <div class="flex items-center gap-4 text-xs font-bold">
+                            <span class="text-orange-600"><i class="fa-solid fa-fire"></i> 連續答對：<span
+                                    id="u3-streak-count" class="text-base font-black text-orange-700">0</span> 題</span>
+                            <button
+                                class="bg-amber-500 hover:bg-amber-600 text-white font-black px-4 py-2 rounded-xl bubble-btn-orange"
+                                onclick="generateRandomQuizUnit3()">
+                                <i class="fa-solid fa-arrows-rotate"></i> 🎲 隨機換一題
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
+                        <!-- 左：題目隨機幾何圖形 -->
+                        <div
+                            class="relative bg-amber-50/50 rounded-2xl border-2 border-dashed border-amber-100 p-4 h-56 flex items-center justify-center overflow-hidden">
+                            <svg id="u3-quiz-svg" class="w-full h-full max-w-[280px] touch-none select-none"
+                                viewBox="0 0 200 150">
+                                <polygon points="50,40 130,40 170,120 30,120" fill="#fef3c7" stroke="#d97706"
+                                    stroke-width="3" />
+                                <text id="u3-q-text-upper" x="90" y="30" fill="#b45309" font-weight="bold"
+                                    font-size="11" text-anchor="middle">上底: 4 cm</text>
+                                <text id="u3-q-text-lower" x="100" y="136" fill="#b45309" font-weight="bold"
+                                    font-size="11" text-anchor="middle">下底: 8 cm</text>
+                                <line x1="50" y1="40" x2="50" y2="120" stroke="#dc2626" stroke-width="2"
+                                    stroke-dasharray="4,4" />
+                                <text id="u3-q-text-height" x="42" y="85" fill="#dc2626" font-weight="black"
+                                    font-size="11" text-anchor="end">高: 6 cm</text>
+                            </svg>
+                        </div>
+
+                        <!-- 右：互動列式引導 -->
+                        <div class="lg:col-span-2 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-sm font-black text-slate-800 mb-2 leading-relaxed">
+                                    <i class="fa-solid fa-pen-fancy text-amber-500"></i> 請將對應邊的長度填入空格中，列出梯形面積算式：
+                                </h4>
+
+                                <!-- 互動公式填空 -->
+                                <div class="space-y-4 mt-4">
+                                    <div
+                                        class="bg-indigo-50/60 p-4 rounded-2xl border-2 border-dashed border-indigo-200">
+                                        <div
+                                            class="flex items-center justify-center gap-2 text-base font-black text-slate-700 flex-wrap">
+                                            <span>面積 = (</span>
+                                            <input id="u3-quiz-upper" type="number"
+                                                class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-blue-600 focus:border-indigo-500 outline-none"
+                                                placeholder="上底">
+                                            <span class="text-lg">+</span>
+                                            <input id="u3-quiz-lower" type="number"
+                                                class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-green-600 focus:border-indigo-500 outline-none"
+                                                placeholder="下底">
+                                            <span>) ×</span>
+                                            <input id="u3-quiz-height" type="number"
+                                                class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-red-600 focus:border-indigo-500 outline-none"
+                                                placeholder="高">
+                                            <span class="text-lg">÷ 2</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- 系統自動算出反饋 -->
+                                    <div id="u3-quiz-result-box"
+                                        class="p-4 bg-emerald-50 rounded-2xl border-2 border-emerald-200 text-center hidden transition-all duration-300">
+                                        <span class="text-xs font-bold text-emerald-800 block mb-1">🎉
+                                            恭喜你！列式完全正確！觀念超清晰！</span>
+                                        <span class="text-sm font-black text-slate-700">
+                                            系統主動計算得出：( <span id="u3-res-u" class="text-blue-600">4</span> + <span
+                                                id="u3-res-l" class="text-green-600">8</span> ) × <span id="u3-res-h"
+                                                class="text-red-500">6</span> ÷ 2 =
+                                            <span id="u3-res-ans"
+                                                class="text-base bg-white border border-emerald-300 px-2 py-0.5 rounded-lg text-emerald-700 font-extrabold shadow-sm">36</span>
+                                            平方公分
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 flex items-center justify-between">
+                                <button
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-6 py-2.5 rounded-xl text-xs bubble-btn-blue"
+                                    onclick="verifyQuiz3()">
+                                    🎯 驗證公式列式
+                                </button>
+                                <div id="u3-next-card" class="hidden flex items-center gap-2">
+                                    <span class="text-xs text-green-600 font-bold"><i
+                                            class="fa-solid fa-circle-check"></i> 觀念完全正確！</span>
+                                    <button
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs bubble-btn-green"
+                                        onclick="switchTab(4)">
+                                        下一關：複合拆解 <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模式二：逆向思考挑戰卡片 -->
+                <div id="u3-reverse-challenge-card" class="hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                        <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-black">⭐
+                            逆向工程：已知面積，推求消失的高或底！</span>
+                        <div class="flex items-center gap-4 text-xs font-bold">
+                            <span class="text-purple-600"><i class="fa-solid fa-graduation-cap"></i> 逆推連續答對：<span
+                                    id="u3-streak-count-rev" class="text-base font-black text-purple-700">0</span>
+                                題</span>
+                            <button
+                                class="bg-purple-500 hover:bg-purple-600 text-white font-black px-4 py-2 rounded-xl bubble-btn-purple"
+                                onclick="generateRandomReverseQuiz3()">
+                                <i class="fa-solid fa-arrows-rotate"></i> 🎲 隨機換一題求高/底
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
+                        <!-- 左：題目隨機幾何圖形 (高或底消失標註問號) -->
+                        <div
+                            class="relative bg-purple-50/50 rounded-2xl border-2 border-dashed border-purple-200 p-4 h-56 flex items-center justify-center overflow-hidden">
+                            <svg id="u3-reverse-quiz-svg" class="w-full h-full max-w-[280px] touch-none select-none"
+                                viewBox="0 0 200 150">
+                                <polygon points="50,40 130,40 170,120 30,120" fill="#f3e8ff" stroke="#7e22ce"
+                                    stroke-width="3" />
+                                <text id="u3-rev-text-upper" x="90" y="30" fill="#6b21a8" font-weight="bold"
+                                    font-size="11" text-anchor="middle">上底: 4 cm</text>
+                                <text id="u3-rev-text-lower" x="100" y="136" fill="#6b21a8" font-weight="bold"
+                                    font-size="11" text-anchor="middle">下底: 8 cm</text>
+                                <line id="u3-rev-height-line" x1="50" y1="40" x2="50" y2="120" stroke="#dc2626"
+                                    stroke-width="2" stroke-dasharray="4,4" />
+                                <text id="u3-rev-text-height" x="42" y="85" fill="#dc2626" font-weight="black"
+                                    font-size="13" text-anchor="end">高: ? cm</text>
+                                <rect x="65" y="65" width="80" height="30" rx="6" fill="white" stroke="#7e22ce"
+                                    stroke-width="1.5" />
+                                <text id="u3-rev-text-area" x="105" y="84" fill="#7e22ce" font-size="11"
+                                    font-weight="black" text-anchor="middle">面積: 60 cm²</text>
+                            </svg>
+                        </div>
+
+                        <!-- 右：逐步引導與計算 -->
+                        <div class="lg:col-span-2 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-sm font-black text-slate-800 mb-2 leading-relaxed">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-purple-500"></i> <span
+                                        id="u3-rev-title">求出消失的「高」是多少？</span>
+                                </h4>
+
+                                <div class="bg-purple-50 p-3 rounded-xl text-xs text-purple-900 mb-4 leading-relaxed">
+                                    <span class="font-bold">💡 逆推公式大祕笈：</span><br>
+                                    原本的公式有「除以 2」，所以逆推時要先把面積<strong>「乘以 2」</strong>！<br>
+                                    請將對應的已知數值填入空格中，列出正確的逆推算式，系統會自動幫你計算出結果喔！
+                                </div>
+
+                                <!-- 互動公式填空 (Type 1: 求高) -->
+                                <div id="u3-rev-type1-box"
+                                    class="bg-purple-50/60 p-4 rounded-2xl border-2 border-dashed border-purple-200 hidden">
+                                    <div
+                                        class="flex items-center justify-center gap-2 text-base font-black text-slate-700 flex-wrap">
+                                        <span>高 = (</span>
+                                        <input id="u3-rev-t1-area" type="number"
+                                            class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-purple-600 focus:border-purple-500 outline-none"
+                                            placeholder="面積">
+                                        <span>× 2 ) ÷ (</span>
+                                        <input id="u3-rev-t1-upper" type="number"
+                                            class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-blue-600 focus:border-purple-500 outline-none"
+                                            placeholder="上底">
+                                        <span class="text-lg">+</span>
+                                        <input id="u3-rev-t1-lower" type="number"
+                                            class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-green-600 focus:border-purple-500 outline-none"
+                                            placeholder="下底">
+                                        <span>)</span>
+                                    </div>
+                                </div>
+
+                                <!-- 互動公式填空 (Type 2: 求下底) -->
+                                <div id="u3-rev-type2-box"
+                                    class="bg-purple-50/60 p-4 rounded-2xl border-2 border-dashed border-purple-200 hidden">
+                                    <div
+                                        class="flex items-center justify-center gap-2 text-base font-black text-slate-700 flex-wrap">
+                                        <span>下底 = (</span>
+                                        <input id="u3-rev-t2-area" type="number"
+                                            class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-purple-600 focus:border-purple-500 outline-none"
+                                            placeholder="面積">
+                                        <span>× 2 ) ÷</span>
+                                        <input id="u3-rev-t2-height" type="number"
+                                            class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-red-600 focus:border-purple-500 outline-none"
+                                            placeholder="高">
+                                        <span class="text-lg">-</span>
+                                        <input id="u3-rev-t2-upper" type="number"
+                                            class="w-16 p-2 border-2 border-slate-300 rounded-xl text-center text-blue-600 focus:border-purple-500 outline-none"
+                                            placeholder="上底">
+                                    </div>
+                                </div>
+
+                                <!-- 系統自動算出反饋 -->
+                                <div id="u3-rev-result-box"
+                                    class="mt-4 p-4 bg-emerald-50 rounded-2xl border-2 border-emerald-200 text-center hidden transition-all duration-300">
+                                    <span class="text-xs font-bold text-emerald-800 block mb-1">🎉
+                                        恭喜你！列式完全正確！逆推觀念超棒！</span>
+                                    <span id="u3-rev-res-text" class="text-sm font-black text-slate-700">
+                                        <!-- 計算內容由 JS 注入 -->
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 flex items-center justify-between">
+                                <button
+                                    class="bg-purple-600 hover:bg-purple-700 text-white font-black px-6 py-2 rounded-xl text-xs bubble-btn-purple"
+                                    onclick="verifyReverseQuiz3()">
+                                    🎯 驗證逆向列式
+                                </button>
+                                <div id="u3-next-card-rev" class="hidden flex items-center gap-2">
+                                    <span class="text-xs text-green-600 font-bold"><i
+                                            class="fa-solid fa-circle-check"></i> 逆推觀念超強！</span>
+                                    <button
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs bubble-btn-green"
+                                        onclick="switchTab(4)">
+                                        下一關：複合拆解 <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================== 單元四：複合圖形拆解 =================== -->
+        <section id="unit-4-content" class="tab-content hidden">
+            <!-- 複合圖形切換標籤 -->
+            <div class="flex justify-center gap-4 mb-6">
+                <button id="btn-c-mode-a" onclick="switchCompositeMode('A')"
+                    class="px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-indigo-500 bg-indigo-500 text-white transition-all">
+                    類型一：扣除法 (水溝農地)
+                </button>
+                <button id="btn-c-mode-b" onclick="switchCompositeMode('B')"
+                    class="px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all">
+                    類型二：組合法 (幸福小屋)
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左側與中央：幾何動畫區 -->
+                <div
+                    class="lg:col-span-2 bg-white rounded-3xl p-6 border-4 border-indigo-200 bubble-shadow flex flex-col justify-between min-h-[480px]">
+
+                    <!-- 類型一：扣除法 -->
+                    <div id="comp-mode-a" class="block">
+                        <div class="flex justify-between items-center mb-4">
+                            <span
+                                class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-black">綠色農地中，穿過一條寬度不一的灰色梯形水溝</span>
+                            <button
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded-lg text-xs bubble-btn-blue"
+                                onclick="animateDecomposeA()">
+                                🧩 進行拆解分離！
+                            </button>
+                        </div>
+
+                        <!-- 幾何動畫畫布 -->
+                        <div
+                            class="relative bg-indigo-50/30 rounded-2xl border-2 border-dashed border-indigo-100 p-4 h-80 flex items-center justify-center overflow-hidden">
+                            <div class="relative w-[300px] h-[160px] mx-auto z-10">
+                                <!-- 農地左半部 -->
+                                <div id="farm-left"
+                                    class="absolute top-0 left-0 w-[130px] h-[160px] transition-transform duration-1000">
+                                    <svg viewBox="0 0 130 160" class="w-full h-full">
+                                        <polygon points="0,0 130,0 110,160 0,160" fill="#86efac" stroke="#16a34a"
+                                            stroke-width="2" />
+                                        <text x="60" y="85" fill="#15803d" font-size="16" font-weight="bold"
+                                            text-anchor="middle">農地</text>
+                                    </svg>
+                                </div>
+
+                                <!-- 梯形水溝 -->
+                                <div id="trench-trapezoid"
+                                    class="absolute top-0 left-[110px] w-[80px] h-[160px] transition-transform duration-1000">
+                                    <svg viewBox="0 0 80 160" class="w-full h-full">
+                                        <polygon points="20,0 60,0 80,160 0,160" fill="#cbd5e1" stroke="#475569"
+                                            stroke-width="2" />
+                                        <text x="40" y="85" fill="#334155" font-size="14" font-weight="bold"
+                                            text-anchor="middle">水溝</text>
+                                    </svg>
+                                </div>
+
+                                <!-- 農地右半部 -->
+                                <div id="farm-right"
+                                    class="absolute top-0 left-[170px] w-[130px] h-[160px] transition-transform duration-1000">
+                                    <svg viewBox="0 0 130 160" class="w-full h-full">
+                                        <polygon points="0,0 130,0 130,160 20,160" fill="#86efac" stroke="#16a34a"
+                                            stroke-width="2" />
+                                        <text x="75" y="85" fill="#15803d" font-size="16" font-weight="bold"
+                                            text-anchor="middle">農地</text>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="absolute inset-x-0 bottom-3 text-center text-xs font-black text-slate-500 z-0">
+                                整個大農地（大長方形）：寬 15 公尺、高 10 公尺。<br>
+                                水溝（梯形）：上底 2 公尺、下底 4 公尺、高 10 公尺。
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 類型二：組合法 -->
+                    <div id="comp-mode-b" class="hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <span
+                                class="bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-black">幸福小屋側面圖：由正方形牆壁與梯形屋頂緊貼組成</span>
+                            <button
+                                class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-1.5 rounded-lg text-xs bubble-btn-blue"
+                                onclick="animateDecomposeB()">
+                                🧩 進行拆解分離！
+                            </button>
+                        </div>
+                        <div
+                            class="relative bg-violet-50/30 rounded-2xl border-2 border-dashed border-violet-100 p-4 h-80 flex items-center justify-center overflow-hidden">
+                            <!-- 屋頂 (梯形) -->
+                            <div id="roof-trapezoid"
+                                class="absolute transition-transform duration-1000 transform translate-y-0"
+                                style="top: 50px; width: 220px; height: 80px;">
+                                <svg class="w-full h-full" viewBox="0 0 220 80">
+                                    <polygon points="50,10 170,10 200,70 20,70" fill="#fecdd3" stroke="#e11d48"
+                                        stroke-width="2" />
+                                    <text x="110" y="45" fill="#be123c" font-size="12" font-weight="bold"
+                                        text-anchor="middle">梯形屋頂</text>
+                                    <text x="110" y="25" fill="#be123c" font-size="9" font-weight="black"
+                                        text-anchor="middle">上底 12 公尺</text>
+                                    <!-- 高 -->
+                                    <line x1="50" y1="10" x2="50" y2="70" stroke="#be123c" stroke-width="1.5"
+                                        stroke-dasharray="3,3" />
+                                    <text x="42" y="40" fill="#be123c" font-size="8" font-weight="bold">高 4 公尺</text>
+                                </svg>
+                            </div>
+                            <!-- 牆壁 (正方形) -->
+                            <div id="wall-square"
+                                class="absolute transition-transform duration-1000 transform translate-y-0"
+                                style="top: 120px; width: 180px; height: 110px;">
+                                <svg class="w-full h-full" viewBox="0 0 180 110">
+                                    <rect x="0" y="0" width="180" height="110" fill="#bae6fd" stroke="#0284c7"
+                                        stroke-width="2" />
+                                    <text x="90" y="60" fill="#0369a1" font-size="12" font-weight="bold"
+                                        text-anchor="middle">正方形牆壁 (18x18)</text>
+                                    <text x="90" y="20" fill="#0369a1" font-size="9" font-weight="black"
+                                        text-anchor="middle">共用牆面 (也是屋頂下底) = 18 公尺</text>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 動態互動拆解提問 -->
+                    <div class="mt-4 bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-sm">
+                        <!-- 類型一列式挑戰區 -->
+                        <div id="comp-question-a" class="block">
+                            <p class="font-bold text-slate-700 leading-relaxed mb-3">
+                                <i class="fa-solid fa-gamepad text-indigo-500"></i> 【大挑戰】求綠色農地剩餘面積？<br>
+                                <span class="text-xs text-indigo-600 font-normal">請觀察上方圖形長度，將數字填入對應的計算式中：</span>
+                            </p>
+                            <div
+                                class="bg-indigo-50/60 p-4 rounded-2xl border-2 border-dashed border-indigo-200 space-y-3">
+                                <!-- 長方形 -->
+                                <div class="flex items-center gap-2 text-sm font-black text-slate-700 flex-wrap">
+                                    <span class="text-indigo-800">1. 總長方形面積 = </span>
+                                    <input id="u4-a-rect-w" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-blue-600 focus:border-indigo-500 outline-none"
+                                        placeholder="寬" oninput="autoCalculateU4()">
+                                    <span>×</span>
+                                    <input id="u4-a-rect-h" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-blue-600 focus:border-indigo-500 outline-none"
+                                        placeholder="高" oninput="autoCalculateU4()">
+                                    <span class="text-indigo-600 ml-2">= <span id="u4-a-rect-calc"
+                                            class="bg-white px-2 py-1 rounded shadow-sm border border-indigo-100">?</span></span>
+                                </div>
+                                <!-- 梯形 -->
+                                <div class="flex items-center gap-2 text-sm font-black text-slate-700 flex-wrap">
+                                    <span class="text-indigo-800">2. 梯形水溝面積 = (</span>
+                                    <input id="u4-a-trap-u" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-slate-500 focus:border-indigo-500 outline-none"
+                                        placeholder="上" oninput="autoCalculateU4()">
+                                    <span>+</span>
+                                    <input id="u4-a-trap-l" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-slate-500 focus:border-indigo-500 outline-none"
+                                        placeholder="下" oninput="autoCalculateU4()">
+                                    <span>) ×</span>
+                                    <input id="u4-a-trap-h" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-slate-500 focus:border-indigo-500 outline-none"
+                                        placeholder="高" oninput="autoCalculateU4()">
+                                    <span>÷ 2</span>
+                                    <span class="text-indigo-600 ml-2">= <span id="u4-a-trap-calc"
+                                            class="bg-white px-2 py-1 rounded shadow-sm border border-indigo-100">?</span></span>
+                                </div>
+                                <!-- 最終答案 -->
+                                <div
+                                    class="flex items-center gap-2 text-sm font-black text-slate-700 flex-wrap pt-3 mt-3 border-t border-indigo-200">
+                                    <span class="text-indigo-800">3. 剩餘農地面積 = </span>
+                                    <input id="u4-a-final-1" type="number"
+                                        class="w-16 p-1.5 border-2 border-slate-300 rounded-lg text-center text-indigo-700 focus:border-indigo-500 outline-none"
+                                        placeholder="大面積" oninput="autoCalculateU4()">
+                                    <span class="text-lg text-red-500">-</span>
+                                    <input id="u4-a-final-2" type="number"
+                                        class="w-16 p-1.5 border-2 border-slate-300 rounded-lg text-center text-indigo-700 focus:border-indigo-500 outline-none"
+                                        placeholder="小面積" oninput="autoCalculateU4()">
+                                    <span class="text-indigo-800 ml-2">= <span id="u4-a-final-calc"
+                                            class="bg-indigo-100 px-3 py-1 rounded-lg shadow-sm border border-indigo-300 text-indigo-800 font-extrabold">?</span>
+                                        平方公尺</span>
+                                </div>
+                            </div>
+                            <!-- 結果回饋 -->
+                            <div id="u4-a-result-box"
+                                class="mt-3 p-4 bg-emerald-50 rounded-2xl border-2 border-emerald-200 text-center hidden transition-all duration-300">
+                                <span class="text-xs font-bold text-emerald-800 block mb-1">🎉 扣除法列式完全正確！系統計算如下：</span>
+                                <span id="u4-a-res-text" class="text-sm font-black text-slate-700"></span>
+                            </div>
+                            <div class="flex justify-end mt-4">
+                                <button
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs bubble-btn-blue"
+                                    onclick="verifyCompAnsA()">🎯 驗證拆解列式</button>
+                            </div>
+                        </div>
+
+                        <!-- 類型二列式挑戰區 -->
+                        <div id="comp-question-b" class="hidden">
+                            <p class="font-bold text-slate-700 leading-relaxed mb-3">
+                                <i class="fa-solid fa-gamepad text-violet-500"></i> 【大挑戰】求小屋側面總面積？<br>
+                                <span class="text-xs text-violet-600 font-normal">請觀察上方共用的邊長線索，將數字填入組合計算式中：</span>
+                            </p>
+                            <div
+                                class="bg-violet-50/60 p-4 rounded-2xl border-2 border-dashed border-violet-200 space-y-3">
+                                <!-- 正方形 -->
+                                <div class="flex items-center gap-2 text-sm font-black text-slate-700 flex-wrap">
+                                    <span class="text-violet-800">1. 正方形牆壁面積 = </span>
+                                    <input id="u4-b-sq-w" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-blue-600 focus:border-violet-500 outline-none"
+                                        placeholder="邊" oninput="autoCalculateU4()">
+                                    <span>×</span>
+                                    <input id="u4-b-sq-h" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-blue-600 focus:border-violet-500 outline-none"
+                                        placeholder="邊" oninput="autoCalculateU4()">
+                                    <span class="text-violet-600 ml-2">= <span id="u4-b-sq-calc"
+                                            class="bg-white px-2 py-1 rounded shadow-sm border border-violet-100">?</span></span>
+                                </div>
+                                <!-- 梯形 -->
+                                <div class="flex items-center gap-2 text-sm font-black text-slate-700 flex-wrap">
+                                    <span class="text-violet-800">2. 梯形屋頂面積 = (</span>
+                                    <input id="u4-b-trap-u" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-rose-500 focus:border-violet-500 outline-none"
+                                        placeholder="上" oninput="autoCalculateU4()">
+                                    <span>+</span>
+                                    <input id="u4-b-trap-l" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-rose-500 focus:border-violet-500 outline-none"
+                                        placeholder="下" oninput="autoCalculateU4()">
+                                    <span>) ×</span>
+                                    <input id="u4-b-trap-h" type="number"
+                                        class="w-14 p-1.5 border-2 border-slate-300 rounded-lg text-center text-rose-500 focus:border-violet-500 outline-none"
+                                        placeholder="高" oninput="autoCalculateU4()">
+                                    <span>÷ 2</span>
+                                    <span class="text-violet-600 ml-2">= <span id="u4-b-trap-calc"
+                                            class="bg-white px-2 py-1 rounded shadow-sm border border-violet-100">?</span></span>
+                                </div>
+                                <!-- 最終答案 -->
+                                <div
+                                    class="flex items-center gap-2 text-sm font-black text-slate-700 flex-wrap pt-3 mt-3 border-t border-violet-200">
+                                    <span class="text-violet-800">3. 側面總面積 = </span>
+                                    <input id="u4-b-final-1" type="number"
+                                        class="w-16 p-1.5 border-2 border-slate-300 rounded-lg text-center text-violet-700 focus:border-violet-500 outline-none"
+                                        placeholder="面積1" oninput="autoCalculateU4()">
+                                    <span class="text-lg text-green-500">+</span>
+                                    <input id="u4-b-final-2" type="number"
+                                        class="w-16 p-1.5 border-2 border-slate-300 rounded-lg text-center text-violet-700 focus:border-violet-500 outline-none"
+                                        placeholder="面積2" oninput="autoCalculateU4()">
+                                    <span class="text-violet-800 ml-2">= <span id="u4-b-final-calc"
+                                            class="bg-violet-100 px-3 py-1 rounded-lg shadow-sm border border-violet-300 text-violet-800 font-extrabold">?</span>
+                                        平方公尺</span>
+                                </div>
+                            </div>
+                            <!-- 結果回饋 -->
+                            <div id="u4-b-result-box"
+                                class="mt-3 p-4 bg-emerald-50 rounded-2xl border-2 border-emerald-200 text-center hidden transition-all duration-300">
+                                <span class="text-xs font-bold text-emerald-800 block mb-1">🎉 組合法列式完全正確！系統計算如下：</span>
+                                <span id="u4-b-res-text" class="text-sm font-black text-slate-700"></span>
+                            </div>
+                            <div class="flex justify-end mt-4">
+                                <button
+                                    class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-2 rounded-xl text-xs bubble-btn-purple"
+                                    onclick="verifyCompAnsB()">🎯 驗證組合列式</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：拆解心法與步驟指南 -->
+                <div
+                    class="bg-white rounded-3xl p-6 border-4 border-indigo-200 bubble-shadow flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 mb-4 flex items-center gap-2">
+                            <span
+                                class="bg-indigo-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm">4</span>
+                            複合圖形拆解心法
+                        </h3>
+
+                        <div class="space-y-4">
+                            <!-- 心法一：扣除法 -->
+                            <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200">
+                                <h4 class="text-sm font-black text-indigo-800 flex items-center gap-1">
+                                    <i class="fa-solid fa-minus"></i> 心法 1：扣除法 (大減小)
+                                </h4>
+                                <p class="text-xs text-indigo-700 mt-1 leading-relaxed">
+                                    當一個完整圖形中間「穿過」或「挖掉」另一個圖形時，我們可以用**大圖形總面積減去挖掉的面積**，來求剩下的大小。
+                                </p>
+                            </div>
+                            <!-- 心法二：組合法 -->
+                            <div class="p-3 bg-violet-50 rounded-xl border border-violet-200">
+                                <h4 class="text-sm font-black text-violet-800 flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> 心法 2：組合法 (多圖相加)
+                                </h4>
+                                <p class="text-xs text-violet-700 mt-1 leading-relaxed">
+                                    當不規則圖形可以「切」成幾個我們學過的圖形（如正方形加梯形）時，請把**各自的面積算出來，再全部加在一起**！
+                                </p>
+                            </div>
+                            <!-- 小提示 -->
+                            <div
+                                class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs text-amber-800 leading-relaxed">
+                                <span class="font-bold">👀 隱藏邊長大搜尋：</span><br>
+                                圖形貼合的地方，往往藏著關鍵線索。像是小屋的牆面寬 18 公尺，也就代表屋頂的下底正是 18 公尺喔！
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 導航到下一步 -->
+                    <div id="u4-next-card"
+                        class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between hidden">
+                        <span class="text-xs text-green-600 font-bold"><i class="fa-solid fa-circle-check"></i> 融會貫通！獲得
+                            1 學習星</span>
+                        <button
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs bubble-btn-green"
+                            onclick="switchTab(5)">
+                            進入終極考驗：素養挑戰 <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================== 單元五：素養題挑戰 (動態隨機 5 題測驗) =================== -->
+        <section id="unit-5-content" class="tab-content hidden">
+            <!-- 測驗區域 -->
+            <div id="u5-quiz-container"
+                class="bg-white rounded-3xl p-6 md:p-8 border-4 border-purple-200 bubble-shadow max-w-4xl mx-auto">
+                <div
+                    class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b-2 border-purple-100 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-purple-800 flex items-center gap-2">
+                            <i class="fa-solid fa-brain"></i> PBL 素養挑戰區
+                        </h2>
+                        <p class="text-xs text-purple-600 mt-1 font-bold">難度由淺入深，包含複合圖形、反推未知數與生活情境應用。</p>
+                    </div>
+                    <div class="mt-4 sm:mt-0 flex gap-2">
+                        <button onclick="toggleCalculator()"
+                            class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold px-4 py-2 rounded-xl text-xs transition-colors flex items-center gap-1 shadow-sm">
+                            <i class="fa-solid fa-calculator"></i> 打開計算紙
+                        </button>
+                        <button
+                            class="bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold px-4 py-2 rounded-xl text-xs transition-colors"
+                            onclick="initUnit5Quiz()">
+                            <i class="fa-solid fa-rotate-right"></i> 重新產生全新題目
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 題目列表動態插入區 -->
+                <div id="u5-questions-list" class="space-y-8">
+                    <!-- Javascript 將在此渲染 5 道題目 -->
+                </div>
+
+                <div class="mt-10 flex justify-center border-t-2 border-slate-100 pt-6">
+                    <button
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-black px-10 py-3 rounded-2xl text-base bubble-btn-purple w-full md:w-auto"
+                        onclick="submitUnit5Quiz()">
+                        <i class="fa-solid fa-paper-plane"></i> 送出答案，看成績！
+                    </button>
+                </div>
+            </div>
+
+            <!-- 成績與詳解區域 (初始隱藏) -->
+            <div id="u5-result-container"
+                class="hidden bg-white rounded-3xl p-6 md:p-8 border-4 border-emerald-200 bubble-shadow max-w-4xl mx-auto">
+                <!-- 分數看版 -->
+                <div class="text-center border-b-2 border-emerald-100 pb-8 mb-8 relative">
+                    <h2 class="text-xl font-black text-slate-700">測驗結果</h2>
+                    <div class="text-6xl font-black mt-2 mb-2" id="u5-score-display">100</div>
+                    <div class="text-sm font-bold text-slate-500" id="u5-score-msg">太厲害了！</div>
+
+                    <div id="u5-perfect-badge" class="hidden mt-4">
+                        <span
+                            class="inline-block bg-yellow-100 text-yellow-700 px-4 py-1.5 rounded-full text-sm font-black border border-yellow-300">
+                            ⭐ 恭喜解鎖最終單元星 ⭐
+                        </span>
+                        <button
+                            class="mt-3 bg-yellow-500 hover:bg-yellow-600 text-white font-black px-6 py-2 rounded-xl text-xs bubble-btn-orange shadow"
+                            onclick="showCongratulationsModal()">
+                            🎓 領取榮譽證書
+                        </button>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-black text-slate-700 mb-4 border-l-4 border-emerald-500 pl-3">詳細解析</h3>
+                <!-- 詳解列表動態插入區 -->
+                <div id="u5-explanations-list" class="space-y-6">
+                    <!-- Javascript 將在此渲染詳解 -->
+                </div>
+
+                <div class="mt-10 flex justify-center border-t-2 border-slate-100 pt-6">
+                    <button
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 py-3 rounded-2xl text-sm bubble-btn-blue shadow-md"
+                        onclick="initUnit5Quiz()">
+                        <i class="fa-solid fa-rotate-right"></i> 再挑戰一次 (重新隨機出題)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 終極通關彈出證書 Modal -->
+    <div id="congrats-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+        <div
+            class="bg-white rounded-3xl max-w-md w-full p-8 border-8 border-yellow-400 bubble-shadow relative text-center">
+            <div
+                class="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-trophy text-white text-4xl"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 mt-12 mb-2">🏅 梯形幾何大師證書 🏅</h3>
+            <p class="text-xs text-slate-400 font-bold mb-6">自主探究學習成就達成</p>
+            <div class="bg-amber-50 p-6 rounded-2xl border-2 border-dashed border-amber-300 text-sm space-y-4 mb-6">
+                <p class="font-bold text-slate-700 leading-relaxed">
+                    親愛的小朋友同學：<br>
+                    你在自主探索中展現了無比優秀的幾何拆解思考，成功學會了：
+                </p>
+                <ul class="text-left text-xs font-bold text-slate-600 space-y-1.5 list-disc list-inside">
+                    <li>如何用直角三角尺精準畫高。</li>
+                    <li>翻轉拼湊與對角線分割公式推導。</li>
+                    <li>基本與逆推算術技巧。</li>
+                    <li>複雜圖形的拆解思維。</li>
+                    <li>現實生活中的動態素養應用。</li>
+                </ul>
+            </div>
+            <div class="flex gap-3">
+                <button class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-xs"
+                    onclick="resetAllProgress()">
+                    🔄 再學一次
+                </button>
+                <button
+                    class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-black py-3 rounded-2xl text-xs bubble-btn-orange"
+                    onclick="closeCongratsModal()">
+                    🌟 太棒了！
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 浮動自學小助理 -->
+    <div
+        class="fixed bottom-4 right-4 z-40 bg-white/90 backdrop-blur border-2 border-blue-200 px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+        <span class="text-xl">🧑‍🏫</span>
+        <span class="text-xs font-black text-slate-700" id="assistant-text">嗨！我是你的幾何小老師。先從第一關開始「畫高」吧！</span>
+    </div>
+
+    <!-- ===== 新增：數位計算紙 (CLI Calculator Module) ===== -->
+    <!-- 右側懸浮切換按鈕 -->
+    <button onclick="toggleCalculator()" id="calc-toggle-btn"
+        class="fixed top-32 right-0 z-50 bg-indigo-600 text-white py-3 px-2 rounded-l-xl shadow-lg border-2 border-r-0 border-indigo-300 bubble-btn-blue hover:bg-indigo-700 transition-colors flex flex-col items-center gap-1">
+        <i class="fa-solid fa-calculator"></i>
+        <span class="text-[10px] font-black tracking-widest" style="writing-mode: vertical-rl;">計算紙</span>
+    </button>
+
+    <!-- 計算紙面板 (預設隱藏) -->
+    <div id="cli-calculator"
+        class="fixed top-24 right-4 z-50 w-80 bg-white rounded-2xl shadow-2xl border-4 border-indigo-200 flex flex-col hidden transition-all duration-300">
+        <!-- 標頭 -->
+        <div class="bg-indigo-500 text-white p-3 rounded-t-xl flex justify-between items-center">
+            <span class="font-black text-sm"><i class="fa-solid fa-terminal mr-1"></i> 數位計算紙</span>
+            <button onclick="toggleCalculator()" class="text-indigo-200 hover:text-white transition-colors"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- 歷史紀錄顯示區 -->
+        <div id="calc-history"
+            class="p-3 h-64 overflow-y-auto bg-slate-50 flex flex-col gap-2 font-mono text-sm border-b border-indigo-100">
+            <!-- 動態插入計算紀錄 -->
+            <div class="text-center text-xs text-slate-400 mt-10">
+                <i class="fa-solid fa-keyboard text-2xl mb-2 opacity-50"></i><br>
+                等待輸入運算式...<br>
+                <span class="opacity-70">支援：+ - * / % ^ sqrt pi</span>
+            </div>
+        </div>
+
+        <!-- 輸入與控制區 -->
+        <div class="p-3 bg-white rounded-b-xl flex flex-col gap-2">
+            <div class="flex gap-2">
+                <input type="text" id="calc-input"
+                    class="flex-1 border-2 border-slate-300 rounded-xl p-2 font-mono text-sm focus:border-indigo-500 outline-none transition-colors"
+                    placeholder="例: (12+18)*10/2" onkeypress="handleCalcInput(event)">
+                <button onclick="evaluateCalc()"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-xl font-black bubble-btn-blue transition-colors">=</button>
+            </div>
+            <div class="flex justify-between items-center mt-1">
+                <span class="text-[10px] text-slate-400 font-bold"><i class="fa-solid fa-lightbulb text-amber-400"></i>
+                    按 Enter 可快速計算</span>
+                <button onclick="clearCalcHistory()"
+                    class="text-xs text-slate-400 hover:text-rose-500 font-bold transition-colors">
+                    <i class="fa-solid fa-trash-can"></i> CLEAR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS 邏輯控制 -->
+    <script>
+        // 核心狀態管理
+        const state = {
+            currentTab: 1,
+            stars: 0,
+            unit3Mode: 'normal',
+            unit1: {
+                alignedLeft: false, alignedRight: false, heightDrawn: false, extHeightShown: false,
+                trapezoid: { x1: 150, x2: 300, x3: 400, x4: 100 },
+                ruler: { x: 280, y: 100, angle: 0, isSnapped: false, snapT: 0 },
+                activeAlignX: 0, angle: 0
+            },
+            unit2: {
+                mode: 'A', solvedA: false, solvedB: false, starGiven: false,
+                a: { bX: 300, bY: 40, rotation: 0, isSnapped: false },
+                b: { isCut: false, isSeparated: false, scissorsX: 260, scissorsY: 50, triUpperX: 0, triUpperY: 0, triLowerX: 0, triLowerY: 0 }
+            },
+            unit3: {
+                streak: 0, streakRev: 0,
+                quiz: { upper: 6, lower: 10, height: 8, solved: false },
+                revQuiz: { type: 1, area: 60, upper: 4, lower: 8, height: 10, solved: false }
+            },
+            unit4: { mode: 'A', solvedA: false, solvedB: false },
+            unit5: {
+                questions: [], // 存放每次動態生成的5道題目資料
+                solvedQ1: false // 沿用作為是否有給過第五單元星星的旗標
+            }
+        };
+
+        // 頁面載入初始化
+        window.onload = function () {
+            generateRandomTrapezoidUnit1();
+            initUnit2ADragging();
+            initUnit2BDragging();
+            updateLiveTrapezoid();
+            generateRandomQuizUnit3();
+            initUnit5Quiz(); // 初始化單元五動態題庫
+            updateStars();
+        };
+
+        function addStar() {
+            if (state.stars < 5) {
+                state.stars++;
+                updateStars();
+            }
+        }
+
+        function updateStars() {
+            document.getElementById('star-count').innerText = state.stars;
+        }
+
+        // =================== 數位計算紙 (CLI Calculator) 邏輯 ===================
+        function toggleCalculator() {
+            const calc = document.getElementById('cli-calculator');
+            const toggleBtn = document.getElementById('calc-toggle-btn');
+            calc.classList.toggle('hidden');
+            if (!calc.classList.contains('hidden')) {
+                toggleBtn.classList.add('hidden'); // 開啟時隱藏右側常駐按鈕
+                document.getElementById('calc-input').focus();
+            } else {
+                toggleBtn.classList.remove('hidden'); // 關閉時顯示
+            }
+        }
+
+        function handleCalcInput(e) {
+            if (e.key === 'Enter') {
+                evaluateCalc();
+            }
+        }
+
+        // 輸入預處理 (容錯與常數轉換)
+        function preprocessExpression(expr) {
+            let processed = expr;
+            // x, X, × 轉換為 *
+            processed = processed.replace(/[xX×]/g, '*');
+            // 百分比 N% 轉換為 (N/100)
+            processed = processed.replace(/([\d.]+)%/g, '($1/100)');
+            // 次方 ^ 轉換為 **
+            processed = processed.replace(/\^/g, '**');
+            // pi, π 轉換為 3.14 (小學生常用精度)
+            processed = processed.replace(/pi|π/gi, '3.14');
+            // sqrt 轉換為 Math.sqrt
+            processed = processed.replace(/sqrt/gi, 'Math.sqrt');
+            return processed;
+        }
+
+        function evaluateCalc() {
+            const inputEl = document.getElementById('calc-input');
+            const rawExpr = inputEl.value.trim();
+            if (!rawExpr) return;
+
+            let resultText = '';
+            let isError = false;
+            try {
+                const processedExpr = preprocessExpression(rawExpr);
+
+                // 安全評估：使用 new Function 隔離環境，只回傳數學運算結果
+                const result = new Function('return ' + processedExpr)();
+
+                if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
+                    throw new Error('運算無效');
+                }
+
+                // 浮點數誤差防護：四捨五入到小數點後四位
+                const finalResult = Math.round(result * 10000) / 10000;
+                resultText = finalResult;
+            } catch (error) {
+                isError = true;
+                resultText = '運算錯誤';
+            }
+
+            addCalcHistory(rawExpr, resultText, isError);
+            inputEl.value = '';
+        }
+
+        function addCalcHistory(expr, result, isError) {
+            const historyContainer = document.getElementById('calc-history');
+
+            // 如果這是第一筆紀錄，清空提示訊息
+            if (historyContainer.querySelector('.fa-keyboard')) {
+                historyContainer.innerHTML = '';
+            }
+
+            const id = 'history-' + Date.now();
+            const entry = document.createElement('div');
+            entry.id = id;
+            entry.className = "bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center group shrink-0";
+
+            const resColor = isError ? 'text-rose-500' : 'text-indigo-600';
+
+            entry.innerHTML = `
+                <div class="flex-1 overflow-x-auto whitespace-nowrap hide-scrollbar">
+                    <div class="text-slate-400 text-[11px]">${expr}</div>
+                    <div class="font-black ${resColor} text-sm">= ${result}</div>
+                </div>
+                <button onclick="removeCalcHistory('${id}')" class="text-slate-300 hover:text-rose-500 px-2 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 outline-none">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+            historyContainer.appendChild(entry);
+
+            // 自動滾動到最底部
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+        }
+
+        function removeCalcHistory(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+
+            // 若全部刪除，顯示空狀態提示
+            const historyContainer = document.getElementById('calc-history');
+            if (historyContainer.children.length === 0) {
+                historyContainer.innerHTML = `
+                <div class="text-center text-xs text-slate-400 mt-10">
+                    <i class="fa-solid fa-keyboard text-2xl mb-2 opacity-50"></i><br>
+                    等待輸入運算式...<br>
+                    <span class="opacity-70">支援：+ - * / % ^ sqrt pi</span>
+                </div>`;
+            }
+        }
+
+        function clearCalcHistory() {
+            document.getElementById('calc-history').innerHTML = `
+                <div class="text-center text-xs text-slate-400 mt-10">
+                    <i class="fa-solid fa-keyboard text-2xl mb-2 opacity-50"></i><br>
+                    紀錄已清空<br>
+                    <span class="opacity-70">支援：+ - * / % ^ sqrt pi</span>
+                </div>`;
+            document.getElementById('calc-input').focus();
+        }
+        // ================================================================
+
+        // =================== 共用事件輔助 ===================
+        function enableDeltaDragging(element, onDrag, onStart, onEnd) {
+            let startX, startY;
+            let isDragging = false;
+            let targetEl = null;
+
+            element.addEventListener('pointerdown', (e) => {
+                targetEl = e.target;
+                try { targetEl.setPointerCapture(e.pointerId); } catch (err) { }
+                startX = e.clientX;
+                startY = e.clientY;
+                isDragging = true;
+                element.classList.remove('cursor-grab');
+                element.classList.add('cursor-grabbing');
+                if (onStart) onStart(e);
+                e.stopPropagation();
+                e.preventDefault();
+
+                // 將 move 和 up 事件綁定到 window 上以防止中斷
+                const onPointerMove = (moveEvent) => {
+                    if (!isDragging) return;
+                    const dx = moveEvent.clientX - startX;
+                    const dy = moveEvent.clientY - startY;
+                    startX = moveEvent.clientX;
+                    startY = moveEvent.clientY;
+                    onDrag(dx, dy, moveEvent);
+                    moveEvent.stopPropagation();
+                };
+
+                const onPointerUp = (upEvent) => {
+                    if (isDragging) {
+                        try { targetEl.releasePointerCapture(upEvent.pointerId); } catch (err) { }
+                        isDragging = false;
+                        element.classList.remove('cursor-grabbing');
+                        element.classList.add('cursor-grab');
+                        if (onEnd) onEnd(upEvent);
+
+                        // 清理 window 的事件綁定
+                        window.removeEventListener('pointermove', onPointerMove);
+                        window.removeEventListener('pointerup', onPointerUp);
+                        window.removeEventListener('pointercancel', onPointerUp);
+                    }
+                };
+
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+                window.addEventListener('pointercancel', onPointerUp);
+            });
+        }
+
+        function getPointerSVGCoords(e, svgElement) {
+            try {
+                const p = svgElement.createSVGPoint();
+                p.x = e.clientX;
+                p.y = e.clientY;
+                const svgP = p.matrixTransform(svgElement.getScreenCTM().inverse());
+                return { x: svgP.x, y: svgP.y };
+            } catch (err) {
+                const rect = svgElement.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 500;
+                const y = ((e.clientY - rect.top) / rect.height) * 240;
+                return { x, y };
+            }
+        }
+
+        function localToGlobal(lx, ly, angle) {
+            const rad = (angle * Math.PI) / 180;
+            const cx = 250, cy = 120;
+            const dx = lx - cx;
+            const dy = ly - cy;
+            const rx = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+            const ry = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+            return { x: rx, y: ry };
+        }
+
+        function globalToLocal(gx, gy, angle) {
+            const rad = (-angle * Math.PI) / 180;
+            const cx = 250, cy = 120;
+            const dx = gx - cx;
+            const dy = gy - cy;
+            const lx = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+            const ly = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+            return { x: lx, y: ly };
+        }
+
+        // =================== 單元一：隨機梯形與手動拖曳與旋轉畫高 ===================
+        function generateRandomTrapezoidUnit1() {
+            const x1 = Math.floor(Math.random() * 60) + 120;
+            const x2 = Math.floor(Math.random() * 80) + x1 + 80;
+            const x4 = Math.floor(Math.random() * (x1 - 40)) + 30;
+            const x3 = Math.floor(Math.random() * 70) + x2 + 30;
+
+            state.unit1.trapezoid = { x1, x2, x3, x4 };
+            state.unit1.heightDrawn = false;
+            state.unit1.activeAlignX = 0;
+            state.unit1.angle = Math.floor(Math.random() * 50) - 25;
+            document.getElementById('u1-geometry-group').setAttribute('transform', `rotate(${state.unit1.angle}, 250, 120)`);
+            document.getElementById('trapezoid-angle-label').innerText = `${state.unit1.angle}°`;
+
+            const pointsStr = `${x1},50 ${x2},50 ${x3},190 ${x4},190`;
+            document.getElementById('u1-trapezoid').setAttribute('points', pointsStr);
+            document.getElementById('u1-label-upper').setAttribute('x', (x1 + x2) / 2);
+            document.getElementById('u1-label-lower').setAttribute('x', (x4 + x3) / 2);
+            document.getElementById('vertex-left').setAttribute('cx', x1);
+            document.getElementById('vertex-right').setAttribute('cx', x2);
+
+            document.getElementById('u1-height-group').classList.remove('opacity-100');
+            document.getElementById('u1-height-group').classList.add('opacity-0');
+            document.getElementById('btn-draw-height').classList.add('hidden');
+            document.getElementById('u1-step3').classList.add('step-locked');
+            document.getElementById('u1-next-card').classList.add('hidden');
+
+            state.unit1.ruler.intendedX = Math.floor(Math.random() * 80) + 210;
+            state.unit1.ruler.intendedY = Math.floor(Math.random() * 40) + 70;
+            state.unit1.ruler.intendedAngle = Math.floor(Math.random() * 30) - 15;
+            state.unit1.ruler.x = state.unit1.ruler.intendedX;
+            state.unit1.ruler.y = state.unit1.ruler.intendedY;
+            state.unit1.ruler.angle = state.unit1.ruler.intendedAngle;
+            state.unit1.ruler.isSnapped = false;
+            state.unit1.ruler.snapT = 0;
+
+            document.getElementById('slider-ruler-x').value = state.unit1.ruler.intendedX;
+            document.getElementById('slider-ruler-y').value = state.unit1.ruler.intendedY;
+            document.getElementById('slider-ruler-angle').value = (state.unit1.ruler.intendedAngle + 360) % 360;
+
+            // 重新顯示三角尺與控制台
+            document.getElementById('u1-ruler-container').classList.remove('hidden');
+            const rulerSliders = document.getElementById('u1-ruler-sliders');
+            if (rulerSliders) rulerSliders.classList.remove('hidden');
+
+            updateRulerDisplay();
+            updateAssistant(`已生成全新傾斜 ${state.unit1.angle}° 的梯形！請拖曳並旋轉三角尺。`);
+        }
+
+        function drawHeightEffect() {
+            if (state.unit1.activeAlignX === 0) return;
+            state.unit1.heightDrawn = true;
+
+            document.getElementById('vertex-left').classList.add('hidden');
+            document.getElementById('vertex-right').classList.add('hidden');
+
+            const heightGroup = document.getElementById('u1-height-group');
+            const heightLine = document.getElementById('u1-height-line');
+            const squareMark = document.getElementById('u1-square-mark');
+            const heightText = document.getElementById('u1-height-text');
+
+            heightLine.setAttribute('x1', state.unit1.activeAlignX);
+            heightLine.setAttribute('y1', 50);
+            heightLine.setAttribute('x2', state.unit1.activeAlignX);
+            heightLine.setAttribute('y2', 190);
+
+            const sx = state.unit1.activeAlignX;
+            squareMark.setAttribute('d', `M ${sx} 180 L ${sx + 10} 180 L ${sx + 10} 190`);
+            heightText.setAttribute('x', sx - 10);
+            heightText.setAttribute('y', 120);
+
+            heightGroup.classList.remove('opacity-0');
+            heightGroup.classList.add('opacity-100');
+
+            // 隱藏三角尺與控制台，讓畫面保持單純乾淨
+            document.getElementById('u1-ruler-container').classList.add('hidden');
+            const rulerSliders = document.getElementById('u1-ruler-sliders');
+            if (rulerSliders) rulerSliders.classList.add('hidden');
+
+            document.getElementById('btn-draw-height').classList.add('hidden');
+            document.getElementById('u1-next-card').classList.remove('hidden');
+
+            updateAssistant("太棒了！你畫出了梯形的高！記住，高永遠垂直於上底和下底喔。");
+            addStar();
+        }
+
+        function toggleExtHeight() {
+            state.unit1.extHeightShown = !state.unit1.extHeightShown;
+            const extGroup = document.getElementById('u1-ext-height-group');
+            const extLine = document.getElementById('u1-ext-line');
+            const extBottom = document.getElementById('u1-ext-bottom');
+            if (state.unit1.extHeightShown) {
+                extGroup.classList.remove('hidden');
+                extLine.classList.remove('hidden');
+                extBottom.classList.remove('hidden');
+            } else {
+                extGroup.classList.add('hidden');
+                extLine.classList.add('hidden');
+                extBottom.classList.add('hidden');
+            }
+        }
+
+        function updateRulerFromSliders(source) {
+            if (state.unit1.heightDrawn) return;
+
+            const sAngle = parseInt(document.getElementById('slider-ruler-angle').value);
+            const sX = parseInt(document.getElementById('slider-ruler-x').value);
+            const sY = parseInt(document.getElementById('slider-ruler-y').value);
+
+            state.unit1.ruler.intendedAngle = sAngle;
+            state.unit1.ruler.intendedX = sX;
+            state.unit1.ruler.intendedY = sY;
+
+            checkRulerSnapping();
+            updateRulerDisplay();
+        }
+
+        function checkRulerSnapping() {
+            const intendedX = state.unit1.ruler.intendedX !== undefined ? state.unit1.ruler.intendedX : state.unit1.ruler.x;
+            const intendedY = state.unit1.ruler.intendedY !== undefined ? state.unit1.ruler.intendedY : state.unit1.ruler.y;
+            const intendedAngle = state.unit1.ruler.intendedAngle !== undefined ? state.unit1.ruler.intendedAngle : state.unit1.ruler.angle;
+
+            const x4 = state.unit1.trapezoid.x4;
+            const x3 = state.unit1.trapezoid.x3;
+            const pLocal = globalToLocal(intendedX, intendedY, state.unit1.angle);
+            const distY = Math.abs(pLocal.y - 190);
+            let localAngle = intendedAngle - state.unit1.angle;
+            localAngle = ((localAngle + 180) % 360 + 360) % 360 - 180;
+
+            const isParallel = Math.abs(localAngle) < 25 || Math.abs(Math.abs(localAngle) - 180) < 25;
+            const isClose = distY < 50;
+
+            if (isParallel && isClose) {
+                state.unit1.ruler.isSnapped = true;
+                if (Math.abs(Math.abs(localAngle) - 180) < 25) {
+                    state.unit1.ruler.angle = (state.unit1.angle + 180) % 360;
+                } else {
+                    state.unit1.ruler.angle = state.unit1.angle;
+                }
+                pLocal.y = 190;
+                let t = (pLocal.x - x4) / (x3 - x4);
+                if (t < -0.4) t = -0.4;
+                if (t > 1.4) t = 1.4;
+                state.unit1.ruler.snapT = t;
+                const snappedLocalX = x4 + t * (x3 - x4);
+                const gPt = localToGlobal(snappedLocalX, 190, state.unit1.angle);
+                state.unit1.ruler.x = gPt.x;
+                state.unit1.ruler.y = gPt.y;
+            } else {
+                state.unit1.ruler.isSnapped = false;
+                state.unit1.ruler.x = intendedX;
+                state.unit1.ruler.y = intendedY;
+                state.unit1.ruler.angle = intendedAngle;
+            }
+        }
+
+        function updateRulerDisplay() {
+            const container = document.getElementById('u1-ruler-container');
+            container.setAttribute('transform', `translate(${state.unit1.ruler.x}, ${state.unit1.ruler.y}) rotate(${state.unit1.ruler.angle})`);
+
+            // 改為讀取操作意圖 (intended value)，讓滑桿不再互搶跳動
+            const intendedX = state.unit1.ruler.intendedX !== undefined ? state.unit1.ruler.intendedX : state.unit1.ruler.x;
+            const intendedY = state.unit1.ruler.intendedY !== undefined ? state.unit1.ruler.intendedY : state.unit1.ruler.y;
+            const intendedAngle = state.unit1.ruler.intendedAngle !== undefined ? state.unit1.ruler.intendedAngle : state.unit1.ruler.angle;
+
+            const valX = document.getElementById('slider-val-x');
+            const valY = document.getElementById('slider-val-y');
+            const valAngle = document.getElementById('slider-val-angle');
+            if (valX) valX.innerText = Math.round(intendedX);
+            if (valY) valY.innerText = Math.round(intendedY);
+            if (valAngle) valAngle.innerText = Math.round((intendedAngle + 360) % 360) + '°';
+
+            const trapAngleLabel = document.getElementById('trapezoid-angle-label');
+            if (trapAngleLabel) trapAngleLabel.innerText = `${state.unit1.angle}°`;
+
+            const x4 = state.unit1.trapezoid.x4;
+            const x3 = state.unit1.trapezoid.x3;
+            const x1 = state.unit1.trapezoid.x1;
+            const x2 = state.unit1.trapezoid.x2;
+            const tLeft = (x1 - x4) / (x3 - x4);
+            const tRight = (x2 - x4) / (x3 - x4);
+
+            const step2Div = document.getElementById('u1-step2');
+            const step2Icon = document.getElementById('step2-icon');
+            const step2Desc = document.getElementById('u1-step2-desc');
+            const step3Div = document.getElementById('u1-step3');
+            const btnDrawHeight = document.getElementById('btn-draw-height');
+
+            if (state.unit1.ruler.isSnapped) {
+                const isLeftAligned = Math.abs(state.unit1.ruler.snapT - tLeft) < 0.015;
+                const isRightAligned = Math.abs(state.unit1.ruler.snapT - tRight) < 0.015;
+
+                if (isLeftAligned) {
+                    state.unit1.activeAlignX = x1;
+                    document.getElementById('vertex-left').classList.remove('hidden');
+                    step2Div.className = "p-3 bg-green-50 rounded-xl border border-green-200 transition-all duration-300";
+                    step2Icon.innerHTML = `<i class="fa-regular fa-square-check text-green-600"></i>`;
+                    step2Desc.innerHTML = `🎉 成功對齊「左頂點 (${x1}) 投影位置」！`;
+                    step3Div.classList.remove('step-locked');
+                    btnDrawHeight.classList.remove('hidden');
+                } else if (isRightAligned) {
+                    state.unit1.activeAlignX = x2;
+                    document.getElementById('vertex-right').classList.remove('hidden');
+                    step2Div.className = "p-3 bg-green-50 rounded-xl border border-green-200 transition-all duration-300";
+                    step2Icon.innerHTML = `<i class="fa-regular fa-square-check text-green-600"></i>`;
+                    step2Desc.innerHTML = `🎉 成功對齊「右頂點 (${x2}) 投影位置」！`;
+                    step3Div.classList.remove('step-locked');
+                    btnDrawHeight.classList.remove('hidden');
+                } else {
+                    state.unit1.activeAlignX = 0;
+                    document.getElementById('vertex-left').classList.add('hidden');
+                    document.getElementById('vertex-right').classList.add('hidden');
+                    step2Div.className = "p-3 bg-amber-50 rounded-xl border border-amber-200 transition-all duration-300";
+                    step2Icon.innerHTML = `<i class="fa-solid fa-arrows-left-right animate-pulse text-amber-500"></i>`;
+                    step2Desc.innerHTML = `<b>三角尺已貼齊底邊！</b>請滑動「左右移動」滑桿，對齊左上或右上閃爍的頂點。`;
+                    if (!state.unit1.heightDrawn) {
+                        step3Div.classList.add('step-locked');
+                        btnDrawHeight.classList.add('hidden');
+                    }
+                }
+            } else {
+                state.unit1.activeAlignX = 0;
+                document.getElementById('vertex-left').classList.add('hidden');
+                document.getElementById('vertex-right').classList.add('hidden');
+                step2Div.className = "p-3 bg-blue-50 rounded-xl border border-blue-200 transition-all duration-300";
+                step2Icon.innerHTML = `<i class="fa-solid fa-arrows-up-down-left-right animate-pulse text-indigo-500"></i>`;
+                step2Desc.innerHTML = `請滑動左方的「虛擬三角尺控制台」，調整旋轉角度與上下左右，使其貼齊梯形下底。`;
+                if (!state.unit1.heightDrawn) {
+                    step3Div.classList.add('step-locked');
+                    btnDrawHeight.classList.add('hidden');
+                }
+            }
+        }
+
+        // =================== 單元二：手動公式推導 ===================
+        function switchDeriveMode(mode) {
+            state.unit2.mode = mode;
+            const btnA = document.getElementById('btn-mode-a');
+            const btnB = document.getElementById('btn-mode-b');
+            const canvasA = document.getElementById('mode-a-canvas');
+            const canvasB = document.getElementById('mode-b-canvas');
+            const descA = document.getElementById('formula-desc-a');
+            const descB = document.getElementById('formula-desc-b');
+
+            if (mode === 'A') {
+                btnA.className = "px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-orange-500 bg-orange-500 text-white transition-all";
+                btnB.className = "px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all";
+                canvasA.classList.remove('hidden');
+                canvasB.classList.add('hidden');
+                descA.classList.remove('hidden');
+                descB.classList.add('hidden');
+                updateAssistant("切換到雙梯形拼湊法！試著拖曳並旋轉梯形B吧。");
+            } else {
+                btnA.className = "px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all";
+                btnB.className = "px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-indigo-500 bg-indigo-500 text-white transition-all";
+                canvasA.classList.add('hidden');
+                canvasB.classList.remove('hidden');
+                descA.classList.add('hidden');
+                descB.classList.remove('hidden');
+                updateAssistant("切換到對角線分割法！拿剪刀沿著虛線把梯形剪開吧。");
+            }
+        }
+
+        function rotateTrapezoidB() {
+            if (state.unit2.a.isSnapped) return;
+            state.unit2.a.rotation = (state.unit2.a.rotation === 0) ? 180 : 0;
+            updateTrapezoidBTransform();
+            updateAssistant(`梯形 B 已旋轉為 ${state.unit2.a.rotation}°！請嘗試將它拖曳到虛線目標框裡。`);
+        }
+
+        function updateTrapezoidBTransform() {
+            const dragB = document.getElementById('u2-draggable-b');
+            dragB.setAttribute('transform', `translate(${state.unit2.a.bX}, ${state.unit2.a.bY}) rotate(${state.unit2.a.rotation}, 50, 70)`);
+        }
+
+        function initUnit2ADragging() {
+            const dragB = document.getElementById('u2-draggable-b');
+            enableDeltaDragging(dragB, (dx, dy) => {
+                if (state.unit2.a.isSnapped) return;
+                state.unit2.a.bX += dx;
+                state.unit2.a.bY += dy;
+
+                if (state.unit2.a.bX < -50) state.unit2.a.bX = -50;
+                if (state.unit2.a.bX > 420) state.unit2.a.bX = 420;
+                if (state.unit2.a.bY < -40) state.unit2.a.bY = -40;
+                if (state.unit2.a.bY > 180) state.unit2.a.bY = 180;
+
+                updateTrapezoidBTransform();
+                checkUnit2ASnap();
+            });
+        }
+
+        function checkUnit2ASnap() {
+            if (state.unit2.a.rotation === 180) {
+                const targetX = 160;
+                const targetY = 50;
+                const distance = Math.hypot(state.unit2.a.bX - targetX, state.unit2.a.bY - targetY);
+
+                if (distance <= 15) {
+                    state.unit2.a.isSnapped = true;
+                    state.unit2.a.bX = targetX;
+                    state.unit2.a.bY = targetY;
+                    updateTrapezoidBTransform();
+
+                    const targetBorder = document.getElementById('u2-para-target');
+                    targetBorder.setAttribute('stroke-dasharray', 'none');
+                    targetBorder.setAttribute('fill', 'rgba(34, 197, 94, 0.15)');
+
+                    document.getElementById('u2-para-labels').classList.remove('opacity-0');
+                    document.getElementById('derive-a-question-box').classList.remove('hidden');
+                    document.getElementById('btn-reset-join').classList.remove('hidden');
+                    updateAssistant("🎉 完美拼合！你成功拼成了一個平行四邊形！這個大平行四邊形的底就是（上底 + 下底）！請看下方提問。");
+                }
+            }
+        }
+
+        function checkDeriveAAnswer(isCorrect) {
+            if (isCorrect) {
+                updateAssistant("答對了！兩個一樣的梯形可以拼成一個平行四邊形！");
+                document.getElementById('u2-next-card').classList.remove('hidden');
+                if (!state.unit2.solvedA) {
+                    state.unit2.solvedA = true;
+                }
+                if (!state.unit2.starGiven) {
+                    state.unit2.starGiven = true;
+                    addStar();
+                }
+            } else {
+                updateAssistant("再看清楚一點喔！拼出來的圖形對邊互相平行，是什麼圖形呢？");
+            }
+        }
+
+        function resetJoinMode() {
+            state.unit2.a.isSnapped = false;
+            state.unit2.a.bX = 300;
+            state.unit2.a.bY = 40;
+            state.unit2.a.rotation = 0;
+            updateTrapezoidBTransform();
+            const targetBorder = document.getElementById('u2-para-target');
+            targetBorder.setAttribute('stroke-dasharray', '6,4');
+            targetBorder.setAttribute('fill', 'rgba(34, 197, 94, 0.05)');
+            document.getElementById('u2-para-labels').classList.add('opacity-0');
+            document.getElementById('derive-a-question-box').classList.add('hidden');
+            document.getElementById('btn-reset-join').classList.add('hidden');
+            updateAssistant("拼圖已重置！快來試著再次旋轉並拼合【梯形 B】吧！");
+        }
+
+        // 單元二方法 B - 剪刀與三角形拖曳
+        function initUnit2BDragging() {
+            const scissors = document.getElementById('u2-scissors');
+            enableDeltaDragging(scissors, (dx, dy) => {
+                if (state.unit2.b.isCut) return;
+                state.unit2.b.scissorsX += dx;
+                state.unit2.b.scissorsY += dy;
+                scissors.setAttribute('transform', `translate(${state.unit2.b.scissorsX}, ${state.unit2.b.scissorsY})`);
+
+                // 檢查是否拉到左下角
+                if (Math.hypot(state.unit2.b.scissorsX - 40, state.unit2.b.scissorsY - 170) < 30) {
+                    state.unit2.b.isCut = true;
+                    scissors.classList.add('hidden');
+                    document.getElementById('u2-b-full-trapezoid').classList.add('hidden');
+                    document.getElementById('u2-b-diagonal').classList.add('hidden');
+                    document.getElementById('u2-tri-upper').classList.remove('hidden');
+                    document.getElementById('u2-tri-lower').classList.remove('hidden');
+                    document.getElementById('derive-b-question-box').classList.remove('hidden');
+                    document.getElementById('split-instruction-text').innerText = "2. 剪開了！請拖拉分開兩個三角形";
+                    document.getElementById('btn-reset-split').classList.remove('hidden');
+                    updateAssistant("咔嚓！梯形被剪成兩個三角形了。現在可以把這兩個三角形拉開看看喔。");
+                    initUnit2BTriangleDragging();
+                }
+            });
+        }
+
+        function initUnit2BTriangleDragging() {
+            const triUpper = document.getElementById('u2-tri-upper');
+            const triLower = document.getElementById('u2-tri-lower');
+            enableDeltaDragging(triUpper, (dx, dy) => {
+                state.unit2.b.triUpperX += dx;
+                state.unit2.b.triUpperY += dy;
+                triUpper.setAttribute('transform', `translate(${state.unit2.b.triUpperX}, ${state.unit2.b.triUpperY})`);
+                checkTriangleSeparation();
+            });
+            enableDeltaDragging(triLower, (dx, dy) => {
+                state.unit2.b.triLowerX += dx;
+                state.unit2.b.triLowerY += dy;
+                triLower.setAttribute('transform', `translate(${state.unit2.b.triLowerX}, ${state.unit2.b.triLowerY})`);
+                checkTriangleSeparation();
+            });
+        }
+
+        function checkTriangleSeparation() {
+            const dist = Math.hypot(state.unit2.b.triUpperX - state.unit2.b.triLowerX, state.unit2.b.triUpperY - state.unit2.b.triLowerY);
+            if (dist > 20 && !state.unit2.b.isSeparated) {
+                state.unit2.b.isSeparated = true;
+            }
+        }
+
+        function checkDeriveBAnswer() {
+            updateAssistant("太棒了！一個梯形可以分成兩個三角形，它們的高一樣。面積加起來剛好推導出梯形公式喔！");
+            document.getElementById('u2-next-card').classList.remove('hidden');
+            if (!state.unit2.starGiven) {
+                state.unit2.starGiven = true;
+                addStar();
+            }
+        }
+
+        function resetSplitMode() {
+            state.unit2.b = { isCut: false, isSeparated: false, scissorsX: 260, scissorsY: 50, triUpperX: 0, triUpperY: 0, triLowerX: 0, triLowerY: 0 };
+            const scissors = document.getElementById('u2-scissors');
+            scissors.classList.remove('hidden');
+            scissors.setAttribute('transform', `translate(260, 50)`);
+            document.getElementById('u2-b-full-trapezoid').classList.remove('hidden');
+            document.getElementById('u2-b-diagonal').classList.remove('hidden');
+            const triUpper = document.getElementById('u2-tri-upper');
+            const triLower = document.getElementById('u2-tri-lower');
+            triUpper.classList.add('hidden');
+            triLower.classList.add('hidden');
+            triUpper.setAttribute('transform', `translate(0, 0)`);
+            triLower.setAttribute('transform', `translate(0, 0)`);
+            document.getElementById('derive-b-question-box').classList.add('hidden');
+            document.getElementById('btn-reset-split').classList.add('hidden');
+            document.getElementById('split-instruction-text').innerText = "1. 拖曳【✂️ 剪刀】沿著斜線剪到底";
+            updateAssistant("剪刀已重置！來試試剪開梯形吧！");
+        }
+
+        // =================== 單元三：面積算盤與隨機/逆向出題挑戰 ===================
+        function updateLiveTrapezoid() {
+            const u = parseInt(document.getElementById('slider-u3-upper').value);
+            const l = parseInt(document.getElementById('slider-u3-lower').value);
+            const h = parseInt(document.getElementById('slider-u3-height').value);
+            const upper = isNaN(u) ? 6 : u;
+            const lower = isNaN(l) ? 10 : l;
+            const height = isNaN(h) ? 5 : h;
+
+            document.getElementById('label-u3-upper').innerText = `${upper} 公分`;
+            document.getElementById('label-u3-lower').innerText = `${lower} 公分`;
+            document.getElementById('label-u3-height').innerText = `${height} 公分`;
+
+            const drawH = height * 12;
+            const drawU = upper * 12;
+            const drawL = lower * 12;
+            const baseY = 160;
+            const topY = baseY - drawH;
+
+            const topX1 = 150 - drawU / 2;
+            const topX2 = 150 + drawU / 2;
+            const botX1 = 150 - drawL / 2;
+            const botX2 = 150 + drawL / 2;
+
+            const points = `${topX1},${topY} ${topX2},${topY} ${botX2},${baseY} ${botX1},${baseY}`;
+            document.getElementById('u3-live-trapezoid').setAttribute('points', points);
+
+            document.getElementById('u3-text-upper').setAttribute('x', 150);
+            document.getElementById('u3-text-upper').setAttribute('y', topY - 10);
+            document.getElementById('u3-text-upper').textContent = `上底: ${upper}cm`;
+            document.getElementById('u3-text-lower').setAttribute('x', 150);
+            document.getElementById('u3-text-lower').setAttribute('y', baseY + 20);
+            document.getElementById('u3-text-lower').textContent = `下底: ${lower}cm`;
+
+            const heightLine = document.getElementById('u3-live-height');
+            heightLine.setAttribute('x1', topX1);
+            heightLine.setAttribute('y1', topY);
+            heightLine.setAttribute('x2', topX1);
+            heightLine.setAttribute('y2', baseY);
+            const heightText = document.getElementById('u3-text-height');
+            heightText.setAttribute('x', topX1 - 10);
+            heightText.setAttribute('y', baseY - drawH / 2 + 5);
+            heightText.textContent = `高: ${height}cm`;
+
+            const area = (upper + lower) * height / 2;
+            document.getElementById('calc-upper').textContent = upper;
+            document.getElementById('calc-lower').textContent = lower;
+            document.getElementById('calc-height').textContent = height;
+            document.getElementById('calc-result').textContent = Number.isInteger(area) ? area : area.toFixed(1);
+        }
+
+        function setU3ChallengeMode(mode) {
+            state.unit3Mode = mode;
+            const btnNormal = document.getElementById('btn-u3-mode-normal');
+            const btnReverse = document.getElementById('btn-u3-mode-reverse');
+            const cardNormal = document.getElementById('u3-normal-challenge-card');
+            const cardReverse = document.getElementById('u3-reverse-challenge-card');
+
+            if (mode === 'normal') {
+                btnNormal.className = "flex-1 py-2 rounded-xl text-xs font-black transition-all bg-white text-slate-800 shadow";
+                btnReverse.className = "flex-1 py-2 rounded-xl text-xs font-black transition-all text-slate-600 hover:text-slate-800";
+                cardNormal.classList.remove('hidden');
+                cardReverse.classList.add('hidden');
+                updateAssistant("切換至『面積公式列式挑戰』！請將合適的數字填入公式列式中。");
+            } else {
+                btnNormal.className = "flex-1 py-2 rounded-xl text-xs font-black transition-all text-slate-600 hover:text-slate-800";
+                btnReverse.className = "flex-1 py-2 rounded-xl text-xs font-black transition-all bg-white text-slate-800 shadow";
+                cardNormal.classList.add('hidden');
+                cardReverse.classList.remove('hidden');
+                generateRandomReverseQuiz3();
+            }
+        }
+
+        function generateRandomQuizUnit3() {
+            let upper = Math.floor(Math.random() * 8) + 3; // 3~10
+            let lower = Math.floor(Math.random() * 10) + upper + 2;
+            let height = Math.floor(Math.random() * 8) + 4; // 4~11
+
+            state.unit3.quiz = { upper, lower, height, solved: false };
+
+            const tUpper = document.getElementById('u3-q-text-upper');
+            const tLower = document.getElementById('u3-q-text-lower');
+            const tHeight = document.getElementById('u3-q-text-height');
+
+            tUpper.textContent = `上底: ${upper} cm`;
+            tLower.textContent = `下底: ${lower} cm`;
+            tHeight.textContent = `高: ${height} cm`;
+
+            ['u3-quiz-upper', 'u3-quiz-lower', 'u3-quiz-height'].forEach(id => {
+                const el = document.getElementById(id);
+                el.value = '';
+                el.className = `w-16 p-2 border-2 border-slate-300 rounded-xl text-center focus:border-indigo-500 outline-none ${id.includes('upper') ? 'text-blue-600' : id.includes('lower') ? 'text-green-600' : 'text-red-600'}`;
+            });
+
+            document.getElementById('u3-quiz-result-box').classList.add('hidden');
+            document.getElementById('u3-next-card').classList.add('hidden');
+            updateAssistant(`準備好了嗎？請將左圖的上底 ${upper}、下底 ${lower} 與高 ${height} 代入右邊的算式。`);
+        }
+
+        function verifyQuiz3() {
+            const q = state.unit3.quiz;
+            const ansUpper = parseInt(document.getElementById('u3-quiz-upper').value);
+            const ansLower = parseInt(document.getElementById('u3-quiz-lower').value);
+            const ansHeight = parseInt(document.getElementById('u3-quiz-height').value);
+            let hasError = false;
+
+            const checkU = document.getElementById('u3-quiz-upper');
+            const checkL = document.getElementById('u3-quiz-lower');
+            if ((ansUpper === q.upper && ansLower === q.lower) || (ansUpper === q.lower && ansLower === q.upper)) {
+                checkU.classList.remove('border-red-500', 'bg-red-50');
+                checkU.classList.add('border-slate-300');
+                checkL.classList.remove('border-red-500', 'bg-red-50');
+                checkL.classList.add('border-slate-300');
+            } else {
+                checkU.classList.add('border-red-500', 'bg-red-50');
+                checkL.classList.add('border-red-500', 'bg-red-50');
+                hasError = true;
+            }
+
+            const checkH = document.getElementById('u3-quiz-height');
+            if (ansHeight === q.height) {
+                checkH.classList.remove('border-red-500', 'bg-red-50');
+                checkH.classList.add('border-slate-300');
+            } else {
+                checkH.classList.add('border-red-500', 'bg-red-50');
+                hasError = true;
+            }
+
+            if (!hasError) {
+                const area = (q.upper + q.lower) * q.height / 2;
+                document.getElementById('u3-res-u').textContent = q.upper;
+                document.getElementById('u3-res-l').textContent = q.lower;
+                document.getElementById('u3-res-h').textContent = q.height;
+                document.getElementById('u3-res-ans').textContent = Number.isInteger(area) ? area : area.toFixed(1);
+
+                document.getElementById('u3-quiz-result-box').classList.remove('hidden');
+                document.getElementById('u3-next-card').classList.remove('hidden');
+
+                if (!state.unit3.quiz.solved) {
+                    state.unit3.streak++;
+                    document.getElementById('u3-streak-count').textContent = state.unit3.streak;
+                    state.unit3.quiz.solved = true;
+                    if (state.unit3.streak === 1) addStar();
+                }
+                updateAssistant("太厲害了！列式完全正確。你可以挑戰「逆向思考」或是進入下一關！");
+            } else {
+                updateAssistant("有數值填寫錯誤喔！請重新對照圖形上的數字。");
+            }
+        }
+
+        function generateRandomReverseQuiz3() {
+            const type = Math.floor(Math.random() * 2) + 1;
+            let upper = Math.floor(Math.random() * 6) + 4;
+            let lower = Math.floor(Math.random() * 8) + upper + 2;
+            let height = Math.floor(Math.random() * 6) + 4;
+            if (((upper + lower) * height) % 2 !== 0) height += 1;
+            const area = ((upper + lower) * height) / 2;
+
+            state.unit3.revQuiz = { type, area, upper, lower, height, solved: false };
+
+            const tUpper = document.getElementById('u3-rev-text-upper');
+            const tLower = document.getElementById('u3-rev-text-lower');
+            const tHeight = document.getElementById('u3-rev-text-height');
+            const tArea = document.getElementById('u3-rev-text-area');
+
+            tArea.textContent = `面積: ${area} cm²`;
+            document.getElementById('u3-next-card-rev').classList.add('hidden');
+            document.getElementById('u3-rev-result-box').classList.add('hidden');
+
+            const type1Box = document.getElementById('u3-rev-type1-box');
+            const type2Box = document.getElementById('u3-rev-type2-box');
+
+            if (type === 1) {
+                document.getElementById('u3-rev-title').innerHTML = "<i class='fa-solid fa-arrows-up-down text-red-500'></i> <b>挑戰：求出消失的「高」是多少？</b>";
+                tUpper.textContent = `上底: ${upper} cm`;
+                tLower.textContent = `下底: ${lower} cm`;
+                tHeight.textContent = `高 = ? cm`;
+                tHeight.setAttribute('fill', '#dc2626');
+                type1Box.classList.remove('hidden');
+                type2Box.classList.add('hidden');
+                ['u3-rev-t1-area', 'u3-rev-t1-upper', 'u3-rev-t1-lower'].forEach(id => {
+                    document.getElementById(id).value = '';
+                    document.getElementById(id).className = `w-16 p-2 border-2 border-slate-300 rounded-xl text-center focus:border-purple-500 outline-none ${id.includes('area') ? 'text-purple-600' : id.includes('upper') ? 'text-blue-600' : 'text-green-600'}`;
+                });
+                updateAssistant(`逆向挑戰求高：已知面積 ${area}，兩底分別為 ${upper} 與 ${lower}，請將數值填入逆推公式中！`);
+            } else {
+                document.getElementById('u3-rev-title').innerHTML = "<i class='fa-solid fa-arrows-left-right text-emerald-600'></i> <b>挑戰：求出消失的「下底」是多少？</b>";
+                tUpper.textContent = `上底: ${upper} cm`;
+                tLower.textContent = `下底 = ? cm`;
+                tLower.setAttribute('fill', '#059669');
+                tHeight.textContent = `高: ${height} cm`;
+                tHeight.setAttribute('fill', '#475569');
+                type1Box.classList.add('hidden');
+                type2Box.classList.remove('hidden');
+                ['u3-rev-t2-area', 'u3-rev-t2-height', 'u3-rev-t2-upper'].forEach(id => {
+                    document.getElementById(id).value = '';
+                    document.getElementById(id).className = `w-16 p-2 border-2 border-slate-300 rounded-xl text-center focus:border-purple-500 outline-none ${id.includes('area') ? 'text-purple-600' : id.includes('height') ? 'text-red-600' : 'text-blue-600'}`;
+                });
+                updateAssistant(`逆向挑戰求底：已知面積 ${area}，高為 ${height}，上底 ${upper}，請將數值填入逆推公式中！`);
+            }
+        }
+
+        function verifyReverseQuiz3() {
+            const q = state.unit3.revQuiz;
+            let hasError = false;
+
+            if (q.type === 1) {
+                const ansArea = parseInt(document.getElementById('u3-rev-t1-area').value);
+                const ansUpper = parseInt(document.getElementById('u3-rev-t1-upper').value);
+                const ansLower = parseInt(document.getElementById('u3-rev-t1-lower').value);
+                const chk = (id, val, correct) => {
+                    const el = document.getElementById(id);
+                    if (val !== correct && !((id === 'u3-rev-t1-upper' && val === q.lower) || (id === 'u3-rev-t1-lower' && val === q.upper))) {
+                        el.classList.add('border-red-500', 'bg-red-50');
+                        el.classList.remove('border-slate-300');
+                        hasError = true;
+                    } else {
+                        el.classList.remove('border-red-500', 'bg-red-50');
+                        el.classList.add('border-slate-300');
+                    }
+                };
+                chk('u3-rev-t1-area', ansArea, q.area);
+                chk('u3-rev-t1-upper', ansUpper, q.upper);
+                chk('u3-rev-t1-lower', ansLower, q.lower);
+                if (!hasError) {
+                    document.getElementById('u3-rev-res-text').innerHTML = `系統主動計算得出：( ${q.area} × 2 ) ÷ ( ${q.upper} + ${q.lower} ) = <span class="text-base bg-white border border-emerald-300 px-2 py-0.5 rounded-lg text-emerald-700 font-extrabold shadow-sm">${q.height}</span> 公分`;
+                }
+            } else {
+                const ansArea = parseInt(document.getElementById('u3-rev-t2-area').value);
+                const ansHeight = parseInt(document.getElementById('u3-rev-t2-height').value);
+                const ansUpper = parseInt(document.getElementById('u3-rev-t2-upper').value);
+                const chk = (id, val, correct) => {
+                    const el = document.getElementById(id);
+                    if (val !== correct) {
+                        el.classList.add('border-red-500', 'bg-red-50');
+                        el.classList.remove('border-slate-300');
+                        hasError = true;
+                    } else {
+                        el.classList.remove('border-red-500', 'bg-red-50');
+                        el.classList.add('border-slate-300');
+                    }
+                };
+                chk('u3-rev-t2-area', ansArea, q.area);
+                chk('u3-rev-t2-height', ansHeight, q.height);
+                chk('u3-rev-t2-upper', ansUpper, q.upper);
+                if (!hasError) {
+                    document.getElementById('u3-rev-res-text').innerHTML = `系統主動計算得出：( ${q.area} × 2 ) ÷ ${q.height} - ${q.upper} = <span class="text-base bg-white border border-emerald-300 px-2 py-0.5 rounded-lg text-emerald-700 font-extrabold shadow-sm">${q.lower}</span> 公分`;
+                }
+            }
+
+            if (!hasError) {
+                if (!state.unit3.revQuiz.solved) {
+                    state.unit3.streakRev += 1;
+                    document.getElementById('u3-streak-count-rev').innerText = state.unit3.streakRev;
+                    state.unit3.revQuiz.solved = true;
+                    if (state.unit3.streakRev === 1) addStar();
+                }
+
+                document.getElementById('u3-rev-result-box').classList.remove('hidden');
+                const tHeight = document.getElementById('u3-rev-text-height');
+                const tLower = document.getElementById('u3-rev-text-lower');
+                if (q.type === 1) {
+                    tHeight.textContent = `高 = ${q.height} cm ✅`;
+                    tHeight.setAttribute('fill', '#16a34a');
+                } else {
+                    tLower.textContent = `下底 = ${q.lower} cm ✅`;
+                    tLower.setAttribute('fill', '#16a34a');
+                }
+
+                updateAssistant(`太神了！完全正確！系統算出消失的邊長正好是 ${q.type === 1 ? q.height : q.lower} 公分。你完美攻破了逆向思考難關！`);
+                document.getElementById('u3-next-card-rev').classList.remove('hidden');
+            } else {
+                updateAssistant("有數值填寫錯誤喔！請重新對照圖形上的數字填寫！");
+            }
+        }
+
+        // =================== 單元四：複合圖形拆解 ===================
+        function switchCompositeMode(mode) {
+            state.unit4.mode = mode;
+            const btnA = document.getElementById('btn-c-mode-a');
+            const btnB = document.getElementById('btn-c-mode-b');
+            const pageA = document.getElementById('comp-mode-a');
+            const pageB = document.getElementById('comp-mode-b');
+            const qA = document.getElementById('comp-question-a');
+            const qB = document.getElementById('comp-question-b');
+
+            if (mode === 'A') {
+                btnA.className = "px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-indigo-500 bg-indigo-500 text-white transition-all";
+                btnB.className = "px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all";
+                pageA.classList.remove('hidden');
+                pageB.classList.add('hidden');
+                qA.classList.remove('hidden');
+                qB.classList.add('hidden');
+                updateAssistant("切換至『扣除法 (水溝農地)』！點點看拆解分離按鈕，尋找拆解的靈感。");
+            } else {
+                btnA.className = "px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all";
+                btnB.className = "px-6 py-2.5 rounded-full font-black text-sm shadow border-2 border-violet-500 bg-violet-500 text-white transition-all";
+                pageA.classList.add('hidden');
+                pageB.classList.remove('hidden');
+                qA.classList.add('hidden');
+                qB.classList.remove('hidden');
+                updateAssistant("切換至『組合法 (幸福小屋)』！點擊拆解小屋，尋找共用邊長度。");
+            }
+        }
+
+        let isCompDecomposedA = false;
+        function animateDecomposeA() {
+            const left = document.getElementById('farm-left');
+            const right = document.getElementById('farm-right');
+            const trench = document.getElementById('trench-trapezoid');
+            if (!isCompDecomposedA) {
+                left.style.transform = "translateX(-40px)";
+                right.style.transform = "translateX(40px)";
+                trench.style.transform = "translateY(-60px)";
+                isCompDecomposedA = true;
+                updateAssistant("哇！農地向兩側分開，水溝向上移出！這題的思路是『大長方形扣除中空的梯形水溝』。");
+            } else {
+                left.style.transform = "translateX(0px)";
+                right.style.transform = "translateX(0px)";
+                trench.style.transform = "translateY(0px)";
+                isCompDecomposedA = false;
+            }
+        }
+
+        let isCompDecomposedB = false;
+        function animateDecomposeB() {
+            const roof = document.getElementById('roof-trapezoid');
+            const wall = document.getElementById('wall-square');
+            if (!isCompDecomposedB) {
+                roof.style.transform = "translateY(-40px)";
+                wall.style.transform = "translateY(30px)";
+                isCompDecomposedB = true;
+                updateAssistant("屋頂與牆壁完美拆分！這題的思路是『梯形面積 + 正方形面積』。");
+            } else {
+                roof.style.transform = "translateY(0px)";
+                wall.style.transform = "translateY(0px)";
+                isCompDecomposedB = false;
+            }
+        }
+
+        function autoCalculateU4() {
+            const rw = parseFloat(document.getElementById('u4-a-rect-w').value);
+            const rh = parseFloat(document.getElementById('u4-a-rect-h').value);
+            if (!isNaN(rw) && !isNaN(rh)) document.getElementById('u4-a-rect-calc').textContent = rw * rh;
+            else document.getElementById('u4-a-rect-calc').textContent = '?';
+
+            const tuA = parseFloat(document.getElementById('u4-a-trap-u').value);
+            const tlA = parseFloat(document.getElementById('u4-a-trap-l').value);
+            const thA = parseFloat(document.getElementById('u4-a-trap-h').value);
+            if (!isNaN(tuA) && !isNaN(tlA) && !isNaN(thA)) document.getElementById('u4-a-trap-calc').textContent = (tuA + tlA) * thA / 2;
+            else document.getElementById('u4-a-trap-calc').textContent = '?';
+
+            const f1A = parseFloat(document.getElementById('u4-a-final-1').value);
+            const f2A = parseFloat(document.getElementById('u4-a-final-2').value);
+            if (!isNaN(f1A) && !isNaN(f2A)) document.getElementById('u4-a-final-calc').textContent = f1A - f2A;
+            else document.getElementById('u4-a-final-calc').textContent = '?';
+
+            const sw = parseFloat(document.getElementById('u4-b-sq-w').value);
+            const sh = parseFloat(document.getElementById('u4-b-sq-h').value);
+            if (!isNaN(sw) && !isNaN(sh)) document.getElementById('u4-b-sq-calc').textContent = sw * sh;
+            else document.getElementById('u4-b-sq-calc').textContent = '?';
+
+            const tuB = parseFloat(document.getElementById('u4-b-trap-u').value);
+            const tlB = parseFloat(document.getElementById('u4-b-trap-l').value);
+            const thB = parseFloat(document.getElementById('u4-b-trap-h').value);
+            if (!isNaN(tuB) && !isNaN(tlB) && !isNaN(thB)) document.getElementById('u4-b-trap-calc').textContent = (tuB + tlB) * thB / 2;
+            else document.getElementById('u4-b-trap-calc').textContent = '?';
+
+            const f1B = parseFloat(document.getElementById('u4-b-final-1').value);
+            const f2B = parseFloat(document.getElementById('u4-b-final-2').value);
+            if (!isNaN(f1B) && !isNaN(f2B)) document.getElementById('u4-b-final-calc').textContent = f1B + f2B;
+            else document.getElementById('u4-b-final-calc').textContent = '?';
+        }
+
+        function verifyCompAnsA() {
+            const rw = parseInt(document.getElementById('u4-a-rect-w').value);
+            const rh = parseInt(document.getElementById('u4-a-rect-h').value);
+            const tu = parseInt(document.getElementById('u4-a-trap-u').value);
+            const tl = parseInt(document.getElementById('u4-a-trap-l').value);
+            const th = parseInt(document.getElementById('u4-a-trap-h').value);
+            const f1 = parseInt(document.getElementById('u4-a-final-1').value);
+            const f2 = parseInt(document.getElementById('u4-a-final-2').value);
+            let hasError = false;
+            const chk = (id, val, valid1, valid2) => {
+                const el = document.getElementById(id);
+                if (val !== valid1 && val !== valid2) {
+                    el.classList.add('border-red-500', 'bg-red-50');
+                    el.classList.remove('border-slate-300');
+                    hasError = true;
+                } else {
+                    el.classList.remove('border-red-500', 'bg-red-50');
+                    el.classList.add('border-slate-300');
+                }
+            };
+            chk('u4-a-rect-w', rw, 15, 10);
+            chk('u4-a-rect-h', rh, 10, 15);
+            chk('u4-a-trap-u', tu, 2, 4);
+            chk('u4-a-trap-l', tl, 4, 2);
+            chk('u4-a-trap-h', th, 10, 10);
+            chk('u4-a-final-1', f1, 150, 150);
+            chk('u4-a-final-2', f2, 30, 30);
+
+            if (!hasError) {
+                const finalArea = f1 - f2;
+                document.getElementById('u4-a-res-text').innerHTML = `恭喜你！系統計算驗證：總面積 150 - 水溝面積 30 = <span class="text-base bg-white border border-emerald-300 px-2 py-0.5 rounded-lg text-emerald-700 font-extrabold shadow-sm">${finalArea}</span> 平方公尺`;
+                document.getElementById('u4-a-result-box').classList.remove('hidden');
+                updateAssistant("太神啦！你成功利用『扣除法』列出完整算式，並算出剩餘農地面積 120 平方公尺。解鎖第 4 顆學習星！");
+                if (!state.unit4.solvedA) {
+                    state.unit4.solvedA = true;
+                    addStar();
+                }
+                document.getElementById('u4-next-card').classList.remove('hidden');
+            } else {
+                updateAssistant("算式中有數值填寫錯誤喔！請重新觀察圖形尺寸與你列出的每個步驟。");
+            }
+        }
+
+        function verifyCompAnsB() {
+            const sw = parseInt(document.getElementById('u4-b-sq-w').value);
+            const sh = parseInt(document.getElementById('u4-b-sq-h').value);
+            const tu = parseInt(document.getElementById('u4-b-trap-u').value);
+            const tl = parseInt(document.getElementById('u4-b-trap-l').value);
+            const th = parseInt(document.getElementById('u4-b-trap-h').value);
+            const f1 = parseInt(document.getElementById('u4-b-final-1').value);
+            const f2 = parseInt(document.getElementById('u4-b-final-2').value);
+            let hasError = false;
+            const chk = (id, val, valid1, valid2) => {
+                const el = document.getElementById(id);
+                if (val !== valid1 && val !== valid2) {
+                    el.classList.add('border-red-500', 'bg-red-50');
+                    el.classList.remove('border-slate-300');
+                    hasError = true;
+                } else {
+                    el.classList.remove('border-red-500', 'bg-red-50');
+                    el.classList.add('border-slate-300');
+                }
+            };
+            chk('u4-b-sq-w', sw, 18, 18);
+            chk('u4-b-sq-h', sh, 18, 18);
+            chk('u4-b-trap-u', tu, 12, 18);
+            chk('u4-b-trap-l', tl, 18, 12);
+            chk('u4-b-trap-h', th, 4, 4);
+            chk('u4-b-final-1', f1, 324, 60);
+            chk('u4-b-final-2', f2, 60, 324);
+
+            if (!hasError) {
+                const finalArea = f1 + f2;
+                document.getElementById('u4-b-res-text').innerHTML = `恭喜你！系統計算驗證：牆面面積 324 + 屋頂面積 60 = <span class="text-base bg-white border border-emerald-300 px-2 py-0.5 rounded-lg text-emerald-700 font-extrabold shadow-sm">${finalArea}</span> 平方公尺`;
+                document.getElementById('u4-b-result-box').classList.remove('hidden');
+                updateAssistant("全對！你完美使用了『組合法』解構出正方形與梯形，總和是 384 平方公尺。解鎖第 4 顆學習星！");
+                if (!state.unit4.solvedB) {
+                    state.unit4.solvedB = true;
+                    addStar();
+                }
+                document.getElementById('u4-next-card').classList.remove('hidden');
+            } else {
+                updateAssistant("算式中有數值填寫錯誤喔！請仔細觀察圖形裡的共用邊長度，再試著填寫一次！");
+            }
+        }
+
+        // =================== 單元五：全新 PBL 素養挑戰 (動態隨機 5 題測驗) ===================
+
+        // 輔助函式：陣列洗牌
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 建立題目物件的通用函式 (負責生成 3 個假答案並洗牌)
+        function createQuestionObj(type, text, exp, ans, unit) {
+            const optionsSet = new Set([ans]);
+            let failSafe = 0;
+            while (optionsSet.size < 4 && failSafe < 100) {
+                // 依據答案大小給予合理的偏差值
+                let variance = ans > 1000 ? 50 : (ans > 100 ? 10 : 2);
+                let fake = ans + (Math.floor(Math.random() * 11) - 5) * variance;
+                if (fake <= 0) fake = ans + Math.floor(Math.random() * 10) + 1;
+                if (fake !== ans) optionsSet.add(fake);
+                failSafe++;
+            }
+            const optArr = Array.from(optionsSet).map(v => ({
+                text: v + " " + unit,
+                value: v,
+                isCorrect: v === ans
+            }));
+            return { type, text, exp, ansValue: ans, options: shuffleArray(optArr) };
+        }
+
+        // --- 題型 1：複合圖形 (長方形+梯形) ---
+        function genQ1() {
+            const w = Math.floor(Math.random() * 11) + 10; // 長方形寬(即梯形上底) 10-20
+            const h1 = Math.floor(Math.random() * 11) + 10; // 長方形長 10-20
+            const l = w + Math.floor(Math.random() * 9) + 2; // 梯形下底 w+2 to w+10
+            const h2 = Math.floor(Math.random() * 5) * 2 + 4; // 梯形高 4-12(偶數)
+            const rectA = w * h1;
+            const trapA = (w + l) * h2 / 2;
+            const ans = rectA + trapA;
+
+            const text = `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-black mr-2">河濱公園景觀步道</span>市政府規劃了一座河濱公園，土地是由一個長方形與梯形組成的複合圖形。長方形長 <b>${h1}</b> 公尺、寬 <b>${w}</b> 公尺；連接的梯形上底與長方形的寬重合（<b>${w}</b> 公尺）、下底為 <b>${l}</b> 公尺、高為 <b>${h2}</b> 公尺。<br><br>請問需要鋪設草皮（整塊土地）的總面積是多少平方公尺？`;
+            const exp = `<b>1. 長方形面積：</b> ${h1} × ${w} = ${rectA}<br><b>2. 梯形面積：</b> (${w} + ${l}) × ${h2} ÷ 2 = ${trapA}<br><b>3. 總面積：</b> ${rectA} + ${trapA} = <span class="text-emerald-600 font-black">${ans} 平方公尺</span>`;
+
+            return createQuestionObj('q1', text, exp, ans, "平方公尺");
+        }
+
+        // --- 題型 2：圖形分割 (梯形-正方形) ---
+        function genQ2() {
+            const u = Math.floor(Math.random() * 11) + 10;
+            const l = u + Math.floor(Math.random() * 11) + 5;
+            const h = Math.floor(Math.random() * 6) * 2 + 10; // 10-20(偶數)
+            const s = Math.floor(Math.random() * 3) + 2; // 邊長 2-4
+            const price = (Math.floor(Math.random() * 3) + 1) * 50 + 100; // 150, 200, 250
+            const trapA = (u + l) * h / 2;
+            const sqA = s * s;
+            const finalA = trapA - sqA;
+            const ans = finalA * price;
+
+            const text = `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-black mr-2">大樓防護網預算估算</span>大樓外牆需搭建一面梯形的防塵網（上底 <b>${u}</b> 公尺、下底 <b>${l}</b> 公尺、高 <b>${h}</b> 公尺）。中央有一個正方形施工出入口（邊長 <b>${s}</b> 公尺）不需鋪網。已知防塵網每平方公尺的材料費為 <b>${price}</b> 元。<br><br>請問購買這面防護網的材料總共需要多少元？`;
+            const exp = `<b>1. 梯形總面積：</b> (${u} + ${l}) × ${h} ÷ 2 = ${trapA}<br><b>2. 扣除正方形：</b> ${s} × ${s} = ${sqA}<br><b>3. 實際鋪設面積：</b> ${trapA} - ${sqA} = ${finalA}<br><b>4. 總經費：</b> ${finalA} × ${price} = <span class="text-blue-600 font-black">${ans} 元</span>`;
+
+            return createQuestionObj('q2', text, exp, ans, "元");
+        }
+
+        // --- 題型 3：反推未知數 (已知面積求高) ---
+        function genQ3() {
+            const u = Math.floor(Math.random() * 11) + 15;
+            const l = u + Math.floor(Math.random() * 21) + 10;
+            const h = Math.floor(Math.random() * 11) + 20;
+            const area = (u + l) * h / 2;
+
+            const text = `<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-black mr-2">環保袋的剪裁設計</span>媽媽利用一塊長方形的舊布料來剪裁環保袋。她從四個角剪掉直角三角形後，剩下的布料剛好是一個對稱的等腰梯形。已知剪裁後梯形的上底是 <b>${u}</b> 公分，下底是 <b>${l}</b> 公分，且這塊梯形布料的面積是 <b>${area}</b> 平方公分。<br><br>請問媽媽剪下來的梯形布料，其「高」是多少公分？`;
+            const exp = `<b>1. 設梯形的高為 h 公分：</b><br>面積 = (上底 + 下底) × h ÷ 2<br><b>2. 代入公式：</b> ${area} = (${u} + ${l}) × h ÷ 2<br><b>3. 逆推計算：</b> ${area} = ${(u + l) / 2} × h<br>h = <span class="text-orange-600 font-black">${h} 公分</span>`;
+
+            return createQuestionObj('q3', text, exp, h, "公分");
+        }
+
+        // --- 題型 4：條件組合 (周長推底求面積) ---
+        function genQ4() {
+            const top = Math.floor(Math.random() * 11) + 10;
+            const h = Math.floor(Math.random() * 6) * 2 + 10;
+            const bot = top + Math.floor(Math.random() * 11) + 5;
+            const fence = top + bot + h;
+            const area = (top + bot) * h / 2;
+
+            const text = `<span class="bg-rose-100 text-rose-800 px-2 py-1 rounded text-xs font-black mr-2">農夫的圍籬網購計畫</span>老王有一塊直角梯形的菜園，上底為 <b>${top}</b> 公尺、高為 <b>${h}</b> 公尺。斜邊他打算用現有的舊圍籬補上（不需購買）。於是他上網購買了 <b>${fence}</b> 公尺長的全新鐵絲網，剛好可以把「上底、下底與高」這三邊完美圍起來。<br><br>請幫老王算算看，這塊直角梯形菜園的總面積是多少平方公尺？`;
+            const exp = `<b>1. 找出隱藏的下底：</b> 網購的鐵絲網長度 = 上底 + 下底 + 高<br>${fence} = ${top} + 下底 + ${h}<br>下底 = ${fence} - ${top} - ${h} = ${bot} 公尺<br><b>2. 計算菜園總面積：</b> (${top} + ${bot}) × ${h} ÷ 2 = <span class="text-rose-600 font-black">${area} 平方公尺</span>`;
+
+            return createQuestionObj('q4', text, exp, area, "平方公尺");
+        }
+
+        // --- 題型 5：進階比率 (面積百分比限制) ---
+        function genQ5() {
+            const u = Math.floor(Math.random() * 21) + 40;
+            const l = u + Math.floor(Math.random() * 41) + 20;
+            const h = Math.floor(Math.random() * 11) * 2 + 30; // 30-50 even
+            const p = (Math.floor(Math.random() * 4) + 2) * 10; // 20, 30, 40, 50
+            const area = (u + l) * h / 2;
+            const maxBuild = area * p / 100;
+
+            const text = `<span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-black mr-2">科技園區基地規劃</span>某科技園區有一塊梯形研發基地（上底 <b>${u}</b> 公尺、下底 <b>${l}</b> 公尺、高 <b>${h}</b> 公尺）。園區規範：建築物投影面積不得超過整塊基地總面積的 <b>${p}%</b>，其餘空間必須規劃為綠地與道路。<br><br>請問這塊基地「最多」可以蓋多少平方公尺的建築物？`;
+            const exp = `<b>1. 梯形基地總面積：</b> (${u} + ${l}) × ${h} ÷ 2 = ${area} 平方公尺<br><b>2. 計算建築法規上限：</b> ${area} × ${p}% = ${area} × ${p / 100} = <span class="text-purple-600 font-black">${maxBuild} 平方公尺</span>`;
+
+            return createQuestionObj('q5', text, exp, maxBuild, "平方公尺");
+        }
+
+        // 初始化與渲染單元五測驗
+        function initUnit5Quiz() {
+            // 隱藏結果區，顯示測驗區
+            document.getElementById('u5-result-container').classList.add('hidden');
+            document.getElementById('u5-quiz-container').classList.remove('hidden');
+
+            // 生成 5 題陣列並打亂順序 (確保每次題型出現順序不同)
+            const questions = [genQ1(), genQ2(), genQ3(), genQ4(), genQ5()];
+            state.unit5.questions = shuffleArray(questions);
+
+            const listDiv = document.getElementById('u5-questions-list');
+            listDiv.innerHTML = ''; // 清空
+
+            state.unit5.questions.forEach((q, qIndex) => {
+                const qHtml = `
+                <div class="bg-purple-50/50 p-5 rounded-2xl border-2 border-purple-100">
+                    <h3 class="text-sm font-black text-slate-800 mb-3 flex items-start gap-2 leading-relaxed">
+                        <span class="bg-purple-500 text-white w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs shadow-sm">${qIndex + 1}</span>
+                        <span>${q.text}</span>
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-8">
+                        ${q.options.map((opt, oIndex) => `
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="u5-q${qIndex}" value="${opt.value}" class="peer sr-only radio-custom">
+                            <div class="p-3 border-2 border-slate-200 rounded-xl bg-white hover:bg-slate-50 transition-all flex items-center gap-3">
+                                <div class="w-4 h-4 rounded-full border-2 border-slate-300 radio-indicator flex items-center justify-center shrink-0"></div>
+                                <span class="text-sm font-bold text-slate-700 break-words w-full">${opt.text}</span>
+                            </div>
+                        </label>
+                        `).join('')}
+                    </div>
+                </div>`;
+                listDiv.innerHTML += qHtml;
+            });
+
+            updateAssistant("素養挑戰開始！這裡的每一題數字都是隨機產生的，請打開右側計算紙，仔細拆解每個生活情境喔！");
+        }
+
+        // 送出單元五測驗
+        function submitUnit5Quiz() {
+            let score = 0;
+            let allAnswered = true;
+            const results = [];
+
+            state.unit5.questions.forEach((q, qIndex) => {
+                const selected = document.querySelector(`input[name="u5-q${qIndex}"]:checked`);
+                if (!selected) {
+                    allAnswered = false;
+                } else {
+                    const userVal = parseInt(selected.value);
+                    const isCorrect = userVal === q.ansValue;
+                    if (isCorrect) score += 20;
+                    results.push({
+                        qIndex: qIndex + 1,
+                        text: q.text,
+                        userVal: userVal,
+                        isCorrect: isCorrect,
+                        correctStr: q.options.find(o => o.isCorrect).text,
+                        userStr: q.options.find(o => o.value === userVal).text,
+                        exp: q.exp
+                    });
+                }
+            });
+
+            if (!allAnswered) {
+                updateAssistant("⚠️ 還有題目未作答喔！請確認 5 題都選好後再送出！");
+                return;
+            }
+
+            // 隱藏測驗區，顯示結果區
+            document.getElementById('u5-quiz-container').classList.add('hidden');
+            document.getElementById('u5-result-container').classList.remove('hidden');
+
+            // 渲染分數
+            const scoreDisplay = document.getElementById('u5-score-display');
+            const scoreMsg = document.getElementById('u5-score-msg');
+            const badge = document.getElementById('u5-perfect-badge');
+
+            scoreDisplay.textContent = score;
+            if (score === 100) {
+                scoreDisplay.className = "text-6xl font-black mt-2 mb-2 text-emerald-500 drop-shadow-sm";
+                scoreMsg.textContent = "完美！你完全掌握了面積運算與圖形拆解的精髓！";
+                badge.classList.remove('hidden');
+                updateAssistant("太神啦！素養測驗滿分！你成功解鎖了最終的學習星，快領取你的證書吧！");
+
+                if (!state.unit5.solvedQ1) {
+                    state.unit5.solvedQ1 = true;
+                    addStar();
+                }
+            } else if (score >= 60) {
+                scoreDisplay.className = "text-6xl font-black mt-2 mb-2 text-blue-500 drop-shadow-sm";
+                scoreMsg.textContent = "表現不錯！但還有進步空間，請看看下方的詳解吧。";
+                badge.classList.add('hidden');
+                updateAssistant(`獲得 ${score} 分！及格了！請往下看看哪些地方計算錯誤，隨時可以點擊「再挑戰一次」喔！`);
+            } else {
+                scoreDisplay.className = "text-6xl font-black mt-2 mb-2 text-rose-500 drop-shadow-sm";
+                scoreMsg.textContent = "哎呀，可能計算時有些粗心喔！別灰心，多練習幾次！";
+                badge.classList.add('hidden');
+                updateAssistant(`獲得 ${score} 分！沒關係，素養題本來就需要多思考。看看詳解，整理好思緒再挑戰一次！`);
+            }
+
+            // 渲染詳解清單
+            const expList = document.getElementById('u5-explanations-list');
+            expList.innerHTML = '';
+            results.forEach(res => {
+                const statusColor = res.isCorrect ? 'text-emerald-600' : 'text-rose-500';
+                const statusIcon = res.isCorrect ? '<i class="fa-solid fa-circle-check"></i> 答對' : '<i class="fa-solid fa-circle-xmark"></i> 答錯';
+                const bgBorder = res.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30';
+
+                const html = `
+                <div class="p-5 rounded-2xl border-2 ${bgBorder}">
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="text-sm font-bold text-slate-700 w-5/6">${res.qIndex}. ${res.text}</h4>
+                        <span class="text-sm font-black ${statusColor} shrink-0">${statusIcon}</span>
+                    </div>
+                    <div class="bg-white/80 p-3 rounded-xl text-sm mb-3 shadow-sm border border-slate-100">
+                        <div class="mb-1"><span class="text-slate-500">您的作答：</span> <span class="font-bold ${statusColor}">${res.userStr}</span></div>
+                        ${!res.isCorrect ? `<div><span class="text-slate-500">正確答案：</span> <span class="font-bold text-emerald-600">${res.correctStr}</span></div>` : ''}
+                    </div>
+                    <div class="text-xs text-slate-700 leading-relaxed border-t border-slate-200 pt-3">
+                        <span class="font-black text-slate-800 block mb-1">📝 解析：</span>
+                        ${res.exp}
+                    </div>
+                </div>`;
+                expList.innerHTML += html;
+            });
+        }
+
+        // =================== 全域導航與通用功能 ===================
+        function switchTab(tabIndex) {
+            state.currentTab = tabIndex;
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach((tab, index) => {
+                if (index + 1 === tabIndex) {
+                    tab.className = "tab-btn py-3 px-2 rounded-xl font-bold text-sm transition-all text-center flex flex-col items-center justify-center gap-1 bg-blue-500 text-white shadow-sm";
+                } else {
+                    tab.className = "tab-btn py-3 px-2 rounded-xl font-bold text-sm transition-all text-center flex flex-col items-center justify-center gap-1 text-slate-600 hover:bg-slate-50";
+                }
+            });
+
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach((content, index) => {
+                if (index + 1 === tabIndex) {
+                    content.classList.remove('hidden');
+                    content.classList.add('block');
+                } else {
+                    content.classList.remove('block');
+                    content.classList.add('hidden');
+                }
+            });
+
+            switch (tabIndex) {
+                case 1: updateAssistant("歡迎來到第一關！請使用左側的「虛擬三角尺控制台」滑桿，來對齊梯形的底邊！你可以點擊右上角變換新梯形哦。"); break;
+                case 2:
+                    if (state.unit2.mode === 'A') updateAssistant("來，第二關。請嘗試手動拖曳粉紅色梯形 B 到右邊，拼成大平行四邊形。");
+                    else updateAssistant("拿起剪刀，沿著斜線拖曳剪開，把三角形拉開觀察看看。");
+                    break;
+                case 3: updateAssistant("進入第三關！可以玩玩上方實時算盤，或挑戰下方的無極限隨機面積算術測驗！"); break;
+                case 4: updateAssistant("第四關：複合圖形大解密！你可以點擊按鈕把水溝或屋頂分開來研究喔。"); break;
+                case 5:
+                    if (document.getElementById('u5-quiz-container').classList.contains('hidden')) {
+                        updateAssistant("素養挑戰成績出爐！若想追求滿分，隨時可以點擊「再挑戰一次」來進行全新測驗！");
+                    } else {
+                        updateAssistant("最後一關！5大情境素養題挑戰。題目與數字每次都會隨機變化，請打開右側計算紙仔細應戰喔！");
+                    }
+                    break;
+            }
+        }
+
+        function updateAssistant(text) {
+            document.getElementById('assistant-text').innerText = text;
+        }
+
+        function showCongratulationsModal() {
+            document.getElementById('congrats-modal').classList.remove('hidden');
+        }
+
+        function closeCongratsModal() {
+            document.getElementById('congrats-modal').classList.add('hidden');
+        }
+
+        function resetAllProgress() {
+            state.stars = 0;
+            state.unit3.streak = 0;
+            state.unit3.streakRev = 0;
+            state.unit5.solvedQ1 = false;
+            document.getElementById('u3-streak-count').innerText = "0";
+            document.getElementById('u3-streak-count-rev').innerText = "0";
+
+            generateRandomTrapezoidUnit1();
+            resetJoinMode();
+            resetSplitMode();
+            document.getElementById('star-count').innerText = "0";
+
+            document.getElementById('u1-height-group').classList.add('opacity-0');
+            document.getElementById('u1-height-group').classList.remove('opacity-100');
+            document.getElementById('u1-next-card').classList.add('hidden');
+            document.getElementById('u2-next-card').classList.add('hidden');
+            document.getElementById('u3-next-card').classList.add('hidden');
+            document.getElementById('u3-next-card-rev').classList.add('hidden');
+            document.getElementById('u4-next-card').classList.add('hidden');
+
+            const u4Inputs = ['u4-a-rect-w', 'u4-a-rect-h', 'u4-a-trap-u', 'u4-a-trap-l', 'u4-a-trap-h', 'u4-a-final-1', 'u4-a-final-2',
+                'u4-b-sq-w', 'u4-b-sq-h', 'u4-b-trap-u', 'u4-b-trap-l', 'u4-b-trap-h', 'u4-b-final-1', 'u4-b-final-2'];
+            u4Inputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = '';
+                    el.classList.remove('border-red-500', 'bg-red-50', 'border-green-500', 'bg-green-50');
+                    el.classList.add('border-slate-300');
+                }
+            });
+            ['u4-a-rect-calc', 'u4-a-trap-calc', 'u4-a-final-calc', 'u4-b-sq-calc', 'u4-b-trap-calc', 'u4-b-final-calc'].forEach(id => {
+                if (document.getElementById(id)) document.getElementById(id).textContent = '?';
+            });
+            document.getElementById('u4-a-result-box').classList.add('hidden');
+            document.getElementById('u4-b-result-box').classList.add('hidden');
+
+            generateRandomQuizUnit3();
+            setU3ChallengeMode('normal');
+
+            initUnit5Quiz(); // 重置單元五挑戰
+
+            closeCongratsModal();
+            switchTab(1);
+        }
+    </script>
+</body>
+
+</html>
