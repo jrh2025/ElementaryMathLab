@@ -254,5 +254,14 @@ window.MATH_TOOLS_DATA = [
     "link": "trapezoid.html",
     "icon": "Save",
     "color": "green"
+  },
+  {
+    "id": "tool_1779773228169",
+    "title": "概數探險家：大數的魔法簡化術",
+    "grade": "四年級",
+    "description": "本系統採純前端單頁網頁（SPA）設計，跨裝置免安裝且支援完全離線執行 。專為國小四年級數學「概數與概算」單元設計，對接108課綱N-4-4與N-4-1指標 。旨在引導學生跨越「先算精確解再取概數」的思維陷阱，重塑學童的真實數感 。",
+    "link": "estimates_4grad.html",
+    "icon": "CandlestickChart",
+    "color": "orange"
   }
 ];

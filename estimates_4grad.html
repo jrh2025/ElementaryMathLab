@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國小四年級數學：概數全攻略</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- MathJax 3 數學公式編譯配置與載入 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0fdf4;
+            /* 溫和的淡綠色背景，保護兒童視力 */
+        }
+
+        .comic-font {
+            font-family: 'Fredoka One', 'Noto Sans TC', sans-serif;
+        }
+
+        /* 美化滑桿 */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            transition: transform 0.1s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 antialiased selection:bg-emerald-200 tex2jax_process">
+
+    <div id="app" class="min-h-screen flex flex-col justify-between">
+
+        <!-- 頂部導覽列 -->
+        <header
+            class="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-lg sticky top-0 z-50">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl animate-bounce">🦉</span>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-black comic-font tracking-wide">概數探險家：大數的魔法簡化術</h1>
+                        <p class="text-xs text-emerald-100 font-medium"><a href="./index.html"
+                                target="_blank">國小數學互動教學實驗室</a></p>
+                    </div>
+                </div>
+                <!-- 導覽頁籤 -->
+                <nav class="flex flex-wrap justify-center gap-1 bg-white/10 p-1 rounded-xl backdrop-blur-sm">
+                    <button v-for="tab in tabs" :key="tab.id" @click="changeTab(tab.id)"
+                        class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all"
+                        :class="currentTab === tab.id ? 'bg-white text-emerald-700 shadow-md scale-105' : 'text-white hover:bg-white/20'">
+                        {{ tab.name }}
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- 主要內容區 -->
+        <main class="max-w-6xl w-full mx-auto px-4 py-6 flex-grow">
+
+            <!-- 導言/狀態面板 (給學生鼓勵) -->
+            <div
+                class="bg-white border-2 border-emerald-300 rounded-2xl p-4 mb-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl">👑
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-emerald-800">小探險家，準備好迎接大數挑戰了嗎？</h2>
+                        <p class="text-sm text-slate-500">完成學習模組，通過試煉即可獲得「概數魔法師」勳章！</p>
+                    </div>
+                </div>
+                <!-- 學習進度條 -->
+                <div class="flex flex-col items-end gap-1 w-full sm:w-48">
+                    <div class="flex justify-between w-full text-xs font-black text-slate-500">
+                        <span>學習進度</span>
+                        <span>{{ progressPercentage }}%</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-500"
+                            :style="{ width: progressPercentage + '%' }"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 頁籤一：生活中的概數與估算 -->
+            <section v-if="currentTab === 'intro'" class="space-y-6">
+                <div
+                    class="bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-3xl p-6 md:p-8 shadow-md">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-3xl">💡</span>
+                        <h3 class="text-2xl font-black text-indigo-900">為什麼生活不總是需要精確的數字？</h3>
+                    </div>
+                    <p class="text-slate-600 mb-6 leading-relaxed text-base md:text-lg">
+                        你知道嗎？在我們生活的周遭，有些數字需要<b>100%絕對精確</b>（例如你的身分證字號、悠遊卡餘額），但有些數字我們只需要知道<b>「大約是多少」</b>（例如台灣的人口、大象的體重、甚至是你一天的花費）。這種不帶尾巴、好記又方便描述的數字，就叫作「<b>概數</b>」（大約的數）。
+                    </p>
+
+                    <!-- 互動配對卡片 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div
+                            class="bg-white p-5 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-blue-300 transition-all duration-300">
+                            <span
+                                class="text-xs font-bold text-indigo-500 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-wider">情境
+                                1：全台灣人口</span>
+                            <h4 class="text-lg font-extrabold mt-2 text-slate-800">台灣的人口到底是幾人？</h4>
+                            <div class="mt-4 flex flex-col gap-2">
+                                <button @click="showValueInfo('tw-exact')"
+                                    class="text-left p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
+                                    :class="activeValueInfo === 'tw-exact' ? 'bg-indigo-50 border-indigo-300 text-indigo-900' : ''">
+                                    📊 精確值：<strong>23,415,627 人</strong>
+                                </button>
+                                <button @click="showValueInfo('tw-approx')"
+                                    class="text-left p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
+                                    :class="activeValueInfo === 'tw-approx' ? 'bg-indigo-50 border-indigo-300 text-indigo-900' : ''">
+                                    ☁️ 概數：<strong>大約 2300 萬人</strong>
+                                </button>
+                            </div>
+                            <!-- 解說文字 -->
+                            <div class="mt-4 p-3 bg-slate-50 rounded-xl text-sm text-slate-600 min-h-[80px]"
+                                v-if="activeValueInfo.startsWith('tw')">
+                                <span v-if="activeValueInfo === 'tw-exact'">❌ 每分每秒都有寶寶出生或有人離開，精確的數字隨時在改變，根本記不完喔！</span>
+                                <span v-if="activeValueInfo === 'tw-approx'">✔️ <b>答對了！</b>用「大約 2300
+                                    萬人」好記、好溝通，而且足以進行政策規劃。</span>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-white p-5 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-blue-300 transition-all duration-300">
+                            <span
+                                class="text-xs font-bold text-amber-500 bg-amber-50 px-2.5 py-1 rounded-full uppercase tracking-wider">情境
+                                2：悠遊卡去超商買飲料</span>
+                            <h4 class="text-lg font-extrabold mt-2 text-slate-800">小明悠遊卡剩多少錢？</h4>
+                            <div class="mt-4 flex flex-col gap-2">
+                                <button @click="showValueInfo('card-exact')"
+                                    class="text-left p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
+                                    :class="activeValueInfo === 'card-exact' ? 'bg-indigo-50 border-indigo-300 text-indigo-900' : ''">
+                                    📊 精確值：<strong>恰好剩 35 元</strong>
+                                </button>
+                                <button @click="showValueInfo('card-approx')"
+                                    class="text-left p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
+                                    :class="activeValueInfo === 'card-approx' ? 'bg-indigo-50 border-indigo-300 text-indigo-900' : ''">
+                                    ☁️ 概數：<strong>大約剩幾十元</strong>
+                                </button>
+                            </div>
+                            <!-- 解說文字 -->
+                            <div class="mt-4 p-3 bg-slate-50 rounded-xl text-sm text-slate-600 min-h-[80px]"
+                                v-if="activeValueInfo.startsWith('card')">
+                                <span v-if="activeValueInfo === 'card-exact'">✔️ <b>完全正確！</b>超商扣款必須毫釐不差，如果是 35
+                                    元就不能只扣大約的數字，否則會買不到飲料。</span>
+                                <span v-if="activeValueInfo === 'card-approx'">❌
+                                    雖然可以心裡大約估算，但在實際交易時，刷卡機必須讀取精確的數值喔！</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 觀念比較：取概數 vs 概算 -->
+                    <div class="mt-8 bg-white p-6 rounded-2xl border-2 border-teal-200">
+                        <h4 class="text-lg font-black text-teal-800 mb-2">⭐ 教學小筆記：取概數與估算的差別！</h4>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            小朋友，我們要搞懂一個重要觀念：<br>
+                            1. <b>取概數 (Approximation)</b>：是將「單一個大數」化簡，比如把 23,415,627
+                            化簡為「2300萬」。其單位是以指定位數（如萬、千、百）為單位，尾巴會有很多「0」。<br>
+                            2. <b>概算/估算 (Estimation)</b>：是快速預估「一道算式的結果」。例如 $3291+2098$，我們看成
+                            $3000+2000=5000$。估算的答案是以「1」為單位來描述，而不是以特定位值！合理的估算通常有一段「範圍區間」，並不只有唯一的標準答案。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 頁籤二：三大取法與生活情境 -->
+            <section v-if="currentTab === 'methods'" class="space-y-6">
+                <div class="text-center mb-8">
+                    <h3 class="text-3xl font-black text-slate-800">三大取概數魔法對決</h3>
+                    <p class="text-slate-500 mt-2">點選下方的卡片，看看不同生活情境下，要選擇哪一種魔法！</p>
+                </div>
+
+                <!-- 取法導覽與互動情境 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 無條件捨去法 -->
+                    <div
+                        class="bg-emerald-50 rounded-3xl border-2 border-emerald-300 p-6 flex flex-col justify-between shadow-md hover:scale-[1.02] transition-transform">
+                        <div>
+                            <div
+                                class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-4">
+                                ⬇️</div>
+                            <h4 class="text-xl font-black text-emerald-900">無條件捨去法</h4>
+                            <p class="text-xs text-emerald-700 font-bold tracking-wider uppercase mb-3">向下取整魔法</p>
+                            <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                                <b>規則：</b>不論指定位數後方的數字有多大，只要不滿一個完整的指定單位，就<b>一律變為 0 丟掉</b>！
+                            </p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-emerald-200">
+                            <h5
+                                class="text-xs font-bold text-emerald-800 bg-emerald-100/50 inline-block px-2 py-0.5 rounded-md mb-2">
+                                🍪 經典生活情境：月餅分箱</h5>
+                            <p class="text-xs text-slate-500 mb-3">工廠製作了 58,732 個月餅，每 1000 個裝成一箱。可以裝滿幾箱？共裝了幾個月餅？</p>
+                            <button @click="showSituationDemo('discard')"
+                                class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-2 px-3 rounded-xl transition-colors">
+                                啟動月餅裝箱圖解 ⚙️
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 無條件進入法 -->
+                    <div
+                        class="bg-amber-50 rounded-3xl border-2 border-amber-300 p-6 flex flex-col justify-between shadow-md hover:scale-[1.02] transition-transform">
+                        <div>
+                            <div
+                                class="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-4">
+                                ⬆️</div>
+                            <h4 class="text-xl font-black text-amber-900">無條件進入法</h4>
+                            <p class="text-xs text-amber-700 font-bold tracking-wider uppercase mb-3">向上取整魔法</p>
+                            <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                                <b>規則：</b>只要指定位數後方的數字<b>不全為 0</b>（即使只有一點點），就必須在指定位數上<b>「進一」</b>，其餘歸 0。這用來保障充足性！
+                            </p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-amber-200">
+                            <h5
+                                class="text-xs font-bold text-amber-800 bg-emerald-100/50 inline-block px-2 py-0.5 rounded-md mb-2">
+                                😷 經典生活情境：口罩裝盒</h5>
+                            <p class="text-xs text-slate-500 mb-3">有 73,542 片口罩，每 100 片裝成一盒，為了要把口罩全部包裝好，最少需要幾個盒子？</p>
+                            <button @click="showSituationDemo('carry')"
+                                class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 px-3 rounded-xl transition-colors">
+                                啟動口罩包裝圖解 ⚙️
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 四捨五入法 -->
+                    <div
+                        class="bg-sky-50 rounded-3xl border-2 border-sky-300 p-6 flex flex-col justify-between shadow-md hover:scale-[1.02] transition-transform">
+                        <div>
+                            <div
+                                class="w-12 h-12 bg-sky-500 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-4">
+                                ⚖️</div>
+                            <h4 class="text-xl font-black text-sky-900">四捨五入法</h4>
+                            <p class="text-xs text-sky-700 font-bold tracking-wider uppercase mb-3">鄰近性魔法 (最常用)</p>
+                            <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                                <b>規則：</b>觀察指定位數的下一位數字。如果是 <b>0, 1, 2, 3, 4</b> 就捨去；如果是 <b>5, 6, 7, 8, 9</b> 就進一。
+                            </p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-sky-200">
+                            <h5
+                                class="text-xs font-bold text-sky-800 bg-sky-100/50 inline-block px-2 py-0.5 rounded-md mb-2">
+                                📏 經典生活情境：最靠近哪裡？</h5>
+                            <p class="text-xs text-slate-500 mb-3">小明高鐵交通費花了 2137 元，請問是比較接近 2000 元，還是接近 3000 元呢？</p>
+                            <button @click="changeTab('timeline')"
+                                class="w-full bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2 px-3 rounded-xl transition-colors">
+                                開啟魔法數線儀 ⚙️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 情境示範動畫彈窗 (動態解說) -->
+                <div v-if="activeSituationDemo"
+                    class="bg-white border-2 border-slate-300 rounded-3xl p-6 shadow-xl mt-6">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h4 class="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                            <span class="text-2xl">⚡</span> {{ activeSituationDemoTitle }}
+                        </h4>
+                        <button @click="activeSituationDemo = null"
+                            class="text-slate-400 hover:text-slate-600 text-2xl font-bold">×</button>
+                    </div>
+
+                    <!-- 捨去法情境示範：月餅 -->
+                    <div v-if="activeSituationDemo === 'discard'" class="space-y-4">
+                        <p class="text-slate-600 text-sm">
+                            我們要「取概數到千位」。<b>指定位數是：千位 (8)</b>。我們要看的單位是一整箱（1000 個）。
+                        </p>
+                        <div class="p-4 bg-slate-50 rounded-2xl flex flex-wrap gap-4 items-center justify-center">
+                            <div
+                                class="flex flex-col items-center p-3 bg-white rounded-xl shadow-sm border border-emerald-200">
+                                <span class="text-2xl">📦</span>
+                                <span class="text-xs font-black text-slate-600">已經裝滿了 58 箱</span>
+                                <span class="text-xs text-emerald-600 font-bold">(58,000 個月餅)</span>
+                            </div>
+                            <div class="text-xl text-slate-400">＋</div>
+                            <div
+                                class="flex flex-col items-center p-3 bg-white rounded-xl shadow-sm border border-red-200 relative">
+                                <span class="text-2xl">🥮</span>
+                                <span class="text-xs font-black text-slate-600">剩下 732 個不夠裝滿一整箱</span>
+                                <span class="text-xs text-red-500 font-bold">(裝不滿 1 千，必須捨去)</span>
+                                <!-- 閃爍叉叉 -->
+                                <div
+                                    class="absolute inset-0 bg-red-100/80 rounded-xl flex items-center justify-center text-red-600 font-extrabold text-2xl">
+                                    ✕ 捨去！</div>
+                            </div>
+                        </div>
+                        <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                            <p class="text-sm font-bold text-emerald-900">
+                                🦉 魔法解析：因為剩下的 732 個月餅「<b>不夠裝滿一整箱</b>」，不滿 1000 個就不能算成一箱，所以在計算「能裝滿幾箱」時，千位數後方的 732
+                                必須「無條件捨去」，記為 <b>58,000 個</b>！
+                            </p>
+                            <p class="text-sm font-bold mt-2 text-slate-700">數學式子：$58732\approx58000$</p>
+                        </div>
+                    </div>
+
+                    <!-- 進入法情境示範：口罩 -->
+                    <div v-if="activeSituationDemo === 'carry'" class="space-y-4">
+                        <p class="text-slate-600 text-sm">
+                            我們要「取概數到百位」。<b>指定位數是：百位 (5)</b>。我們要看的單位是一整盒（100 個）。
+                        </p>
+                        <div class="p-4 bg-slate-50 rounded-2xl flex flex-wrap gap-4 items-center justify-center">
+                            <div
+                                class="flex flex-col items-center p-3 bg-white rounded-xl shadow-sm border border-amber-200">
+                                <span class="text-2xl">📦</span>
+                                <span class="text-xs font-black text-slate-600">已經裝滿了 735 盒</span>
+                                <span class="text-xs text-amber-600 font-bold">(73,500 片口罩)</span>
+                            </div>
+                            <div class="text-xl text-slate-400">＋</div>
+                            <div
+                                class="flex flex-col items-center p-3 bg-white rounded-xl shadow-sm border border-green-200 relative">
+                                <span class="text-2xl">😷</span>
+                                <span class="text-xs font-black text-slate-600">剩下 42 片口罩</span>
+                                <span class="text-xs text-green-600 font-bold">(不滿一盒但還是需要 1 個空盒裝)</span>
+                                <!-- 閃爍加一 -->
+                                <div
+                                    class="absolute inset-0 bg-green-100/80 rounded-xl flex items-center justify-center text-green-700 font-extrabold text-2xl">
+                                    ＋1 盒！</div>
+                            </div>
+                        </div>
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                            <p class="text-sm font-bold text-amber-900">
+                                🦉 魔法解析：剩下的 42 片口罩「<b>雖然裝不滿一整盒，但依然需要多 1 個空盒子</b>」來把口罩保護好。所以百位的 5 盒必須「無條件進入」變成 6 盒，總共需要
+                                <b>73,600 個空盒份量的包裝容量</b>！
+                            </p>
+                            <p class="text-sm font-bold mt-2 text-slate-700">數學式子：$73542\approx73600$</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 頁籤三：魔法數線儀 -->
+            <section v-if="currentTab === 'timeline'" class="space-y-6">
+                <div class="bg-white border-2 border-sky-200 rounded-3xl p-6 shadow-md">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-3xl">⚖️</span>
+                        <h3 class="text-2xl font-black text-sky-900">動態拉拉看：四捨五入的鄰近性原理</h3>
+                    </div>
+                    <p class="text-slate-500 text-sm mb-6">
+                        在數線上拉動藍色水晶，親自體驗「比較靠近哪一個數」！
+                    </p>
+
+                    <!-- 控制滑桿與模式 -->
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 bg-sky-50 rounded-2xl border border-sky-100">
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-bold text-sky-800">切換數值區間：</label>
+                            <select v-model="timelineRangeMode"
+                                class="bg-white border-2 border-sky-300 rounded-lg px-2.5 py-1 text-sm font-bold text-sky-900 focus:outline-none focus:border-sky-500">
+                                <option value="thousand">2000 ~ 3000 (取概數到千位)</option>
+                                <option value="hundred">600 ~ 700 (取概數到百位)</option>
+                            </select>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-slate-400">目前設定數值</span>
+                            <div class="text-2xl font-black text-blue-600 comic-font">{{ timelineValue }}</div>
+                        </div>
+                    </div>
+
+                    <!-- 數線 SVG 繪製區域 -->
+                    <div class="relative py-4 bg-slate-50 rounded-2xl border border-slate-200 px-4 overflow-hidden">
+                        <svg viewBox="0 0 800 180" class="w-full h-auto">
+                            <!-- 數線軸線 -->
+                            <line x1="100" y1="100" x2="700" y2="100" stroke="#cbd5e1" stroke-width="6"
+                                stroke-linecap="round" />
+
+                            <!-- 左極限數塔 -->
+                            <g>
+                                <circle cx="100" y1="100" cy="100" r="12" fill="#10b981" />
+                                <text x="100" y="70" text-anchor="middle" font-weight="900" fill="#047857"
+                                    font-size="16">{{ leftBound }}</text>
+                                <text x="100" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">左臨界點</text>
+                            </g>
+
+                            <!-- 右極限數塔 -->
+                            <g>
+                                <circle cx="700" y1="100" cy="100" r="12" fill="#10b981" />
+                                <text x="700" y="70" text-anchor="middle" font-weight="900" fill="#047857"
+                                    font-size="16">{{ rightBound }}</text>
+                                <text x="700" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">右臨界點</text>
+                            </g>
+
+                            <!-- 中間分水嶺 (5) -->
+                            <g>
+                                <line x1="400" y1="80" x2="400" y2="120" stroke="#f59e0b" stroke-width="4"
+                                    stroke-dasharray="4,4" />
+                                <circle cx="400" y="100" r="6" fill="#f59e0b" />
+                                <text x="400" y="65" text-anchor="middle" font-weight="900" fill="#d97706"
+                                    font-size="14">{{ midValue }} (中間分水嶺)</text>
+                            </g>
+
+                            <!-- 當前拖曳點的彈力牽引繩 -->
+                            <line :x1="currentPos" y1="100" :x2="roundedPos" y2="100" stroke="#3b82f6" stroke-width="3"
+                                stroke-dasharray="2,2" class="opacity-70" />
+
+                            <!-- 當前數值位置 -->
+                            <g :transform="`translate(${currentPos}, 100)`" class="transition-transform duration-100">
+                                <!-- 水晶核心 -->
+                                <polygon points="0,-18 12,0 0,18 -12,0" fill="#3b82f6" stroke="#ffffff"
+                                    stroke-width="2" />
+                                <circle cx="0" cy="0" r="6" fill="#ffffff" />
+                                <!-- 顯示數字 -->
+                                <rect x="-30" y="-45" width="60" height="22" rx="6" fill="#1e3a8a" />
+                                <text x="0" y="-30" text-anchor="middle" font-weight="bold" fill="#ffffff"
+                                    font-size="12">{{ timelineValue }}</text>
+                            </g>
+                        </svg>
+
+                        <!-- 自訂滑桿控制器 -->
+                        <div class="mt-4 px-10">
+                            <input type="range" :min="leftBound" :max="rightBound" v-model.number="timelineValue"
+                                class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+
+                    <!-- 彈簧力學磁吸解釋 -->
+                    <div class="mt-6 p-5 rounded-2xl border flex flex-col sm:flex-row items-center gap-4 transition-colors"
+                        :class="timelineValue < midValue ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'">
+                        <div class="text-4xl">
+                            <span v-if="timelineValue < midValue">⬅️</span>
+                            <span v-else>➡️</span>
+                        </div>
+                        <div>
+                            <h4 class="font-extrabold text-lg"
+                                :class="timelineValue < midValue ? 'text-emerald-800' : 'text-blue-800'">
+                                鄰近判定結果：{{ timelineValue }} 比較靠近「{{ roundedValue }}」！
+                            </h4>
+                            <p class="text-sm text-slate-600 mt-1 leading-relaxed">
+                                在數線上，當數值是 <b>{{ timelineValue }}</b> 時，它與 <b>{{ roundedValue }}</b> 的距離是 <b>{{ distance
+                                    }}</b>，比到另一個端點更近！<br>
+                                所以採用「四捨五入法」取概數時，它會像彈簧一樣被吸到最靠近的 <b>{{ roundedValue }}</b>！<br>
+                                <span v-if="timelineValue === midValue" class="text-amber-700 font-bold">⚠️ 當剛好在最中間的「{{
+                                    midValue }}」時，約定俗成是一律進位到右邊的「{{ rightBound }}」喔！</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 頁籤四：萬用概數解剖器 -->
+            <section v-if="currentTab === 'solver'" class="space-y-6">
+                <div
+                    class="bg-gradient-to-r from-teal-50 to-emerald-50 border-2 border-teal-300 rounded-3xl p-6 shadow-md">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-3xl">🎛️</span>
+                        <h3 class="text-2xl font-black text-teal-900">萬用概數解剖器</h3>
+                    </div>
+                    <p class="text-slate-500 text-sm mb-6">
+                        輸入任意多位數大數，程式會一步一步、拆解並高亮顯示數字的位值，教你怎麼取概數！
+                    </p>
+
+                    <!-- 輸入介面 -->
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-5 rounded-2xl shadow-sm border border-teal-100">
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 mb-1">輸入任意整數 (最多8位數)</label>
+                            <input type="number" v-model.number="solverInput"
+                                class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl font-bold focus:outline-none focus:border-teal-500 text-lg">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 mb-1">指定要取概數到的位數</label>
+                            <select v-model="solverPlace"
+                                class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl font-bold focus:outline-none focus:border-teal-500 text-lg">
+                                <option value="10">十位 (觀察個位)</option>
+                                <option value="100">百位 (觀察十位)</option>
+                                <option value="1000">千位 (觀察百位)</option>
+                                <option value="10000">萬位 (觀察千位)</option>
+                                <option value="100000">十萬位 (觀察萬位)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 mb-1">選擇你要採用的魔法取法</label>
+                            <select v-model="solverMethod"
+                                class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl font-bold focus:outline-none focus:border-teal-500 text-lg">
+                                <option value="discard">無條件捨去法 ⬇️</option>
+                                <option value="carry">無條件進入法 ⬆️</option>
+                                <option value="rounding">四捨五入法 ⚖️</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button @click="runSolver"
+                                class="w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold py-3.5 px-4 rounded-xl shadow-md transition-all">
+                                開始解剖大數！🪄
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 逐步解剖解題卡片 -->
+                    <div v-if="solverResult"
+                        class="mt-6 bg-white rounded-3xl p-6 border-2 border-teal-100 shadow-inner space-y-6">
+                        <h4 class="text-xl font-black text-teal-800 border-b pb-3 flex items-center gap-2">
+                            <span>🔍</span> 逐步解剖歷程分析
+                        </h4>
+
+                        <!-- 步驟一：展開位值表 -->
+                        <div class="space-y-2">
+                            <span
+                                class="text-xs font-black bg-teal-100 text-teal-800 px-2.5 py-1 rounded-full uppercase">第一步：展開大數與定位</span>
+                            <p class="text-sm text-slate-600">我們將大數填入對應的位值表。高亮閃爍的是我們要處理的「指定位值」與它右邊的「關鍵觀察位值」！</p>
+
+                            <!-- 位值高亮格 -->
+                            <div class="flex flex-wrap gap-2 justify-center py-4 bg-slate-50 rounded-2xl border">
+                                <div v-for="(digit, idx) in solverDigits" :key="idx"
+                                    class="flex flex-col items-center w-12 sm:w-16 p-2 rounded-xl border-2 transition-all duration-300"
+                                    :class="digit.class">
+                                    <span class="text-xs font-black text-slate-400 mb-1">{{ digit.placeName }}</span>
+                                    <span class="text-2xl font-black comic-font">{{ digit.val }}</span>
+                                    <span class="text-[9px] font-bold mt-1 px-1 rounded" :class="digit.tagClass">{{
+                                        digit.role }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 步驟二：套用算則分析 -->
+                        <div class="space-y-2">
+                            <span
+                                class="text-xs font-black bg-teal-100 text-teal-800 px-2.5 py-1 rounded-full uppercase">第二步：判斷法則與位數變化</span>
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                                <p class="text-slate-700 font-bold leading-relaxed" v-html="solverResult.stepText"></p>
+                            </div>
+                        </div>
+
+                        <!-- 步驟三：拼裝與輸出 -->
+                        <div class="space-y-2">
+                            <span
+                                class="text-xs font-black bg-teal-100 text-teal-800 px-2.5 py-1 rounded-full uppercase">第三步：大數合體與結果輸出</span>
+                            <div
+                                class="p-5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-2xl text-center shadow-md">
+                                <span class="text-xs text-teal-100 font-bold tracking-wider uppercase">概數合體結果</span>
+                                <div class="text-3xl md:text-4xl font-black comic-font mt-1">
+                                    ${{ solverInput }} \approx {{ solverResult.finalValue }}$
+                                </div>
+                                <p class="text-xs text-teal-100 font-bold mt-2">（讀作：{{ solverInput }} 大約等於 {{
+                                    solverResult.finalValue }}）</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 頁籤五：逆向區間推導 -->
+            <section v-if="currentTab === 'reverse'" class="space-y-6">
+                <div
+                    class="bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-purple-200 rounded-3xl p-6 md:p-8 shadow-md">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-3xl">🕵️</span>
+                        <h3 class="text-2xl font-black text-purple-900">區間逆向推導：數字密碼大偵探！</h3>
+                    </div>
+                    <p class="text-slate-600 mb-6 leading-relaxed">
+                        這是國小四年級概數中<b>難度最高、最考驗抽象思維</b>的魔王關卡！<br>
+                        平常我們是「從精確數求概數」，但如果倒過來問：「<b>如果四捨五入後的概數是 $X$，那原本的數字最少、最多可能是多少？</b>」<br>
+                        別擔心！選一個生活實例，跟著我們的互動引導和測試儀，一步步親自推導出邊界吧！
+                    </p>
+
+                    <!-- 實例切換卡片 -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <button v-for="(sc, key) in reverseScenarios" :key="key" @click="handleScenarioChange(key)"
+                            class="p-4 rounded-2xl border-2 text-left transition-all duration-300 flex flex-col justify-between"
+                            :class="reverseScenario === key ? 'bg-purple-600 text-white border-purple-700 shadow-md scale-[1.02]' : 'bg-white text-slate-700 border-slate-200 hover:border-purple-300'">
+                            <div class="flex justify-between items-center w-full mb-2">
+                                <span class="text-2xl">{{ sc.icon }}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded"
+                                    :class="reverseScenario === key ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-800'">
+                                    {{ sc.placeName }}
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="font-extrabold text-sm md:text-base">{{ sc.title }}</h4>
+                                <p class="text-xs mt-1"
+                                    :class="reverseScenario === key ? 'text-purple-200' : 'text-slate-400'">
+                                    目標概數：{{ sc.targetVal }}
+                                </p>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- 主互動區塊 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <!-- 左側：互動引導探究與實測 (8 cols) -->
+                        <div
+                            class="lg:col-span-8 bg-white p-6 rounded-3xl border-2 border-purple-100 space-y-6 shadow-sm">
+                            <!-- 子分頁：切換探究最小值、最大值、實測 -->
+                            <div class="flex flex-wrap border-b border-slate-100 pb-2 gap-2">
+                                <button @click="activeSubTab = 'min-guide'"
+                                    class="px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all"
+                                    :class="activeSubTab === 'min-guide' ? 'bg-purple-100 text-purple-800' : 'text-slate-500 hover:bg-slate-50'">
+                                    🔍 探索：最少是多少？
+                                </button>
+                                <button @click="activeSubTab = 'max-guide'"
+                                    class="px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all"
+                                    :class="activeSubTab === 'max-guide' ? 'bg-purple-100 text-purple-800' : 'text-slate-500 hover:bg-slate-50'">
+                                    🔍 探索：最多是多少？
+                                </button>
+                                <button @click="activeSubTab = 'tester'"
+                                    class="px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all"
+                                    :class="activeSubTab === 'tester' ? 'bg-indigo-100 text-indigo-800' : 'text-slate-500 hover:bg-slate-50'">
+                                    🧪 邊界密碼實測儀
+                                </button>
+                            </div>
+
+                            <!-- 1. 最少值引導 -->
+                            <div v-if="activeSubTab === 'min-guide'" class="space-y-4">
+                                <div class="p-4 bg-purple-50/50 rounded-2xl border border-purple-100">
+                                    <p class="text-sm text-slate-700 leading-relaxed">
+                                        🕵️ <b>大偵探任務：</b><br>
+                                        我們要找出取概數到{{ currentScenarioData.placeName }}為 <b>{{
+                                            currentScenarioData.targetVal }}</b> 的「最少值」。<br>
+                                        既然要「最少」，指定位必須少 1。所以前方的數值此時暫定為 <b>{{ currentScenarioData.baseMinVal }}</b>。<br>
+                                        <b>問題：</b>此時關鍵觀察位（{{ currentScenarioData.obsPlaceName
+                                        }}）<b>最少要填入多少</b>，才能成功「五入進位」到 <b>{{ currentScenarioData.targetVal }}</b>？
+                                    </p>
+                                </div>
+
+                                <!-- 0-9 按鈕 -->
+                                <div class="flex flex-wrap gap-2 justify-center py-2">
+                                    <button v-for="d in 10" :key="d-1" @click="guessMinDigit(d-1)"
+                                        class="w-10 h-10 md:w-12 md:h-12 rounded-xl font-black text-lg border-2 flex items-center justify-center transition-all"
+                                        :class="minStepGuess === (d-1) ? 'bg-purple-600 text-white border-purple-700 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:border-purple-400'">
+                                        {{ d-1 }}
+                                    </button>
+                                </div>
+
+                                <!-- 答題回饋 -->
+                                <div v-if="minStepFeedback"
+                                    class="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-sm leading-relaxed"
+                                    v-html="minStepFeedback"></div>
+                            </div>
+
+                            <!-- 2. 最大值引導 -->
+                            <div v-if="activeSubTab === 'max-guide'" class="space-y-4">
+                                <div class="p-4 bg-purple-50/50 rounded-2xl border border-purple-100">
+                                    <p class="text-sm text-slate-700 leading-relaxed">
+                                        🕵️ <b>大偵探任務：</b><br>
+                                        我們要找出取概數到{{ currentScenarioData.placeName }}為 <b>{{
+                                            currentScenarioData.targetVal }}</b> 的「最大值」。<br>
+                                        既然要「最大」，指定位維持不變。所以前方的數值此時暫定為 <b>{{ currentScenarioData.baseMaxVal }}</b>。<br>
+                                        <b>問題：</b>此時關鍵觀察位（{{ currentScenarioData.obsPlaceName
+                                        }}）<b>最大可以是多少</b>，才不至於進位，而是被「四捨捨去」保持在 <b>{{ currentScenarioData.targetVal
+                                            }}</b>？
+                                    </p>
+                                </div>
+
+                                <!-- 0-9 按鈕 -->
+                                <div class="flex flex-wrap gap-2 justify-center py-2">
+                                    <button v-for="d in 10" :key="d-1" @click="guessMaxDigit(d-1)"
+                                        class="w-10 h-10 md:w-12 md:h-12 rounded-xl font-black text-lg border-2 flex items-center justify-center transition-all"
+                                        :class="maxStepGuess === (d-1) ? 'bg-purple-600 text-white border-purple-700 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:border-purple-400'">
+                                        {{ d-1 }}
+                                    </button>
+                                </div>
+
+                                <!-- 答題回饋 -->
+                                <div v-if="maxStepFeedback"
+                                    class="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-sm leading-relaxed"
+                                    v-html="maxStepFeedback"></div>
+                            </div>
+
+                            <!-- 3. 實測儀 -->
+                            <div v-if="activeSubTab === 'tester'" class="space-y-4">
+                                <div
+                                    class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 text-sm text-slate-700 leading-relaxed">
+                                    💡 <b>邊界密碼實測儀：</b><br>
+                                    小偵探，你可以在下方任意輸入你猜測的實際數值。實測儀會將它四捨五入，並幫你診斷是不是我們尋找的極限臨界點（最少或最多值）！
+                                </div>
+
+                                <div class="flex gap-3 max-w-md mx-auto items-center">
+                                    <input type="number" v-model.number="testerGuess" placeholder="輸入你猜的數字"
+                                        class="flex-grow px-4 py-2.5 border-2 border-slate-200 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                                    <button @click="testGuessNumber"
+                                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-6 py-2.5 rounded-xl text-sm shadow-md transition-colors whitespace-nowrap">
+                                        測試這個數！🎯
+                                    </button>
+                                </div>
+
+                                <!-- 實測結果回饋 -->
+                                <div v-if="testerFeedback"
+                                    class="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-sm leading-relaxed animate-fade-in"
+                                    v-html="testerFeedback"></div>
+                            </div>
+                        </div>
+
+                        <!-- 右側：邊界揭密看板與動態圖解 (4 cols) -->
+                        <div class="lg:col-span-4 space-y-6">
+                            <!-- 目前選定實例的數據彙整 -->
+                            <div class="bg-white border-2 border-purple-200 rounded-3xl p-5 shadow-sm space-y-4">
+                                <span class="text-xs font-black bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                                    大偵探筆記本 📋
+                                </span>
+                                <h4 class="text-lg font-black text-slate-800">{{ currentScenarioData.title }}</h4>
+
+                                <!-- 區間圖解框 -->
+                                <div
+                                    class="py-4 px-3 bg-slate-50 rounded-2xl border border-dashed border-purple-300 space-y-3">
+                                    <div class="text-center">
+                                        <span class="text-xs text-slate-400 font-bold block mb-1">目標概數值</span>
+                                        <span class="text-xl font-black text-purple-700 comic-font">{{
+                                            currentScenarioData.targetVal }}</span>
+                                    </div>
+                                    <hr class="border-slate-200">
+                                    <div class="flex justify-between items-center gap-2 text-center">
+                                        <div class="flex-1 p-2 bg-purple-50 rounded-xl border border-purple-200">
+                                            <span class="text-[10px] text-purple-500 font-bold block">絕對最少值</span>
+                                            <span class="text-sm font-black text-purple-950 comic-font">{{
+                                                currentScenarioData.minVal }}</span>
+                                        </div>
+                                        <div class="text-slate-400 font-black">~</div>
+                                        <div class="flex-1 p-2 bg-indigo-50 rounded-xl border border-indigo-200">
+                                            <span class="text-[10px] text-indigo-500 font-bold block">絕對最大值</span>
+                                            <span class="text-sm font-black text-indigo-950 comic-font">{{
+                                                currentScenarioData.maxVal }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 結論規律總結 -->
+                                <div
+                                    class="text-xs text-slate-500 leading-relaxed space-y-1 bg-yellow-50/50 p-3 rounded-xl border border-yellow-100 font-medium">
+                                    <p class="font-bold text-yellow-800 mb-1">💡 發現逆向邊界神公式：</p>
+                                    <p>1. <b>最少可能是：</b> 概數 $-$ (指定位值 $\div 2$)</p>
+                                    <p>2. <b>最多可能是：</b> 概數 $+$ (指定位值 $\div 2 - 1$)</p>
+                                    <p class="text-[10px] text-slate-400 mt-2">例如本例指定位為 {{ currentScenarioData.place
+                                        }}：<br>
+                                        最少：$${{ currentScenarioData.targetVal }} - {{ currentScenarioData.place / 2 }} =
+                                        {{ currentScenarioData.minVal }}$$<br>
+                                        最多：$${{ currentScenarioData.targetVal }} + {{ currentScenarioData.place / 2 - 1
+                                        }} = {{ currentScenarioData.maxVal }}$$</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 頁籤六：探險家終極試煉 -->
+            <section v-if="currentTab === 'quiz'" class="space-y-6">
+                <div class="bg-white border-2 border-emerald-300 rounded-3xl p-6 shadow-md">
+                    <!-- 試煉頂部狀態 -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-b pb-4 mb-6">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">🛡️</span>
+                            <div>
+                                <h3 class="text-2xl font-black text-slate-800">探險家終極試煉</h3>
+                                <p class="text-slate-500 text-xs">高階素養導向隨機評量，動態題庫不易死記！</p>
+                            </div>
+                        </div>
+                        <!-- 血量與分數 -->
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-sm font-bold text-slate-500">探險生命值：</span>
+                                <span v-for="h in hearts" :key="h" class="text-xl">❤️</span>
+                                <span v-for="h in (3 - hearts)" :key="'empty-'+h" class="text-xl opacity-30">🖤</span>
+                            </div>
+                            <div class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl text-sm font-black">
+                                經驗值: {{ quizScore }} XP
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 遊戲結束/獲勝 -->
+                    <div v-if="quizOver" class="text-center py-10 space-y-6">
+                        <div v-if="hearts > 0" class="space-y-4">
+                            <div class="text-6xl animate-bounce">🏆</div>
+                            <h4 class="text-3xl font-black text-emerald-600">恭喜過關！你通過了探險家試煉！</h4>
+                            <p class="text-slate-600 text-base max-w-md mx-auto">
+                                你成功戰勝了所有概數動態謎題，展現了強大的數學思維與超群的數感。現在你已經是合格的「<b>概數魔法師</b>」了！
+                            </p>
+                            <div class="text-xl font-bold text-yellow-600">
+                                獲得評價：
+                                <span v-for="star in getStars()" class="text-2xl text-yellow-400">⭐</span>
+                            </div>
+                        </div>
+                        <div v-else class="space-y-4">
+                            <div class="text-6xl">💀</div>
+                            <h4 class="text-3xl font-black text-rose-600">挑戰失敗！生命值歸零了！</h4>
+                            <p class="text-slate-600 text-base max-w-md mx-auto">
+                                沒關係，概數的逆向推理與大數進位的確很有挑戰性。重溫一下前方的「魔法解剖器」與「魔法數線儀」，再重新發起挑戰吧！
+                            </p>
+                        </div>
+                        <button @click="resetQuiz"
+                            class="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-6 py-3 rounded-xl shadow-md transition-all">
+                            重新開始試煉 (全新題目) 🔄
+                        </button>
+                    </div>
+
+                    <!-- 答題進行中 -->
+                    <div v-else class="space-y-6">
+                        <!-- 進度顯示 -->
+                        <div class="flex justify-between items-center text-xs font-black text-slate-400">
+                            <span>挑戰進度: 題號 {{ currentQuestionIdx + 1 }} / 10</span>
+                            <span>目前得分: {{ quizScore }} 分</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-500 transition-all duration-300"
+                                :style="{ width: ((currentQuestionIdx + 1) / 10 * 100) + '%' }"></div>
+                        </div>
+
+                        <!-- 問題卡片 -->
+                        <div class="bg-slate-50 border-2 border-slate-200 p-6 rounded-2xl">
+                            <span class="text-xs font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
+                                {{ currentQuestion.category }}
+                            </span>
+                            <h4 class="text-lg font-extrabold text-slate-800 mt-3 leading-relaxed"
+                                v-html="currentQuestion.question"></h4>
+                        </div>
+
+                        <!-- 選項卡片 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button v-for="(option, idx) in currentQuestion.options" :key="idx"
+                                @click="selectAnswer(idx)"
+                                class="p-4 rounded-xl border-2 text-left font-bold text-sm md:text-base transition-all duration-200"
+                                :class="getOptionClass(idx)">
+                                <span v-html="option"></span>
+                            </button>
+                        </div>
+
+                        <!-- 診斷性反思與解答 (答題後顯示) -->
+                        <div v-if="answerSubmitted" class="p-5 rounded-2xl border transition-all duration-300"
+                            :class="isCorrect ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xl" v-if="isCorrect">✅ 答對了！太棒了！</span>
+                                <span class="text-xl" v-else>❌ 答錯了，原因在這裡：</span>
+                            </div>
+                            <p class="text-sm text-slate-700 leading-relaxed font-bold"
+                                v-html="currentQuestion.explanation"></p>
+
+                            <!-- 下一題按鈕 -->
+                            <div class="mt-4 text-right">
+                                <button @click="nextQuestion"
+                                    class="bg-slate-800 hover:bg-slate-900 text-white font-extrabold px-5 py-2 rounded-xl text-sm transition-colors">
+                                    {{ currentQuestionIdx < 9 ? '進入下一題 ➡️' : '查看最終成果 🏁' }} </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- 底部版權宣告與教學支援 -->
+        <footer class="bg-slate-900 text-slate-400 py-6 text-xs text-center border-t border-slate-800">
+            <div class="max-w-6xl mx-auto px-4 space-y-2">
+                <p class="text-slate-500">© 2026 國小四年級概數數學探險家-國小數學互動教學實驗室</p>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Vue 3 應用程式主邏輯 -->
+    <script>
+        const { createApp, ref, computed, watch, nextTick, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // 分頁與導覽
+                const currentTab = ref('intro');
+                const tabs = [
+                    { id: 'intro', name: '☁️ 認識生活概數' },
+                    { id: 'methods', name: '⬇️ 三大取法情境' },
+                    { id: 'timeline', name: '⚖️ 魔法數線儀' },
+                    { id: 'solver', name: '🎛️ 萬用解剖器' },
+                    { id: 'reverse', name: '🕵️ 偵探逆向區間' },
+                    { id: 'quiz', name: '🛡️ 探險家試煉' }
+                ];
+
+                // 調用 MathJax 全域編譯數學公式的輔助函式
+                const triggerMath = () => {
+                    nextTick(() => {
+                        if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                            window.MathJax.typesetPromise().catch((err) => console.log('MathJax compilation error:', err));
+                        }
+                    });
+                };
+
+                const changeTab = (tabId) => {
+                    currentTab.value = tabId;
+                    triggerMath();
+                };
+
+                // 學習進度條
+                const progressPercentage = computed(() => {
+                    let count = 0;
+                    if (activeValueInfo.value !== '') count += 20;
+                    if (activeSituationDemo.value !== null) count += 20;
+                    if (timelineValue.value !== 2500) count += 20;
+                    if (solverResult.value !== null) count += 20;
+                    if (quizScore.value > 0) count += 20;
+                    return Math.min(count, 100);
+                });
+
+                // 頁籤一：生活中的概數
+                const activeValueInfo = ref('');
+                const showValueInfo = (infoKey) => {
+                    activeValueInfo.value = infoKey;
+                    triggerMath();
+                };
+
+                // 頁籤二：情境示範彈窗
+                const activeSituationDemo = ref(null);
+                const activeSituationDemoTitle = computed(() => {
+                    if (activeSituationDemo.value === 'discard') return '無條件捨去法實務情境：月餅分箱';
+                    if (activeSituationDemo.value === 'carry') return '無條件進入法實務情境：口罩裝盒';
+                    return '';
+                });
+                const showSituationDemo = (demoKey) => {
+                    activeSituationDemo.value = demoKey;
+                    triggerMath();
+                };
+
+                // 頁籤三：魔法數線軸
+                const timelineRangeMode = ref('thousand');
+                const timelineValue = ref(2500);
+
+                const leftBound = computed(() => timelineRangeMode.value === 'thousand' ? 2000 : 600);
+                const rightBound = computed(() => timelineRangeMode.value === 'thousand' ? 3000 : 700);
+                const midValue = computed(() => (leftBound.value + rightBound.value) / 2);
+
+                // 重設數值以防止越界
+                watch(timelineRangeMode, (newMode) => {
+                    timelineValue.value = newMode === 'thousand' ? 2500 : 650;
+                    triggerMath();
+                });
+
+                watch(timelineValue, () => {
+                    triggerMath();
+                });
+
+                const currentPos = computed(() => {
+                    const min = leftBound.value;
+                    const max = rightBound.value;
+                    const percentage = (timelineValue.value - min) / (max - min);
+                    return 100 + percentage * 600; //對應 SVG x1=100 到 x2=700
+                });
+
+                const roundedValue = computed(() => {
+                    // 四捨五入
+                    return timelineValue.value < midValue.value ? leftBound.value : rightBound.value;
+                });
+
+                const roundedPos = computed(() => {
+                    return roundedValue.value === leftBound.value ? 100 : 700;
+                });
+
+                const distance = computed(() => {
+                    return Math.abs(timelineValue.value - roundedValue.value);
+                });
+
+                // 頁籤四：萬用解剖器
+                const solverInput = ref(991416);
+                const solverPlace = ref('10000'); // 預設取到萬位
+                const solverMethod = ref('rounding'); // 預設四捨五入
+                const solverResult = ref(null);
+                const solverDigits = ref([]);
+
+                const getPlaceName = (p) => {
+                    const names = {
+                        '1': '個位', '10': '十位', '100': '百位',
+                        '1000': '千位', '10000': '萬位', '100000': '十萬位',
+                        '1000000': '百萬位', '10000000': '千萬位'
+                    };
+                    return names[String(p)] || '未知位';
+                };
+
+                const runSolver = () => {
+                    if (!solverInput.value || isNaN(solverInput.value)) return;
+
+                    const numValue = Math.floor(solverInput.value);
+                    const placeVal = parseInt(solverPlace.value);
+                    const method = solverMethod.value;
+
+                    // 計算概數結果
+                    let finalValue = 0;
+                    let stepText = '';
+
+                    const quotient = Math.floor(numValue / placeVal);
+                    const remainder = numValue % placeVal;
+
+                    if (method === 'discard') {
+                        finalValue = quotient * placeVal;
+                        stepText = `<b>套用無條件捨去法：</b><br>
+                            我們在指定位「${getPlaceName(placeVal)}」後的所有尾數（數字為 <b>${remainder}</b>）直接<b>一律歸零捨棄</b>！<br>
+                            所以結果為：<b>${finalValue}</b>。`;
+                    } else if (method === 'carry') {
+                        if (remainder > 0) {
+                            finalValue = (quotient + 1) * placeVal;
+                            stepText = `<b>套用無條件進入法：</b><br>
+                                由於指定位「${getPlaceName(placeVal)}」後方的剩餘尾數（數字為 <b>${remainder}</b>）大於 0，符合進入條件，所以我們直接在指定位上「<b>加 1</b>」！<br>
+                                如果遇到指定位原本是 9 的情況，更要觸發<b>連續進位</b>喔！<br>
+                                結果為：<b>${finalValue}</b>。`;
+                        } else {
+                            finalValue = numValue;
+                            stepText = `<b>套用無條件進入法：</b><br>
+                                由於尾數正好全部為 0（沒有任何剩餘部分），不需要進位。<br>
+                                結果保持原值：<b>${finalValue}</b>。`;
+                        }
+                    } else if (method === 'rounding') {
+                        // 觀察關鍵位：指定位的下一位
+                        const obsPlace = placeVal / 10;
+                        const obsDigit = Math.floor((numValue % placeVal) / obsPlace);
+
+                        if (obsDigit >= 5) {
+                            finalValue = (quotient + 1) * placeVal;
+                            stepText = `<b>套用四捨五入法：</b><br>
+                                關鍵觀察位「${getPlaceName(obsPlace)}」的數字是 <b>${obsDigit}</b> (屬於 5, 6, 7, 8, 9 區間)。<br>
+                                距離更靠近右側臨界點，所以要<b>進位一</b>到指定位！<br>
+                                結果為：<b>${finalValue}</b>。`;
+                        } else {
+                            finalValue = quotient * placeVal;
+                            stepText = `<b>套用四捨五入法：</b><br>
+                                關鍵觀察位「${getPlaceName(obsPlace)}」的數字是 <b>${obsDigit}</b> (屬於 0, 1, 2, 3, 4 區間)。<br>
+                                距離更靠近左側臨界點，所以要直接<b>捨去</b>所有尾數！<br>
+                                結果為：<b>${finalValue}</b>。`;
+                        }
+                    }
+
+                    // 生成位值高亮資料
+                    const digitsArray = [];
+                    const tempStr = String(numValue);
+                    for (let i = 0; i < tempStr.length; i++) {
+                        const power = Math.pow(10, tempStr.length - 1 - i);
+                        const val = tempStr[i];
+                        let role = '';
+                        let bgClass = 'border-slate-200 bg-white';
+                        let tagClass = 'bg-slate-100 text-slate-500';
+
+                        if (power === placeVal) {
+                            role = '指定位';
+                            bgClass = 'border-teal-500 bg-teal-50 animate-pulse text-teal-900 ring-2 ring-teal-300';
+                            tagClass = 'bg-teal-500 text-white';
+                        } else if (power === placeVal / 10) {
+                            role = '關鍵觀察位';
+                            bgClass = 'border-amber-500 bg-amber-50 text-amber-900';
+                            tagClass = 'bg-amber-500 text-white';
+                        } else if (power < placeVal) {
+                            role = '尾數(歸零)';
+                            bgClass = 'border-slate-100 bg-slate-50 text-slate-400';
+                            tagClass = 'bg-slate-200 text-slate-400';
+                        } else {
+                            role = '不變';
+                            bgClass = 'border-slate-200 bg-slate-50 text-slate-600';
+                            tagClass = 'bg-slate-200 text-slate-500';
+                        }
+
+                        digitsArray.push({
+                            placeName: getPlaceName(power),
+                            val: val,
+                            role: role,
+                            class: bgClass,
+                            tagClass: tagClass
+                        });
+                    }
+
+                    solverDigits.value = digitsArray;
+                    solverResult.value = {
+                        finalValue: finalValue,
+                        stepText: stepText
+                    };
+                    triggerMath();
+                };
+
+                // 頁籤五：逆向區間推導（多元情境與學理模型庫）
+                const reverseScenario = ref('tuna');
+                const activeSubTab = ref('min-guide');
+                const minStepGuess = ref(null);
+                const minStepFeedback = ref('');
+                const maxStepGuess = ref(null);
+                const maxStepFeedback = ref('');
+                const testerGuess = ref(null);
+                const testerFeedback = ref('');
+
+                const reverseScenarios = {
+                    tuna: {
+                        icon: '🐟',
+                        title: '黃鰭鮪魚重量：大約 350 公斤',
+                        place: 10,
+                        placeName: '十位',
+                        obsPlaceName: '個位',
+                        targetVal: 350,
+                        baseMinVal: 340,
+                        baseMaxVal: 350,
+                        minVal: 345,
+                        maxVal: 354
+                    },
+                    points: {
+                        icon: '🎮',
+                        title: '玩家遊戲點數：大約 12000 點',
+                        place: 100,
+                        placeName: '百位',
+                        obsPlaceName: '十位',
+                        targetVal: 12000,
+                        baseMinVal: 11900,
+                        baseMaxVal: 12000,
+                        minVal: 11950,
+                        maxVal: 12049
+                    },
+                    park: {
+                        icon: '🌲',
+                        title: '國家公園人數：大約 8 萬人',
+                        place: 10000,
+                        placeName: '萬位',
+                        obsPlaceName: '千位',
+                        targetVal: 80000,
+                        baseMinVal: 70000,
+                        baseMaxVal: 80000,
+                        minVal: 75000,
+                        maxVal: 84999
+                    }
+                };
+
+                const currentScenarioData = computed(() => {
+                    return reverseScenarios[reverseScenario.value];
+                });
+
+                const handleScenarioChange = (scenarioKey) => {
+                    reverseScenario.value = scenarioKey;
+                    minStepGuess.value = null;
+                    minStepFeedback.value = '';
+                    maxStepGuess.value = null;
+                    maxStepFeedback.value = '';
+                    testerGuess.value = null;
+                    testerFeedback.value = '';
+                    triggerMath();
+                };
+
+                const guessMinDigit = (digit) => {
+                    minStepGuess.value = digit;
+                    const current = currentScenarioData.value;
+                    const obsPlaceVal = current.place / 10;
+                    const guessedNum = current.baseMinVal + digit * obsPlaceVal;
+
+                    if (digit < 5) {
+                        minStepFeedback.value = `❌ <b>不對喔！小偵探請注意：</b><br>
+                如果你將 ${current.obsPlaceName} 填上 <b>${digit}</b>，得到的數會是 <b>${guessedNum}</b>。<br>
+                根據四捨五入法，因為 ${digit} < 5，它會被<b>四捨捨去</b>變成 ${current.baseMinVal}，根本沒辦法成功進位到 ${current.targetVal} 喔！<br>
+                請試試看大一點的數字，看看哪個數字才能跨過「五入」的門檻！`;
+                    } else if (digit === 5) {
+                        minStepFeedback.value = `🎯 <b>完全正確！小偵探太優秀了！</b><br>
+                要把 ${current.obsPlaceName} 成功五入進位，最少需要達到 <b>5</b>。填入 5 後數字是 <b>${guessedNum}</b>，會完美五入進位到 <b>${current.targetVal}</b>！<br>
+                因為我們要尋找的是「最少」，所以關鍵觀察位之後的所有其餘尾數一律填 <b>0</b> 才會最小。因此，絕對最少值就是：<b>${current.minVal}</b>！`;
+                    } else {
+                        minStepFeedback.value = `🧐 <b>可以進位，但它不是最少喔！</b><br>
+                填入 <b>${digit}</b> 得到的數 <b>${guessedNum}</b> 確實可以成功進位到 ${current.targetVal}。<br>
+                但是別忘了，我們的任務是找出<b>「最少」</b>可能是多少。還有比 ${digit} 更小、同時又能成功進位的值喔！再找找看！`;
+                    }
+                    triggerMath();
+                };
+
+                const guessMaxDigit = (digit) => {
+                    maxStepGuess.value = digit;
+                    const current = currentScenarioData.value;
+                    const obsPlaceVal = current.place / 10;
+                    const guessedNumMax = current.baseMaxVal + digit * obsPlaceVal + (obsPlaceVal - 1);
+
+                    if (digit < 4) {
+                        maxStepFeedback.value = `🧐 <b>可以捨去，但它不是最大喔！</b><br>
+                填入 <b>${digit}</b> 後，數值最大是 <b>${guessedNumMax}</b>。它確實會被四捨捨去保留在 ${current.targetVal}。<br>
+                但我們希望找出<b>「最大」</b>的可能性。還有比 ${digit} 更大、同時依然能被四捨保留在 ${current.targetVal} 的值喔！往上加加看！`;
+                    } else if (digit === 4) {
+                        maxStepFeedback.value = `🎯 <b>完全正確！恭喜你破案了！</b><br>
+                要讓 ${current.obsPlaceName} 不進位而保留原值，最大只能填到 <b>4</b>。填入 4 後，為了讓整個數字膨脹到極限，關鍵觀察位後方的所有其餘尾數都要填上最大數字 <b>9</b>。<br>
+                所以數字為 <b>${current.maxVal}</b> 依然可以保留在 <b>${current.targetVal}</b>！<br>
+                如果填到 5，就會被迫進位到更高的一階了。所以絕對最大值就是：<b>${current.maxVal}</b>！`;
+                    } else {
+                        maxStepFeedback.value = `❌ <b>哦噢，這會被迫進位！</b><br>
+                如果你將 ${current.obsPlaceName} 填上 <b>${digit}</b>，數字最大是 <b>${guessedNumMax}</b>。<br>
+                根據四捨五入法，因為 ${digit} &ge; 5，它會被<b>五入進位</b>，結果就超過我們的目標 ${current.targetVal} 了喔！請選小一點的數！`;
+                    }
+                    triggerMath();
+                };
+
+                const testGuessNumber = () => {
+                    const guess = parseInt(testerGuess.value);
+                    if (isNaN(guess)) {
+                        testerFeedback.value = '請輸入一個有效的整數喔！';
+                        return;
+                    }
+
+                    const place = currentScenarioData.value.place;
+                    const target = currentScenarioData.value.targetVal;
+
+                    const quotient = Math.floor(guess / place);
+                    const remainder = guess % place;
+                    const obsPlace = place / 10;
+                    const obsDigit = Math.floor(remainder / obsPlace);
+
+                    let rounded = 0;
+                    if (obsDigit >= 5) {
+                        rounded = (quotient + 1) * place;
+                    } else {
+                        rounded = quotient * place;
+                    }
+
+                    const minVal = currentScenarioData.value.minVal;
+                    const maxVal = currentScenarioData.value.maxVal;
+
+                    if (rounded !== target) {
+                        testerFeedback.value = `❌ <b>實測結果：</b>數字 <b>${guess}</b> 四捨五入到 ${currentScenarioData.value.placeName} 是 <b>${rounded}</b>，不等於我們的目標 <b>${target}</b> 喔！再調整看看！`;
+                    } else {
+                        if (guess === minVal) {
+                            testerFeedback.value = `🎉 <b>太厲害了！完全命中「最少值」下限！</b><br>
+                    <b>${guess}</b> 就是能成功進位到 <b>${target}</b> 的<b>絕對最低邊界</b>！再少 1 變成 <b>${guess - 1}</b> 就沒辦法進位了！`;
+                        } else if (guess === maxVal) {
+                            testerFeedback.value = `🎉 <b>不可思議！完全命中「最多值」上限！</b><br>
+                    <b>${guess}</b> 就是能保持在 <b>${target}</b> 的<b>絕對最高邊界</b>！再多 1 變成 <b>${guess + 1}</b> 就要被迫進位了！`;
+                        } else if (guess > minVal && guess < maxVal) {
+                            testerFeedback.value = `✨ <b>答對了！</b> <b>${guess}</b> 四捨五入後確實是 <b>${target}</b>！<br>
+                    不過，它還不是極限邊界喔。你可以再試試看比它更小或更大的數字，挑戰找出最少值（最低臨界點 <b>${minVal}</b>）與最多值（最高臨界點 <b>${maxVal}</b>）！`;
+                        } else {
+                            testerFeedback.value = `🧐 哎呀，系統計算異常，請再試一次。`;
+                        }
+                    }
+                    triggerMath();
+                };
+
+                // 頁籤六：探險家試煉 (10大高階素養隨機題目生成引擎)
+                const currentQuestionIdx = ref(0);
+                const quizScore = ref(0);
+                const hearts = ref(3);
+                const selectedOption = ref(null);
+                const answerSubmitted = ref(false);
+                const isCorrect = ref(false);
+                const quizOver = ref(false);
+                const quizQuestions = ref([]);
+
+                const generateQuestions = () => {
+                    const list = [];
+
+                    // 題1：精確值 vs 概數辨識
+                    const q1Scenarios = [
+                        { title: '全台灣的手機門號總數', unit: '萬個', num: Math.floor(Math.random() * 1000 + 2000), item: '門號合約' },
+                        { title: '捷運系統單日載客量', unit: '萬人次', num: Math.floor(Math.random() * 100 + 150), item: '搭乘人次' },
+                        { title: '國家圖書館館藏圖書量', unit: '萬冊', num: Math.floor(Math.random() * 300 + 500), item: '書籍冊數' }
+                    ];
+                    const q1Select = q1Scenarios[Math.floor(Math.random() * q1Scenarios.length)];
+                    list.push({
+                        category: '精確值 vs 概數辨識',
+                        question: `統計機構指出今日${q1Select.title}「大約有 ${q1Select.num} ${q1Select.unit}」，請問這個數是精確值還是概數？我們是如何判斷的？`,
+                        options: [
+                            `精確值，因為系統有精密計算每一個${q1Select.item}`,
+                            `概數，因為看到句子中有「大約」，且 ${q1Select.num} 萬這個大數尾巴有大量的 0（簡化數值表徵）`
+                        ],
+                        correct: 1,
+                        explanation: `<b>答對了！</b>生活用語中的「大約、接近、左右」以及大數尾巴大量的 0 都是概數的重要特徵。其精確值因時因地分秒都在變動，使用概數大約是 ${q1Select.num} 萬，利於人類記憶與溝通規劃。`
+                    });
+
+                    // 題2：無條件捨去法實務
+                    const q2Items = [
+                        { name: '美味鳳梨酥', pack: '一箱', size: 1000 },
+                        { name: '手工巧克力', pack: '一盒', size: 100 },
+                        { name: '紀念徽章', pack: '一袋', size: 1000 }
+                    ];
+                    const q2Select = q2Items[Math.floor(Math.random() * q2Items.length)];
+                    const q2Qty = Math.floor(Math.random() * 40000 + 30000); // 30,000 ~ 70,000
+                    const q2Quot = Math.floor(q2Qty / q2Select.size);
+                    const q2Rem = q2Qty % q2Select.size;
+                    const q2Ans = q2Quot * q2Select.size;
+                    list.push({
+                        category: '無條件捨去法實務',
+                        question: `食品工廠今天製作了 ${q2Qty.toLocaleString()} 個${q2Select.name}，每 ${q2Select.size} 個裝成${q2Select.pack}。請問最多可以裝滿幾${q2Select.pack}？共裝了多少個${q2Select.name}？這是應用了哪種概數取法？`,
+                        options: [
+                            `最多裝 ${q2Quot + 1} ${q2Select.pack}（共 ${((q2Quot + 1) * q2Select.size).toLocaleString()} 個），應用無條件進入法`,
+                            `最多裝 ${q2Quot} ${q2Select.pack}（共 ${q2Ans.toLocaleString()} 個），應用無條件捨去法，因為剩下 ${q2Rem} 個不夠裝滿一整${q2Select.pack}，不能算入`
+                        ],
+                        correct: 1,
+                        explanation: `<b>答對了！</b>這對應了「在資源容量限制下的最大值」。不滿 ${q2Select.size} 個就無法裝滿一整${q2Select.pack}，因此 ${q2Rem} 個殘數必須捨去。這正是<b>無條件捨去法</b>取概數的實務情境！算式為 $${q2Qty}\\approx${q2Ans}$。`
+                    });
+
+                    // 題3：無條件進入法實務
+                    const q3Items = [
+                        { name: '醫療口罩', pack: '一盒', size: 100 },
+                        { name: '睡袋裝箱', pack: '一大箱', size: 10 },
+                        { name: '精裝紀念冊', pack: '一紙箱', size: 50 }
+                    ];
+                    const q3Select = q3Items[Math.floor(Math.random() * q3Items.length)];
+                    const q3Qty = Math.floor(Math.random() * 40000 + 20000) * 10 + Math.floor(Math.random() * 9 + 1); // 確保餘數 > 0
+                    const q3Quot = Math.floor(q3Qty / q3Select.size);
+                    const q3Rem = q3Qty % q3Select.size;
+                    const q3Ans = (q3Quot + 1) * q3Select.size;
+                    list.push({
+                        category: '無條件進入法實務',
+                        question: `工廠生產了 ${q3Qty.toLocaleString()} 個${q3Select.name}，每 ${q3Select.size} 個裝成${q3Select.pack}。要將所有${q3Select.name}全部包裝完，最少需要準備多少個${q3Select.pack}？這是應用了哪種取法？`,
+                        options: [
+                            `最少需要 ${q3Quot + 1} 個${q3Select.pack}，應用無條件進入法，裝不滿的餘數依然需要包裝袋`,
+                            `最少需要 ${q3Quot} 個${q3Select.pack}，應用無條件捨去法，裝不滿的部分就直接丟掉`
+                        ],
+                        correct: 0,
+                        explanation: `<b>答對了！</b>這對應了「足額、保障資源充足性」的情境。為了把所有的物件「通通裝完」，剩下的 ${q3Rem} 個雖然裝不滿，但仍需額外準備 1 個包裝。所以必須<b>無條件進入加一</b>，答案是 ${q3Quot + 1} 個。算式為 $${q3Qty}\\approx${q3Ans}$。`
+                    });
+
+                    // 題4：付款情境最佳選擇
+                    const q4Items = [
+                        { name: '變速自行車', price: Math.floor(Math.random() * 2000 + 5500) }, // 5500 ~ 7500
+                        { name: '學習平板電腦', price: Math.floor(Math.random() * 3000 + 12000) }, // 12000 ~ 15000
+                        { name: '豪華雙人帳篷', price: Math.floor(Math.random() * 1500 + 3500) } // 3500 ~ 5000
+                    ];
+                    const q4Select = q4Items[Math.floor(Math.random() * q4Items.length)];
+                    const q4Bills = Math.ceil(q4Select.price / 1000);
+                    const q4TotalPay = q4Bills * 1000;
+                    list.push({
+                        category: '付款情境最佳選擇',
+                        question: `小明想買一項售價為 ${q4Select.price.toLocaleString()} 元的${q4Select.name}，他身上<b>只有千元鈔票</b>，最少要付出幾張千元鈔票才夠？店家會找給他多少錢？`,
+                        options: [
+                            `最少付出 ${q4Bills - 1} 張（共 ${((q4Bills - 1) * 1000).toLocaleString()} 元），不夠的錢請老闆打折`,
+                            `最少付出 ${q4Bills} 張（共 ${q4TotalPay.toLocaleString()} 元），店家找回 ${(q4TotalPay - q4Select.price).toLocaleString()} 元。這是無條件進入法的應用`
+                        ],
+                        correct: 1,
+                        explanation: `<b>答對了！</b>去商店付款必須「大於或等於售價」才能完成交易。付出 ${q4Bills - 1} 張是不夠的，必須無條件進入付出 ${q4Bills} 張（共 ${q4TotalPay.toLocaleString()} 元）。這就是<b>無條件進入法</b>在生活付款中的決策模型！`
+                    });
+
+                    // 題5：高階連續進位挑戰
+                    const q5Candidates = [
+                        { raw: 996500, place: 10000, placeName: '萬位', obsDigit: 6, result: 1000000 },
+                        { raw: 495120, place: 10000, placeName: '萬位', obsDigit: 5, result: 500000 },
+                        { raw: 199720, place: 1000, placeName: '千位', obsDigit: 7, result: 200000 },
+                        { raw: 99416, place: 10000, placeName: '萬位', obsDigit: 9, result: 100000 }
+                    ];
+                    const q5Select = q5Candidates[Math.floor(Math.random() * q5Candidates.length)];
+                    list.push({
+                        category: '高階連續進位挑戰',
+                        question: `統計局統計某特展參觀人數為 ${q5Select.raw.toLocaleString()} 人，用四捨五入法取概數到<b>${q5Select.placeName}</b>，結果是多少人？(請特別注意進位變化)`,
+                        options: [
+                            `${(Math.floor(q5Select.raw / q5Select.place) * q5Select.place).toLocaleString()} 人，因為只要捨去後面尾數即可`,
+                            `${q5Select.result.toLocaleString()} 人，因為觀察位的數字符合進位，產生連鎖進位反應`
+                        ],
+                        correct: 1,
+                        explanation: `<b>太厲害了！答對了！</b>這是進位中難度最高的「連鎖進位」。當我們對 ${q5Select.raw.toLocaleString()} 進行四捨五入到${q5Select.placeName}時，關鍵觀察位（下一位）的數字是 ${q5Select.obsDigit}，符合「五入」進一。萬位或千位的 9 加上進位的 1 變成 10，進而引發<b>連續進位</b>，最終結果是 ${q5Select.result.toLocaleString()}。`
+                    });
+
+                    // 題6：區間逆向推導(最大值)
+                    const q6Targets = [
+                        { target: 23000000, display: '2300 萬', factor: 10000, unitName: '萬位' },
+                        { target: 450000, display: '45 萬', factor: 10000, unitName: '萬位' },
+                        { target: 8000, display: '8000', factor: 100, unitName: '百位' }
+                    ];
+                    const q6Select = q6Targets[Math.floor(Math.random() * q6Targets.length)];
+                    const q6Max = q6Select.target + (q6Select.factor / 2 - 1);
+                    const q6Wrong = q6Select.target + (q6Select.factor / 2);
+                    list.push({
+                        category: '區間逆向推導(最大值)',
+                        question: `某一組數據用四捨五入法，取概數到<b>${q6Select.unitName}</b>得到的結果是 <b>${q6Select.display}</b>。請問實際的數字「最大」可能是多少？`,
+                        options: [
+                            `${q6Max.toLocaleString()}`,
+                            `${q6Wrong.toLocaleString()}`
+                        ],
+                        correct: 0,
+                        explanation: `<b>太精準了！答對了！</b>要讓數字最大，關鍵觀察位必須是四捨中最大的數字（也就是比進位點少一，即 4），且觀察位之後全部填滿理論最大值 9。因此，最大可能是 ${q6Max.toLocaleString()}。如果達到 ${q6Wrong.toLocaleString()}，就會五入進位到下一個位值了。`
+                    });
+
+                    // 題7：區間逆向推導(最小值)
+                    const q7Targets = [
+                        { target: 40000, display: '4 萬', factor: 10000, unitName: '萬位' },
+                        { target: 650000, display: '65 萬', factor: 10000, unitName: '萬位' },
+                        { target: 7000, display: '7000', factor: 1000, unitName: '千位' }
+                    ];
+                    const q7Select = q7Targets[Math.floor(Math.random() * q7Targets.length)];
+                    const q7Min = q7Select.target - (q7Select.factor / 2);
+                    const q7Wrong = q7Min - 1;
+                    list.push({
+                        category: '區間逆向推導(最小值)',
+                        question: `主辦單位公告某廣場活動現場人數，用四捨五入法取概數到<b>${q7Select.unitName}</b>後大約是 <b>${q7Select.display}</b>。請問實際上「最少」可能是多少人？`,
+                        options: [
+                            `${q7Wrong.toLocaleString()} 人`,
+                            `${q7Min.toLocaleString()} 人`
+                        ],
+                        correct: 1,
+                        explanation: `<b>答對了！</b>要讓實際數字最少，首要位值必須是少一的數，而關鍵觀察位必須達到可以進位的最小值 5，其餘後面全部填入最小值 0。因此，最少必須是 ${q7Min.toLocaleString()} 人，經由四捨五入進位後才會是 ${q7Select.display}。`
+                    });
+
+                    // 題8：未知數填空診斷
+                    const q8Templates = [
+                        { blank: 9, number: '[ ]5,492', result: 100000, desc: '千位是 5 觸發進位，進一到萬位。要使進位後十萬位得到 1' },
+                        { blank: 9, number: '[ ]6,120', result: 100000, desc: '千位是 6 觸發進位，進一到萬位。要使進位後十萬位得到 1' },
+                        { blank: 9, number: '[ ]7,350', result: 100000, desc: '千位是 7 觸發進位，進一到萬位。要使進位後十萬位得到 1' }
+                    ];
+                    const q8Select = q8Templates[Math.floor(Math.random() * q8Templates.length)];
+                    list.push({
+                        category: '未知數填空診斷',
+                        question: `用四捨五入法取概數到萬位，若一個大數記為 <b>${q8Select.number}</b>，取概數後的結果為 <b>${q8Select.result.toLocaleString()}</b>。請問括號 $[ ]$ 內應該填入什麼數字？`,
+                        options: [
+                            `只能填 0，代表萬位沒有任何值`,
+                            `只能填 ${q8Select.blank}。${q8Select.desc}，原本萬位的 ${q8Select.blank} 加上進位的 1 才會再次進位成為十萬位。`
+                        ],
+                        correct: 1,
+                        explanation: `<b>答對了！</b>這考驗大數的連續進位與未知數推理。由於千位數字大於或等於 5，它會產生進一到萬位的連鎖反應。要使得萬位的 $[ ]$ 加上 1 後進位成為十萬位的 1，括號內必須填入最大單數位數 9。`
+                    });
+
+                    // 題9：估算與數感建構
+                    const q9A = Math.floor(Math.random() * 200 + 3100); // 3100 ~ 3300
+                    const q9B = Math.floor(Math.random() * 200 + 1900); // 1900 ~ 2100
+                    list.push({
+                        category: '估算與數感建構',
+                        question: `如果我們要快速評估算式 ${q9A} + ${q9B} 的概算結果，下列哪一種評量與回答方式在現代數學教育上最為合理？`,
+                        options: [
+                            `直接口算出精確值 ${q9A + q9B}。概算沒有意義，追求唯一正確答案才是標準`,
+                            `可以將算式看作 3000 + 2000，快速判斷結果「最接近 5000」或落在合理區間。估算答案在合理範圍內即是具備優良數感`
+                        ],
+                        correct: 1,
+                        explanation: `<b>答對了！</b>108 課綱的核心精神是強調「在合理範圍內的估計都是好答案」！這不僅能培養孩子面對真實世界的快速決策力，更是大數感建立的重要起點。`
+                    });
+
+                    // 題10：自我檢查與錯誤診斷
+                    const q10Candidates = [
+                        { num1: 6090, num2: 3990, wrongAns: 3900, est1: 6000, est2: 4000, correctEst: 2000 },
+                        { num1: 8120, num2: 4980, wrongAns: 4140, est1: 8000, est2: 5000, correctEst: 3000 },
+                        { num1: 7080, num2: 2990, wrongAns: 5090, est1: 7000, est2: 3000, correctEst: 4000 }
+                    ];
+                    const q10Select = q10Candidates[Math.floor(Math.random() * q10Candidates.length)];
+                    list.push({
+                        category: '自我檢查與錯誤診斷',
+                        question: `小明在做減法筆算時，算出了 ${q10Select.num1} - ${q10Select.num2} = ${q10Select.wrongAns} 的結果。我們該如何引導他透過「估算」自己抓出錯誤？`,
+                        options: [
+                            `直接指責他粗心，要求重新筆算`,
+                            `引導他將 ${q10Select.num1} 看成 ${q10Select.est1}，將 ${q10Select.num2} 看成 ${q10Select.est2}。${q10Select.est1} - ${q10Select.est2} 大約是 ${q10Select.correctEst}，這與他的答案 ${q10Select.wrongAns} 差距過大，顯然在借位上發生了巨大失誤`
+                        ],
+                        correct: 1,
+                        explanation: `<b>完全正確！</b>估算（Estimation）是自主檢查與檢驗合理性的絕佳工具。利用大數估計，完全不需要重算就能瞬間察覺答案與合理範圍 ${q10Select.correctEst} 相差甚遠，進而主動找出筆算中的問題。`
+                    });
+
+                    return list;
+                };
+
+                const currentQuestion = computed(() => quizQuestions.value[currentQuestionIdx.value] || {});
+
+                const selectAnswer = (optionIdx) => {
+                    if (answerSubmitted.value) return;
+                    selectedOption.value = optionIdx;
+                    answerSubmitted.value = true;
+                    isCorrect.value = optionIdx === currentQuestion.value.correct;
+
+                    if (isCorrect.value) {
+                        quizScore.value += 10;
+                    } else {
+                        hearts.value -= 1;
+                        if (hearts.value <= 0) {
+                            quizOver.value = true;
+                        }
+                    }
+                    triggerMath();
+                };
+
+                const getOptionClass = (idx) => {
+                    if (!answerSubmitted.value) {
+                        return 'border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 bg-white text-slate-700 cursor-pointer';
+                    }
+                    if (idx === currentQuestion.value.correct) {
+                        return 'border-emerald-500 bg-emerald-100 text-emerald-900';
+                    }
+                    if (idx === selectedOption.value) {
+                        return 'border-rose-500 bg-rose-100 text-rose-900';
+                    }
+                    return 'border-slate-100 bg-slate-50 text-slate-400 opacity-60';
+                };
+
+                const nextQuestion = () => {
+                    selectedOption.value = null;
+                    answerSubmitted.value = false;
+                    if (currentQuestionIdx.value < 9) {
+                        currentQuestionIdx.value += 1;
+                    } else {
+                        quizOver.value = true;
+                    }
+                    triggerMath();
+                };
+
+                const getStars = () => {
+                    if (quizScore.value === 100) return 3;
+                    if (quizScore.value >= 80) return 2;
+                    return 1;
+                };
+
+                const resetQuiz = () => {
+                    quizQuestions.value = generateQuestions();
+                    currentQuestionIdx.value = 0;
+                    quizScore.value = 0;
+                    hearts.value = 3;
+                    selectedOption.value = null;
+                    answerSubmitted.value = false;
+                    quizOver.value = false;
+                    triggerMath();
+                };
+
+                const reverseResult = computed(() => {
+                    if (reverseTargetKey.value === '3800') {
+                        return {
+                            target: '3800 萬',
+                            min: '37,950,000 人',
+                            max: '38,049,999 人'
+                        };
+                    } else {
+                        return {
+                            target: '4 萬',
+                            min: '35,000 人',
+                            max: '44,999 人'
+                        };
+                    }
+                });
+
+                onMounted(() => {
+                    quizQuestions.value = generateQuestions();
+                    runSolver();
+                    triggerMath();
+                });
+
+                return {
+                    currentTab,
+                    tabs,
+                    changeTab,
+                    progressPercentage,
+
+                    // 頁籤一
+                    activeValueInfo,
+                    showValueInfo,
+
+                    // 頁籤二
+                    activeSituationDemo,
+                    activeSituationDemoTitle,
+                    showSituationDemo,
+
+                    // 頁籤三
+                    timelineRangeMode,
+                    timelineValue,
+                    leftBound,
+                    rightBound,
+                    midValue,
+                    currentPos,
+                    roundedValue,
+                    roundedPos,
+                    distance,
+
+                    // 頁籤四
+                    solverInput,
+                    solverPlace,
+                    solverMethod,
+                    solverResult,
+                    solverDigits,
+                    runSolver,
+
+                    // 頁籤五（更新版逆向工程）
+                    reverseScenario,
+                    reverseScenarios,
+                    activeSubTab,
+                    minStepGuess,
+                    minStepFeedback,
+                    maxStepGuess,
+                    maxStepFeedback,
+                    testerGuess,
+                    testerFeedback,
+                    currentScenarioData,
+                    handleScenarioChange,
+                    guessMinDigit,
+                    guessMaxDigit,
+                    testGuessNumber,
+                    reverseResult,
+
+                    // 頁籤六 (試煉)
+                    currentQuestionIdx,
+                    quizScore,
+                    hearts,
+                    quizOver,
+                    quizQuestions,
+                    currentQuestion,
+                    answerSubmitted,
+                    isCorrect,
+                    selectAnswer,
+                    getOptionClass,
+                    nextQuestion,
+                    getStars,
+                    resetQuiz
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+
+</html>
