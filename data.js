@@ -263,5 +263,14 @@ window.MATH_TOOLS_DATA = [
     "link": "estimates_4grad.html",
     "icon": "CandlestickChart",
     "color": "orange"
+  },
+  {
+    "id": "tool_1780377713431",
+    "title": "錐體教學實驗室",
+    "grade": "六年級",
+    "description": "專為國小高年級學生設計的「錐體教學實驗室」幾何自學平台。透過直觀的動態模擬與即時數據，將抽象的空間幾何概念具象化，協助學生建立空間直覺並進行自主探究。",
+    "link": "pyramid.html",
+    "icon": "Cone",
+    "color": "blue"
   }
 ];

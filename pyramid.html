@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式「錐體教學實驗室」幾何自學平台</title>
+
+    <!-- CSS 依賴包 (Tailwind, FontAwesome, KaTeX) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/contrib/auto-render.min.js"></script>
+
+    <!-- Three.js (3D 空間幾何渲染引擎) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',     // 幾何深藍
+                        volume: '#10B981',      // 體積翠綠
+                        slant: '#F97316',       // 斜高亮橘
+                        accent: '#8B5CF6',      // 亮紫
+                        darkbg: '#0F172A',      // 深色背景
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自訂字體與細節調整 */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8FAFC;
+        }
+
+        /* 美化滾動條 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+
+        /* 載入動畫 */
+        @keyframes pour {
+            0% {
+                stroke-dashoffset: 100;
+            }
+
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .pour-animation {
+            stroke-dasharray: 12;
+            animation: pour 1s linear infinite;
+        }
+
+        /* 計算紙抽屜轉場動畫 */
+        .drawer-transition {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 水流波浪 */
+        @keyframes wave {
+
+            0%,
+            100% {
+                transform: translateY(0) scaleY(1);
+            }
+
+            50% {
+                transform: translateY(-2px) scaleY(1.05);
+            }
+        }
+
+        .water-wave {
+            animation: wave 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- 全局頂部導航 -->
+    <header class="bg-gradient-to-r from-primary to-blue-800 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-primary p-2 rounded-xl shadow-md flex items-center justify-center w-10 h-10">
+                    <i class="fa-solid fa-shapes text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
+                        錐體教學實驗室 <span
+                            class="text-xs bg-amber-400 text-slate-900 font-semibold px-2 py-0.5 rounded-full">國小幾何自主學習版</span>
+                    </h1>
+                    <p class="text-xs text-blue-200">基於核心教學指南設計 · 空間直覺養成計畫</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <!-- 桌面版：切換計算紙顯隱按鈕 -->
+                <button onclick="toggleCalculatorDoc()"
+                    class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md">
+                    <i id="toggle-calc-btn-icon" class="fa-solid fa-calculator"></i>
+                    <span id="toggle-calc-btn-text">隱藏計算紙</span>
+                </button>
+
+                <span id="current-time"
+                    class="hidden md:inline-block text-xs bg-blue-900/40 px-3 py-1.5 rounded-lg border border-blue-700/50">
+                    <i class="fa-regular fa-clock mr-1"></i> 實驗室狀態良好
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 系統提示 Toast 容器 -->
+    <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- 核心雙主欄位佈局 -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- 左側：核心互動教學與步驟說明 (寬度自適應切換：lg:col-span-8 或 lg:col-span-12) -->
+        <div id="main-learning-content" class="lg:col-span-8 flex flex-col space-y-6 transition-all duration-300">
+
+            <!-- 大頁面頁籤切換選單 (整合五大模組) -->
+            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-1">
+                <button onclick="switchTab('tab-exploration')" id="btn-tab-exploration"
+                    class="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl font-bold text-sm transition duration-150 flex items-center justify-center gap-2 bg-primary text-white shadow-md">
+                    <i class="fa-solid fa-compass"></i> 觀念探究
+                </button>
+                <button onclick="switchTab('tab-height-comparison')" id="btn-tab-height-comparison"
+                    class="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl font-bold text-sm transition duration-150 flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50">
+                    <i class="fa-solid fa-ruler-vertical"></i> 垂直高與斜高
+                </button>
+                <button onclick="switchTab('tab-wizard')" id="btn-tab-wizard"
+                    class="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl font-bold text-sm transition duration-150 flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 引導解題
+                </button>
+                <button onclick="switchTab('tab-compound')" id="btn-tab-compound"
+                    class="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl font-bold text-sm transition duration-150 flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50">
+                    <i class="fa-solid fa-cubes"></i> 魔王複合題
+                </button>
+                <button onclick="switchTab('tab-quiz')" id="btn-tab-quiz"
+                    class="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl font-bold text-sm transition duration-150 flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50">
+                    <i class="fa-solid fa-clipboard-question"></i> 素養隨堂測驗
+                </button>
+            </div>
+
+            <!-- 幾何精靈助教導覽列 -->
+            <div
+                class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl flex items-start space-x-3 shadow-inner">
+                <div class="bg-blue-600 text-white p-3 rounded-2xl shadow-md flex-shrink-0 animate-bounce">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-blue-900 text-base flex items-center gap-1">幾何小精靈：</h4>
+                    <p id="elf-message" class="text-sm md:text-base text-blue-800 leading-relaxed">
+                        歡迎來到「錐體教學實驗室」！你可以點選上方的選單探索不同單元。如果遇到複雜的計算，隨時可以在右側（手機版請點右下角）的「數位計算紙」寫下你的算式，它會幫你解答喔！
+                    </p>
+                </div>
+            </div>
+
+            <!-- =============================================
+                 模組一：核心公式與基本觀念互動探究
+                 ============================================= -->
+            <div id="tab-exploration" class="tab-content space-y-6">
+                <!-- 實驗 1：三分之一體積動態實驗 -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-center">
+                        <h3 class="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-6 bg-volume rounded-full"></span>
+                            實驗一：1/3 體積倒水動態實驗
+                        </h3>
+                        <span
+                            class="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-md font-medium">觀念一</span>
+                    </div>
+
+                    <p class="text-slate-600 text-sm md:text-base mb-6">
+                        將一個「同底、同高」的錐體裝滿水倒入柱體，需要倒滿幾次才能剛好填滿柱體呢？點選按鈕來做實驗吧！
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <!-- SVG 倒水動畫區 -->
+                        <div
+                            class="bg-slate-900 rounded-2xl p-4 flex flex-col items-center justify-center h-64 relative overflow-hidden shadow-inner">
+                            <svg id="water-pouring-svg" width="320" height="200" viewBox="0 0 320 200"
+                                class="w-full h-full">
+                                <!-- 左側：圓錐 -->
+                                <path d="M 60,60 L 110,160 L 10,160 Z" fill="rgba(255,255,255,0.05)" stroke="#64748B"
+                                    stroke-width="2" />
+                                <ellipse cx="60" cy="160" rx="50" ry="15" fill="rgba(255,255,255,0.1)" stroke="#64748B"
+                                    stroke-width="2" />
+
+                                <!-- 圓錐內部水 -->
+                                <path id="cone-water" d="M 60,110 L 85,160 L 35,160 Z" fill="#10B981" opacity="0.8"
+                                    class="transition-all duration-1000" />
+                                <ellipse id="cone-water-top" cx="60" cy="160" rx="25" ry="7.5" fill="#34D399"
+                                    opacity="0.9" class="transition-all duration-1000" />
+                                <text x="60" y="190" text-anchor="middle" fill="#CBD5E1" font-size="12"
+                                    font-weight="bold">同底等高圓錐</text>
+
+                                <!-- 倒水的水流線 (預設隱藏) -->
+                                <path id="water-stream" d="M 60,110 Q 140,40 220,80" fill="none" stroke="#60A5FA"
+                                    stroke-width="4" stroke-linecap="round" class="pour-animation hidden" />
+
+                                <!-- 右側：圓柱 -->
+                                <ellipse cx="220" cy="60" rx="40" ry="12" fill="none" stroke="#64748B"
+                                    stroke-width="2" />
+                                <path d="M 180,60 L 180,160 A 40,12 0 0,0 260,160 L 260,60" fill="none" stroke="#64748B"
+                                    stroke-width="2" />
+                                <ellipse cx="220" cy="160" rx="40" ry="12" fill="rgba(255,255,255,0.05)"
+                                    stroke="#64748B" stroke-dasharray="4" stroke-width="2" />
+
+                                <!-- 圓柱內的水級別 (0, 1/3, 2/3, 3/3) -->
+                                <path id="cylinder-water"
+                                    d="M 180,160 A 40,12 0 0,0 260,160 L 260,160 A 40,12 0 0,1 180,160 Z" fill="#2563EB"
+                                    opacity="0.75" class="transition-all duration-1000 water-wave" />
+                                <ellipse id="cylinder-water-top" cx="220" cy="160" rx="40" ry="12" fill="#60A5FA"
+                                    opacity="0.9" class="transition-all duration-1000 hidden" />
+                                <text x="220" y="190" text-anchor="middle" fill="#CBD5E1" font-size="12"
+                                    font-weight="bold">同底等高圓柱</text>
+                            </svg>
+
+                            <!-- 水杯實驗即時狀態標籤 -->
+                            <div
+                                class="absolute top-2 left-2 bg-slate-800 text-slate-200 text-xs px-2.5 py-1 rounded-md border border-slate-700 font-mono">
+                                圓柱已裝水量: <span id="water-level-label" class="text-blue-400 font-bold">0 / 3</span>
+                            </div>
+                        </div>
+
+                        <!-- 實驗操作與公式聯動 -->
+                        <div class="space-y-4">
+                            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <h4 class="font-bold text-slate-800 mb-2">操作控制台</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    <button id="btn-pour-water" onclick="pourWaterStep()"
+                                        class="flex-1 bg-volume hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-fill-drip"></i> 倒入一次水 (1/3)
+                                    </button>
+                                    <button onclick="resetWaterExperiment()"
+                                        class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 px-4 rounded-xl transition">
+                                        <i class="fa-solid fa-rotate-right"></i> 重置
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                <h4 class="font-bold text-blue-950 text-sm mb-1">公式聯動證明：</h4>
+                                <div id="volume-math-formula"
+                                    class="bg-white p-3 rounded-xl border border-blue-100 text-center text-sm md:text-base overflow-x-auto my-2">
+                                    $$\text{錐體體積} = \text{底面積} \times \text{垂直高度} \div 3$$
+                                </div>
+                                <p class="text-xs md:text-sm text-blue-800">
+                                    💡 幾何精靈說：看到了嗎？不論是圓錐還是角錐，只要與柱體同底、同高，它的體積永遠都是柱體的 <span
+                                        class="font-bold text-lg text-primary">1/3</span>。所以要記得最後要除以 3 喔！
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 實驗 2：圓錐側面展開與速算法動態證明 -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-center">
+                        <h3 class="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-6 bg-slant rounded-full"></span>
+                            實驗二：圓錐側面展開與速算法動態解析
+                        </h3>
+                        <span
+                            class="text-xs bg-orange-50 text-orange-700 border border-orange-200 px-2 py-1 rounded-md font-medium">觀念二</span>
+                    </div>
+
+                    <p class="text-slate-600 text-sm md:text-base mb-4">
+                        圓錐展開後的側面積是一個<b>扇形</b>。我們來看看，如何利用幾何比例，推導出超方便的國小課堂專用<b>側面積速算法</b>！
+                    </p>
+
+                    <!-- SVG 展開動畫展示 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                        <!-- 左側：扇形展開 SVG 繪製 -->
+                        <div
+                            class="bg-slate-950 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[280px] relative shadow-inner">
+                            <span
+                                class="absolute top-2 left-2 text-xs bg-slate-900 text-slate-400 px-2.5 py-1 rounded-md border border-slate-800">2D
+                                展開圖幾何模擬器</span>
+                            <div class="w-full flex justify-center items-center">
+                                <svg id="cone-unfold-svg" width="280" height="240" viewBox="0 0 280 240"
+                                    class="max-w-full">
+                                    <!-- 扇形將動態在 JS 中生成 -->
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- 右側：動態參數滑桿與計算 -->
+                        <div class="space-y-4">
+                            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4">
+                                <h4 class="font-bold text-slate-800 text-sm flex items-center justify-between">
+                                    <span>幾何參數動態調節</span>
+                                    <span class="text-xs text-slate-500 font-mono">拉動滑桿試試看</span>
+                                </h4>
+
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-600 mb-1">
+                                        <span class="font-medium">底面半徑 ($R$)</span>
+                                        <span class="font-bold text-primary font-mono" id="slider-r-val">3 cm</span>
+                                    </div>
+                                    <input type="range" id="slider-r" min="2" max="6" step="1" value="3"
+                                        oninput="updateConeUnfold()"
+                                        class="w-full accent-primary h-2 bg-slate-200 rounded-lg cursor-pointer">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-600 mb-1">
+                                        <span class="font-medium">圓錐斜高 ($L$) — 即側邊扇形半徑</span>
+                                        <span class="font-bold text-slant font-mono" id="slider-l-val">6 cm</span>
+                                    </div>
+                                    <input type="range" id="slider-l" min="6" max="12" step="1" value="6"
+                                        oninput="updateConeUnfold()"
+                                        class="w-full accent-orange-500 h-2 bg-slate-200 rounded-lg cursor-pointer">
+                                </div>
+                            </div>
+
+                            <!-- 動態圓心角速算公式卡片 -->
+                            <div class="bg-orange-50/70 p-4 rounded-2xl border border-orange-100 space-y-2">
+                                <h4 class="font-bold text-orange-950 text-sm">幾何比例即時計算：</h4>
+                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                    <div class="bg-white p-2.5 rounded-xl border border-orange-100 shadow-sm">
+                                        <p class="text-slate-500">展開後扇形圓心角：</p>
+                                        <p class="text-base font-bold text-orange-600 mt-0.5" id="calc-sector-angle">
+                                            180°</p>
+                                    </div>
+                                    <div class="bg-white p-2.5 rounded-xl border border-orange-100 shadow-sm">
+                                        <p class="text-slate-500">扇形佔大圓比例：</p>
+                                        <p class="text-base font-bold text-indigo-600 mt-0.5" id="calc-sector-ratio">1/2
+                                            (50%)</p>
+                                    </div>
+                                </div>
+                                <div
+                                    class="bg-white p-3 rounded-xl border border-orange-100 text-center overflow-x-auto text-sm my-1">
+                                    $$\text{扇形圓心角} = 360^\circ \times \frac{\text{底面半徑}}{\text{斜高}}$$
+                                </div>
+                                <div class="bg-orange-600 text-white p-3.5 rounded-xl text-xs space-y-1 shadow-sm">
+                                    <p class="font-bold flex items-center gap-1 text-sm">
+                                        <i class="fa-solid fa-bolt"></i> 國小超神側面積速算法公式
+                                    </p>
+                                    <p class="text-orange-100 text-xs">標準公式化簡後，只要將底面半徑乘上斜高，再乘上圓周率 3.14，就能直接秒殺側面積！</p>
+                                    <p
+                                        class="font-bold text-center text-sm pt-1.5 bg-orange-700/50 rounded mt-1 font-mono">
+                                        底面半徑 ($R$) × 斜高 ($L$) × 3.14
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =============================================
+                 模組二：關鍵觀念辨析——「垂直高」vs「斜高」
+                 ============================================= -->
+            <div id="tab-height-comparison" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-center">
+                        <h3 class="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-6 bg-accent rounded-full"></span>
+                            觀念辨析：3D 視覺對比「垂直高」與「斜高」
+                        </h3>
+                        <span
+                            class="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 rounded-md font-medium">深度剖析</span>
+                    </div>
+
+                    <p class="text-slate-600 text-sm md:text-base mb-4">
+                        學生在計算面積與體積時，最容易把「垂直高（做在圖形裡面）」與「斜高（做在圖形表面）」搞混！拖曳 3D 空間來觀察吧！
+                    </p>
+
+                    <!-- 3D 渲染區域與對比控制器 -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                        <!-- 3D 畫布與控制器 (佔 7) -->
+                        <div class="md:col-span-7 flex flex-col space-y-2 w-full">
+                            <div class="bg-slate-900 rounded-2xl relative shadow-inner overflow-hidden"
+                                style="height: 320px;">
+                                <div id="three-container" class="w-full h-full cursor-grab active:cursor-grabbing">
+                                </div>
+
+                                <!-- 3D 畫布內浮動提示與視角操作提示 -->
+                                <div
+                                    class="absolute bottom-2 left-2 bg-slate-950/80 text-white text-[10px] px-2 py-1 rounded border border-slate-800">
+                                    <i class="fa-solid fa-arrows-spin mr-1"></i> 滑鼠拖曳可 360° 旋轉錐體觀看
+                                </div>
+
+                                <div class="absolute top-2 right-2 flex flex-col gap-1.5">
+                                    <button onclick="toggleThreeGeometry('cone')" id="btn-three-cone"
+                                        class="bg-blue-600 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold shadow hover:bg-blue-700 transition">
+                                        切換為 3D 圓錐
+                                    </button>
+                                    <button onclick="toggleThreeGeometry('pyramid')" id="btn-three-pyramid"
+                                        class="bg-slate-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold shadow hover:bg-slate-600 transition">
+                                        切換為 3D 角錐
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 切換對比按鈕與口訣卡 (佔 5) -->
+                        <div class="md:col-span-5 space-y-4">
+                            <!-- 控制開關 -->
+                            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+                                <h4 class="font-bold text-slate-800 text-sm">選擇要點亮的高度：</h4>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <button id="btn-select-h" onclick="select3DHeightType('H')"
+                                        class="flex items-center justify-between p-3 rounded-xl border-2 border-volume bg-emerald-50/50 text-left transition duration-200">
+                                        <div>
+                                            <p class="font-bold text-emerald-800 text-sm"><i
+                                                    class="fa-solid fa-arrow-down-long mr-1"></i> 垂直高 (Height)</p>
+                                            <p class="text-xs text-emerald-600 mt-0.5">錐體頂點垂直降落至底面中心的距離</p>
+                                        </div>
+                                        <i class="fa-solid fa-check-circle text-volume text-lg"></i>
+                                    </button>
+
+                                    <button id="btn-select-l" onclick="select3DHeightType('L')"
+                                        class="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-slate-300 text-left transition duration-200">
+                                        <div>
+                                            <p class="font-bold text-slate-700 text-sm"><i
+                                                    class="fa-solid fa-road-barrier mr-1"></i> 斜高 (Slant Height)</p>
+                                            <p class="text-xs text-slate-500 mt-0.5">錐體側面三角形（或扇形）的高</p>
+                                        </div>
+                                        <i class="fa-regular fa-circle text-slate-300 text-lg"></i>
+                                    </button>
+                                </div>
+
+                                <div class="pt-2">
+                                    <label
+                                        class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-100 transition">
+                                        <input type="checkbox" id="chk-triangle-mask" onchange="toggleTriangleMask()"
+                                            class="w-4 h-4 text-accent rounded accent-purple-600">
+                                        <span class="text-xs font-bold text-slate-700">點亮 3D 內部直角三角形遮罩</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 朗朗上口口訣 -->
+                            <div id="mnemonics-card"
+                                class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-5 rounded-2xl shadow-md space-y-3 transition-all duration-300">
+                                <h4 class="font-extrabold text-sm flex items-center gap-1.5">
+                                    <i class="fa-solid fa-quote-left"></i>
+                                    國小高年級專屬記憶口訣
+                                </h4>
+                                <div id="mnemonics-text"
+                                    class="text-center font-bold text-base py-3 bg-white/10 rounded-xl">
+                                    體積看裡面，要用垂直高！
+                                </div>
+                                <p id="mnemonics-desc" class="text-xs text-emerald-100 leading-relaxed">
+                                    垂直高是在錐體「體腔內部」的直線，就像是量身高一樣，算體積時一定必須要使用這條垂直高。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =============================================
+                 模組三：經典範例引導式解題 (Guided Learning Wizard)
+                 ============================================= -->
+            <div id="tab-wizard" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="border-b border-slate-100 pb-4 mb-4">
+                        <h3 class="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-6 bg-amber-500 rounded-full"></span>
+                            經典範例關卡式引導解題
+                        </h3>
+                        <p class="text-xs md:text-sm text-slate-500 mt-1">
+                            不要害怕複雜題目！我們把兩大題型拆解成「關卡式引導步驟」，用計算紙求出答案並輸入看看吧！
+                        </p>
+                    </div>
+
+                    <!-- 選擇要挑戰的題型 -->
+                    <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-6">
+                        <button onclick="switchWizardType('pyramid')" id="btn-wiz-pyramid"
+                            class="py-2.5 rounded-lg font-bold text-sm bg-white text-slate-900 shadow-sm transition">
+                            題型一：正四角錐引導
+                        </button>
+                        <button onclick="switchWizardType('cone')" id="btn-wiz-cone"
+                            class="py-2.5 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-50 transition">
+                            題型二：圓錐引導
+                        </button>
+                    </div>
+
+                    <!-- 引導解題情境卡片 -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+                        <!-- 左側：題目描述與圖形 2D/3D 意象 (佔 5) -->
+                        <div class="md:col-span-5 bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4">
+                            <div class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold w-fit">題目情境</div>
+                            <div id="wizard-problem-description"
+                                class="text-sm md:text-base font-medium text-slate-800 leading-relaxed">
+                                <!-- 動態載入 -->
+                            </div>
+
+                            <!-- 圖示區域 -->
+                            <div
+                                class="bg-white rounded-xl p-3 border border-slate-200 flex justify-center items-center min-h-[160px]">
+                                <svg id="wizard-diagram-svg" width="180" height="150" viewBox="0 0 180 150">
+                                    <!-- 動態繪製題型圖示 -->
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- 右側：鷹架引導步驟 (佔 7) -->
+                        <div class="md:col-span-7 space-y-4 flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-bold text-slate-500">關卡引導進度</span>
+                                    <span id="wizard-progress-text" class="font-bold text-primary">步驟 1 / 5</span>
+                                </div>
+                                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                    <div id="wizard-progress-bar"
+                                        class="bg-primary h-2 rounded-full transition-all duration-300"
+                                        style="width: 20%;"></div>
+                                </div>
+
+                                <!-- 當前引導內容 -->
+                                <div
+                                    class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 space-y-3 min-h-[140px]">
+                                    <span id="wizard-step-badge"
+                                        class="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-md font-bold">步驟
+                                        1</span>
+                                    <p id="wizard-step-instruction"
+                                        class="text-sm md:text-base font-bold text-blue-950 leading-relaxed">
+                                        請先計算正方形底面的底面積是多少平方公分呢？
+                                    </p>
+                                    <p id="wizard-step-tip" class="text-xs text-blue-700/80 italic">
+                                        提示：正方形面積 = 邊長 × 邊長
+                                    </p>
+                                </div>
+
+                                <!-- 作答輸入框 -->
+                                <div class="flex gap-2">
+                                    <div class="relative flex-grow">
+                                        <input type="number" id="wizard-input" placeholder="請輸入算好的數值"
+                                            class="w-full bg-white border-2 border-slate-300 focus:border-primary focus:outline-none rounded-xl py-2.5 px-4 font-mono font-bold text-lg">
+                                        <span id="wizard-unit"
+                                            class="absolute right-4 top-3 text-sm text-slate-400 font-bold">平方公分</span>
+                                    </div>
+                                    <button onclick="checkWizardStepAnswer()"
+                                        class="bg-primary hover:bg-blue-700 text-white font-bold px-6 rounded-xl shadow-md transition flex items-center justify-center gap-1">
+                                        驗證答案 <i class="fa-solid fa-circle-check"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 步驟控制導航 -->
+                            <div class="flex justify-between items-center border-t border-slate-100 pt-4 mt-2">
+                                <button onclick="prevWizardStep()" id="btn-wizard-prev"
+                                    class="text-xs font-bold text-slate-500 hover:text-slate-700 disabled:opacity-40"
+                                    disabled>
+                                    <i class="fa-solid fa-arrow-left"></i> 上一步
+                                </button>
+                                <button onclick="revealWizardAnswer()"
+                                    class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+                                    <i class="fa-solid fa-lightbulb"></i> 我卡住了，給我答案與解析
+                                </button>
+                                <button id="btn-wizard-next"
+                                    class="text-xs font-bold text-slate-500 disabled:opacity-40" disabled>
+                                    (請先回答) 下一步 <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- =============================================
+                 模組四：進階複合圖形實戰 (魔王題拆解)
+                 ============================================= -->
+            <div id="tab-compound" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-center">
+                        <h3 class="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-6 bg-red-500 rounded-full"></span>
+                            進階魔王題拆解：圓柱上方疊圓錐複合體
+                        </h3>
+                        <span
+                            class="text-xs bg-red-50 text-red-700 border border-red-200 px-2 py-1 rounded-md font-bold">常錯魔王題</span>
+                    </div>
+
+                    <p class="text-slate-600 text-sm md:text-base mb-4">
+                        下圖是由一個圓錐疊在圓柱上面。請點擊 <b>「分離/組合」</b> 按鈕，觀察複合圖形最重要、最容易算錯的「重疊暴露面原則」！
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                        <!-- 左側：動態 3D 模型或 2D 分離 SVG (佔 6) -->
+                        <div
+                            class="md:col-span-6 bg-slate-950 p-4 rounded-3xl flex flex-col items-center justify-center relative min-h-[300px] shadow-inner">
+                            <span
+                                class="absolute top-2 left-2 text-xs bg-slate-900 text-slate-400 px-2 py-1 rounded-md border border-slate-800">透視與拆解動畫視窗</span>
+
+                            <div class="w-full flex justify-center py-4">
+                                <svg id="compound-svg" width="220" height="240" viewBox="0 0 220 240">
+                                    <!-- 將以 JS 動態調整，透過 transform 向上移位圓錐 -->
+                                </svg>
+                            </div>
+
+                            <button onclick="toggleCompoundSeparation()"
+                                class="bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold py-2 px-4 rounded-xl shadow shadow-white/10 flex items-center gap-2">
+                                <i class="fa-solid fa-arrows-up-down"></i> <span id="btn-separate-text">點擊分離圓錐與圓柱</span>
+                            </button>
+                        </div>
+
+                        <!-- 右側：拆解分析與計算指南 (佔 6) -->
+                        <div class="md:col-span-6 space-y-4">
+                            <!-- 警告標語卡 -->
+                            <div class="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start gap-3">
+                                <div
+                                    class="bg-red-500 text-white p-2.5 rounded-xl shadow-md flex-shrink-0 animate-pulse">
+                                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <h4 class="font-extrabold text-red-900 text-sm">幾何重難點警告：</h4>
+                                    <p class="text-xs md:text-sm text-red-800 leading-relaxed font-bold">
+                                        ⚠️ 黏在一起的「重疊面」絕對不能計算！
+                                    </p>
+                                    <p class="text-xs md:text-sm text-red-700/90 leading-relaxed">
+                                        當算「總體積」時，可以直接分開算再相加；但算「表面積」時，暴露在外的才是表面，被蓋住的重疊圓形不能算進去喔！
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- 拆解步驟控制面板 -->
+                            <div class="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+                                <div
+                                    class="bg-slate-100 p-3 px-4 border-b border-slate-200 flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800 text-xs">複合體實戰拆解公式</h4>
+                                    <span class="text-[10px] text-slate-500 font-mono">底面半徑=10, 錐高=12, 柱高=15,
+                                        錐斜高=13</span>
+                                </div>
+
+                                <div class="p-4 space-y-3 text-xs md:text-sm">
+                                    <details
+                                        class="group bg-white p-2.5 rounded-xl border border-slate-100 cursor-pointer"
+                                        open>
+                                        <summary
+                                            class="font-bold text-slate-800 flex justify-between items-center group-open:text-primary">
+                                            <span>一、求總體積 (錐體積 + 柱體積)</span>
+                                            <i class="fa-solid fa-chevron-down group-open:rotate-180 transition"></i>
+                                        </summary>
+                                        <div
+                                            class="pt-2 text-slate-600 space-y-1.5 border-t border-slate-50 mt-2 font-mono">
+                                            <p>1. 圓柱體積：$(10 \times 10 \times 3.14) \times 15 = 4710\text{ cm}^3$</p>
+                                            <p>2. 圓錐體積：$(10 \times 10 \times 3.14) \times 12 \div 3 = 1256\text{ cm}^3$
+                                            </p>
+                                            <p class="font-bold text-primary">加總體積：$4710 + 1256 = 5966\text{ cm}^3$</p>
+                                        </div>
+                                    </details>
+
+                                    <details
+                                        class="group bg-white p-2.5 rounded-xl border border-slate-100 cursor-pointer">
+                                        <summary
+                                            class="font-bold text-slate-800 flex justify-between items-center group-open:text-primary">
+                                            <span>二、求表面積 (僅計算暴露面)</span>
+                                            <i class="fa-solid fa-chevron-down group-open:rotate-180 transition"></i>
+                                        </summary>
+                                        <div
+                                            class="pt-2 text-slate-600 space-y-1.5 border-t border-slate-50 mt-2 font-mono">
+                                            <p>1. 最底部圓面積 (底面)：$10 \times 10 \times 3.14 = 314\text{ cm}^2$</p>
+                                            <p>2. 圓柱側面 (長方形)：$(10 \times 2 \times 3.14) \times 15 = 942\text{ cm}^2$</p>
+                                            <p>3. 圓錐側面 (扇形速算)：$10 \times 13 \times 3.14 = 408.2\text{ cm}^2$</p>
+                                            <p class="font-bold text-orange-600">加總表面積：$314 + 942 + 408.2 = 1664.2\text{
+                                                cm}^2$</p>
+                                        </div>
+                                    </details>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =============================================
+                 模組五：動態生活素養隨堂小測驗系統
+                 ============================================= -->
+            <div id="tab-quiz" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-6 bg-accent rounded-full"></span>
+                            <h3 class="text-lg md:text-xl font-bold text-slate-900">隨機動態生活素養測驗</h3>
+                        </div>
+                        <button onclick="generateFreshQuiz()"
+                            class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-200 transition">
+                            <i class="fa-solid fa-arrows-rotate mr-1"></i> 全新出題
+                        </button>
+                    </div>
+
+                    <p class="text-slate-600 text-sm md:text-base mb-6">
+                        系統採用<b>「動態生活情境與參數隨機引擎」</b>。每次點擊重新出題，名稱、代名詞與幾何數值皆會重整，能無限次幫你檢測學習盲點！
+                    </p>
+
+                    <!-- 得分顯示板 (僅在檢討模式顯示) -->
+                    <div id="quiz-score-board"
+                        class="hidden bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-2xl shadow-md text-center space-y-2 mb-6">
+                        <h4 class="text-lg font-extrabold flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-300"></i>
+                            測驗檢討模式
+                        </h4>
+                        <p class="text-3xl font-black font-mono" id="quiz-score-text">100 / 100 分</p>
+                        <p class="text-xs text-indigo-100 font-medium" id="quiz-congrats">太棒了！概念非常清晰喔！</p>
+                    </div>
+
+                    <!-- 測驗題目容器 -->
+                    <div id="quiz-questions-container" class="space-y-6">
+                        <!-- 題目 1 ~ 5 動態載入 -->
+                    </div>
+
+                    <!-- 測驗提交與重測控制列 -->
+                    <div class="border-t border-slate-100 pt-6 mt-6 flex flex-wrap justify-between items-center gap-4">
+                        <div id="quiz-normal-controls" class="w-full flex justify-end">
+                            <button onclick="submitQuiz()"
+                                class="w-full md:w-auto bg-primary hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-paper-plane"></i> 送出全卷，檢視分數與詳解
+                            </button>
+                        </div>
+                        <div id="quiz-review-controls"
+                            class="w-full flex flex-col md:flex-row justify-between items-center gap-4 hidden">
+                            <span class="text-sm font-bold text-slate-500 flex items-center gap-1">
+                                <i class="fa-solid fa-compass"></i> 你可以選擇兩種方式進行重測：
+                            </span>
+                            <div class="flex gap-2 w-full md:w-auto">
+                                <button onclick="retakeSameQuiz()"
+                                    class="flex-1 md:flex-none bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2 text-sm border border-slate-200">
+                                    <i class="fa-solid fa-rotate-left"></i> 原題再戰 (原數值重算)
+                                </button>
+                                <button onclick="generateFreshQuiz()"
+                                    class="flex-1 md:flex-none bg-primary hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm">
+                                    <i class="fa-solid fa-bolt"></i> 全新挑戰 (刷出新情境與新數值)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 右側：輔助工具規格「數位計算紙」 (佔比 4/12，支援響應式隱藏狀態) -->
+        <aside id="cli-calculator"
+            class="lg:col-span-4 bg-slate-900 text-white rounded-3xl p-5 border border-slate-800 h-fit flex flex-col space-y-4 lg:sticky lg:top-[80px] shadow-2xl lg:shadow-md transition-all duration-300">
+
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div class="flex items-center space-x-2">
+                    <span class="flex h-2.5 w-2.5 relative">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <h3 class="text-base font-bold text-slate-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-terminal text-emerald-400"></i>
+                        數位計算紙
+                    </h3>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">CLI Calc</span>
+                    <!-- 桌面/行動關閉按鈕 -->
+                    <button onclick="toggleCalculatorDoc()"
+                        class="hidden lg:inline-block text-slate-400 hover:text-white p-1">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                    <button onclick="toggleMobileCalculator(false)"
+                        class="lg:hidden text-slate-400 hover:text-white p-1">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 計算器操作指南小提示 -->
+            <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1.5">
+                <p class="font-bold text-slate-300 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-question text-emerald-400"></i>
+                    高年級容錯輸入指南：
+                </p>
+                <div class="grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[10px]">
+                    <div>· 乘號容錯: <span class="text-emerald-400">x, X, ×</span></div>
+                    <div>· 百分比: <span class="text-emerald-400">%</span> (自動除100)</div>
+                    <div>· 圓周率: <span class="text-emerald-400">pi, π</span> (=3.14)</div>
+                    <div>· 平方: <span class="text-emerald-400">^2</span> (平方)</div>
+                </div>
+            </div>
+
+            <!-- 計算歷史展示區 (無縫狀態管理，使用 hidden 而非銷毀) -->
+            <div id="calc-history-container" class="flex-grow overflow-y-auto space-y-2 h-44 lg:max-h-60 text-sm">
+                <!-- 歷史記錄渲染點 -->
+                <div id="calc-empty-tip" class="text-center text-slate-500 py-10 text-xs">
+                    <i class="fa-regular fa-clipboard text-xl mb-2 block text-slate-600"></i>
+                    計算紙空空如也，請在下方輸入算式！
+                </div>
+            </div>
+
+            <!-- 安全輸入求值區 -->
+            <div class="space-y-2">
+                <div class="relative">
+                    <input type="text" id="calc-input" onkeydown="handleCalcKeyDown(event)"
+                        placeholder="例：3 x 5 x π 或 10^2 - 15%"
+                        class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:outline-none rounded-xl py-3 pl-4 pr-12 font-mono font-bold text-emerald-400 text-base placeholder-slate-600">
+                    <button onclick="submitCalculator()"
+                        class="absolute right-2 top-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg p-1.5 text-xs transition font-extrabold shadow flex items-center justify-center w-7 h-7">
+                        <i class="fa-solid fa-play"></i>
+                    </button>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="insertToCalc('π')"
+                        class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono py-1.5 rounded-lg text-xs transition">π
+                        (3.14)</button>
+                    <button onclick="insertToCalc('^2')"
+                        class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono py-1.5 rounded-lg text-xs transition">平方
+                        (^2)</button>
+                    <button onclick="insertToCalc('sqrt(')"
+                        class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono py-1.5 rounded-lg text-xs transition">sqrt(根號)</button>
+                    <button onclick="clearCalculator()"
+                        class="bg-red-950/40 hover:bg-red-900/60 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold transition">CLEAR</button>
+                </div>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <!-- 行動端底部浮動抽屜觸發按鈕 -->
+    <div class="lg:hidden fixed bottom-4 right-4 z-40">
+        <button onclick="toggleMobileCalculator(true)"
+            class="bg-slate-900 text-white rounded-full p-4 shadow-2xl flex items-center gap-2 border border-slate-800 font-bold text-sm">
+            <i class="fa-solid fa-calculator text-emerald-400 text-lg"></i>
+            <span>數位計算紙</span>
+            <span id="mobile-history-badge"
+                class="hidden bg-emerald-500 text-slate-950 rounded-full text-[10px] w-5 h-5 flex items-center justify-center font-black">0</span>
+        </button>
+    </div>
+
+    <!-- 底部版權 -->
+    <footer class="bg-slate-100 border-t border-slate-200 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-1">
+            <p class="font-semibold">互動式「錐體教學實驗室」幾何自學平台</p>
+            <p>專為國小高年級學生設計 · 免費幾何自主探究教材 · 純前端獨立沙箱安全運作</p>
+        </div>
+    </footer>
+
+    <!-- =============================================
+         JAVASCRIPT 全域業務邏輯引擎
+         ============================================= -->
+    <script>
+        // ---------------------------------------------
+        // 全局狀態管理 (State Machine)
+        // ---------------------------------------------
+        let currentTabId = 'tab-exploration';
+
+        // 模組一狀態
+        let waterExperimentStep = 0; // 0, 1, 2, 3
+
+        // 模組二 (Three.js) 狀態
+        let threeScene, threeCamera, threeRenderer, threeCone, threePyramid;
+        let activeThreeGeo = 'cone'; // 'cone' or 'pyramid'
+        let selectedHeightType = 'H'; // 'H' (垂直高) or 'L' (斜高)
+        let isTriangleMaskOn = false;
+
+        // 數位計算紙顯隱狀態 (預設開啟)
+        let isCalculatorVisible = true;
+
+        // 模組三 (引導解題) 狀態
+        let wizardType = 'pyramid'; // 'pyramid' or 'cone'
+        let wizardStep = 1;
+        const wizardData = {
+            pyramid: {
+                title: "正四角錐引導解題",
+                desc: "底面邊長是 10 公分正方形、垂直高 12 公分、斜高 13 公分的正四角錐。求其底面積、體積與表面積。",
+                steps: [
+                    { step: 1, instruction: "首先，請計算底面正方形的【底面積】是多少平方公分？", tip: "提示：正方形面積 = 邊長 × 邊長", answer: 100, unit: "平方公分" },
+                    { step: 2, instruction: "算出底面積 100 之後，我們利用垂直高 (12 公分) 來計算這個正四角錐的【總體積】是多少立方公分？", tip: "提示：體積 = 底面積 × 垂直高度 ÷ 3", answer: 400, unit: "立方公分" },
+                    { step: 3, instruction: "接著要算表面積。請先計算單一側面三角形面積。已知三角形底邊為 10 公分，斜高(三角形的高)為 13 公分，【單一側面積】是多少？", tip: "提示：三角形面積 = 底 × 高 ÷ 2 (此時的高要用滑滑的斜高喔！)", answer: 65, unit: "平方公分" },
+                    { step: 4, instruction: "太棒了！一個四角錐側面總共有 4 個一模一樣的三角形，請算出【總側面積】是多少平方公分？", tip: "提示：總側面積 = 單一側面三角形面積 × 4", answer: 260, unit: "平方公分" },
+                    { step: 5, instruction: "最後，將底面積與總側面積著色相加，求出正四角錐的【總表面積】是多少平方公分？", tip: "提示：總表面積 = 底面積 + 總側面積", answer: 360, unit: "平方公分" }
+                ]
+            },
+            cone: {
+                title: "圓錐引導解題",
+                desc: "底面圓形半徑 3 公分、側面的斜高 5 公分的圓錐。求其底面積、側面積、總表面積與展開扇形圓心角。",
+                steps: [
+                    { step: 1, instruction: "請先計算底面圓形的【底面積】是多少平方公分？(圓周率請統一用 3.14)", tip: "提示：圓面積 = 半徑 × 半徑 × 3.14", answer: 28.26, unit: "平方公分" },
+                    { step: 2, instruction: "接下來使用神速算法，計算圓錐的【側面積】。已知底半徑 3 公分、斜高 5 公分，答案是多少平方公分？", tip: "提示：圓錐側面積速算法 = 底半徑 × 斜高 × 3.14", answer: 47.1, unit: "平方公分" },
+                    { step: 3, instruction: "將底面積 (28.26) 與側面積 (47.1) 相加，求出這個圓錐的【總表面積】是多少平方公分？", tip: "提示：總表面積 = 底面積 + 側面積", answer: 75.36, unit: "平方公分" },
+                    { step: 4, instruction: "最後，請算出圓錐側面展開成扇形後，這個扇形的【圓心角】是多少度？", tip: "提示：展開扇形圓心角 = 360° × (底面半徑 ÷ 斜高)", answer: 216, unit: "度" }
+                ]
+            }
+        };
+
+        // 模組四 (複合圖形) 狀態
+        let isCompoundSeparated = false;
+
+        // 模組五 (隨堂測驗) 狀態
+        let quizQuestions = [];
+        let isQuizInReviewMode = false;
+        let quizAnswersInput = []; // 學生輸入答案
+
+        // 輔助工具 (計算紙) 狀態
+        let calculationHistory = [];
+
+
+        // ---------------------------------------------
+        // 生命週期與初始化
+        // ---------------------------------------------
+        window.onload = function () {
+            // 初始化數學公式渲染 (KaTeX)
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false }
+                ],
+                throwOnError: false
+            });
+
+            // 初始化 SVG 與 3D 的內容
+            initConeUnfoldSVG();
+            initThreeJS();
+            updateConeUnfold();
+            switchWizardType('pyramid');
+            initCompoundSVG();
+            generateFreshQuiz();
+
+            // 響應式：適配 3D 尺寸
+            window.addEventListener('resize', onWindowResize);
+        };
+
+        // 系統提示機制 (Toast) 代替 Alert
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-bold transition duration-300 transform translate-x-20 opacity-0 pointer-events-auto max-w-sm border`;
+
+            if (type === 'success') {
+                toast.className += ' bg-emerald-50 text-emerald-800 border-emerald-200';
+                toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i> <span>${message}</span>`;
+            } else if (type === 'error') {
+                toast.className += ' bg-red-50 text-red-800 border-red-200';
+                toast.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 text-sm"></i> <span>${message}</span>`;
+            } else {
+                toast.className += ' bg-blue-50 text-blue-800 border-blue-200';
+                toast.innerHTML = `<i class="fa-solid fa-info-circle text-blue-500 text-sm"></i> <span>${message}</span>`;
+            }
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-x-20', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-20', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // 幾何精靈動態語音/泡泡更新
+        function setElfMessage(msg) {
+            document.getElementById('elf-message').innerText = msg;
+        }
+
+        // 數位計算紙桌面顯示與隱藏功能
+        function toggleCalculatorDoc() {
+            isCalculatorVisible = !isCalculatorVisible;
+            const calcAside = document.getElementById('cli-calculator');
+            const mainContent = document.getElementById('main-learning-content');
+            const btnText = document.getElementById('toggle-calc-btn-text');
+            const btnIcon = document.getElementById('toggle-calc-btn-icon');
+
+            if (isCalculatorVisible) {
+                calcAside.classList.remove('hidden', 'lg:hidden');
+                calcAside.classList.add('lg:col-span-4', 'flex');
+                mainContent.classList.remove('lg:col-span-12');
+                mainContent.classList.add('lg:col-span-8');
+
+                if (btnText) btnText.innerText = "隱藏計算紙";
+                if (btnIcon) {
+                    btnIcon.className = "fa-solid fa-calculator";
+                }
+                showToast("已開啟數位計算紙", "info");
+                setElfMessage("計算紙已開啟。在右側輸入算式，小助手會幫你運算喔！");
+            } else {
+                calcAside.classList.add('hidden', 'lg:hidden');
+                calcAside.classList.remove('lg:col-span-4', 'flex');
+                mainContent.classList.remove('lg:col-span-8');
+                mainContent.classList.add('lg:col-span-12');
+
+                if (btnText) btnText.innerText = "開啟計算紙";
+                if (btnIcon) {
+                    btnIcon.className = "fa-solid fa-calculator-slash";
+                }
+                showToast("已隱藏計算紙，畫面已最大化！", "info");
+                setElfMessage("已隱藏計算紙，現在你有更大的空間進行幾何學習！");
+            }
+
+            // 觸發 Three.js 視窗尺寸調整
+            setTimeout(onWindowResize, 150);
+        }
+
+        // 大頁面切換機制
+        function switchTab(tabId) {
+            currentTabId = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            // 更新選單按鈕樣式
+            const tabButtons = [
+                { id: 'btn-tab-exploration', tab: 'tab-exploration' },
+                { id: 'btn-tab-height-comparison', tab: 'tab-height-comparison' },
+                { id: 'btn-tab-wizard', tab: 'tab-wizard' },
+                { id: 'btn-tab-compound', tab: 'tab-compound' },
+                { id: 'btn-tab-quiz', tab: 'tab-quiz' }
+            ];
+
+            tabButtons.forEach(btn => {
+                const el = document.getElementById(btn.id);
+                if (btn.tab === tabId) {
+                    el.className = "flex-1 min-w-[120px] py-2.5 px-3 rounded-xl font-bold text-sm transition duration-150 flex items-center justify-center gap-2 bg-primary text-white shadow-md";
+                } else {
+                    el.className = "flex-1 min-w-[120px] py-2.5 px-3 rounded-xl font-bold text-sm transition duration-150 flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50";
+                }
+            });
+
+            // 如果切換到 3D 觀測台，重新調整 Three.js 大小
+            if (tabId === 'tab-height-comparison') {
+                setTimeout(onWindowResize, 50);
+                setElfMessage("現在進入 3D 觀測台！你可以拖曳滑鼠旋轉錐體。點擊右邊按鈕觀察「垂直高（做在圖形裡面，算體積）」與「斜高（滑梯軌跡，算表面積）」！");
+            } else if (tabId === 'tab-exploration') {
+                setElfMessage("快來動手玩「三分之一體積水杯實驗」與「側面積展開」吧！看看那些神秘公式如何被推導出來的！");
+            } else if (tabId === 'tab-wizard') {
+                setElfMessage("在引導解題單元，我們幫你把大題目拆成了幾個一小步一小步的引導，加油！在框框裡寫下你的答案吧！");
+            } else if (tabId === 'tab-compound') {
+                setElfMessage("挑戰進階魔王題！點選「分離」按鈕，看看為什麼重疊面絕對不能算在表面積裡面？");
+            } else if (tabId === 'tab-quiz') {
+                setElfMessage("隨堂素養挑戰！這裡的題目都是動態隨機生成的，可以用右側計算紙算出答案再填入喔！");
+            }
+        }
+
+
+        // ---------------------------------------------
+        // 模組一：三分之一體積實驗 SVG 邏輯
+        // ---------------------------------------------
+        function pourWaterStep() {
+            if (waterExperimentStep >= 3) {
+                showToast("圓柱已經裝滿囉！請先點擊重置。", "info");
+                return;
+            }
+
+            const coneWater = document.getElementById('cone-water');
+            const coneWaterTop = document.getElementById('cone-water-top');
+            const waterStream = document.getElementById('water-stream');
+            const cylinderWater = document.getElementById('cylinder-water');
+            const cylinderWaterTop = document.getElementById('cylinder-water-top');
+
+            // 1. 播放倒水溪流動畫
+            waterStream.classList.remove('hidden');
+
+            // 2. 錐體內的水變空 (高度與寬度動畫)
+            coneWater.style.transform = 'scaleY(0) translateY(80px)';
+            coneWaterTop.style.transform = 'scale(0)';
+
+            setElfMessage("正在倒水/沙中... 咕嚕咕嚕...");
+
+            setTimeout(() => {
+                waterExperimentStep++;
+
+                // 3. 隱藏水流，圓柱內水高度上升
+                waterStream.classList.add('hidden');
+
+                // 恢復錐體內的水 (等待下次倒入)
+                if (waterExperimentStep < 3) {
+                    coneWater.style.transform = 'scaleY(1) translateY(0px)';
+                    coneWaterTop.style.transform = 'scale(1)';
+                }
+
+                // 圓柱水位高度按比例 1/3, 2/3, 3/3 增加
+                let newY = 160 - (waterExperimentStep * 33.3);
+                let textLabel = `${waterExperimentStep} / 3`;
+                document.getElementById('water-level-label').innerText = textLabel;
+
+                // 繪製圓柱水
+                if (waterExperimentStep === 1) {
+                    cylinderWater.setAttribute('d', 'M 180,160 A 40,12 0 0,0 260,160 L 260,126 A 40,12 0 0,1 180,126 Z');
+                    cylinderWaterTop.setAttribute('cx', '220');
+                    cylinderWaterTop.setAttribute('cy', '126');
+                    cylinderWaterTop.classList.remove('hidden');
+                } else if (waterExperimentStep === 2) {
+                    cylinderWater.setAttribute('d', 'M 180,160 A 40,12 0 0,0 260,160 L 260,93 A 40,12 0 0,1 180,93 Z');
+                    cylinderWaterTop.setAttribute('cy', '93');
+                } else if (waterExperimentStep === 3) {
+                    cylinderWater.setAttribute('d', 'M 180,160 A 40,12 0 0,0 260,160 L 260,60 A 40,12 0 0,1 180,60 Z');
+                    cylinderWaterTop.setAttribute('cy', '60');
+                    setElfMessage("哇！倒滿 3 次，圓柱剛好填得滿滿的！這就是『錐體體積 = 底面積 × 垂直高 ÷ 3』的直觀證明！");
+                    showToast("倒水實驗圓滿完成！", "success");
+                }
+
+                if (waterExperimentStep < 3) {
+                    setElfMessage(`第 ${waterExperimentStep} 次倒入圓柱。水位升到了 ${textLabel}！`);
+                }
+
+            }, 1200);
+        }
+
+        function resetWaterExperiment() {
+            waterExperimentStep = 0;
+            document.getElementById('water-level-label').innerText = "0 / 3";
+
+            const coneWater = document.getElementById('cone-water');
+            const coneWaterTop = document.getElementById('cone-water-top');
+            const cylinderWater = document.getElementById('cylinder-water');
+            const cylinderWaterTop = document.getElementById('cylinder-water-top');
+
+            coneWater.style.transform = 'scaleY(1) translateY(0px)';
+            coneWaterTop.style.transform = 'scale(1)';
+            cylinderWater.setAttribute('d', 'M 180,160 A 40,12 0 0,0 260,160 L 260,160 A 40,12 0 0,1 180,160 Z');
+            cylinderWaterTop.classList.add('hidden');
+
+            setElfMessage("實驗水杯已清空，隨時可以再次做「三分之一體積實驗」喔！");
+            showToast("實驗已重置", "info");
+        }
+
+
+        // ---------------------------------------------
+        // 模組一：2D 扇形圓錐展開動畫 SVG
+        // ---------------------------------------------
+        function initConeUnfoldSVG() {
+            const svg = document.getElementById('cone-unfold-svg');
+            svg.innerHTML = `
+                <!-- 展開扇形 -->
+                <path id="unfold-sector" fill="rgba(249, 115, 22, 0.15)" stroke="#F97316" stroke-width="2.5" />
+                <!-- 扇形半徑 (斜高) 文字標記 -->
+                <text id="unfold-l-text" fill="#F97316" font-size="11" font-weight="bold" font-family="monospace"></text>
+                
+                <!-- 底面圓形 -->
+                <circle id="unfold-base" fill="rgba(37, 99, 235, 0.15)" stroke="#2563EB" stroke-width="2.5" />
+                <!-- 底面半徑標記 -->
+                <line id="unfold-r-line" stroke="#2563EB" stroke-width="2" stroke-dasharray="2" />
+                <text id="unfold-r-text" fill="#2563EB" font-size="11" font-weight="bold" font-family="monospace"></text>
+            `;
+        }
+
+        function updateConeUnfold() {
+            const r = parseInt(document.getElementById('slider-r').value);
+            const l = parseInt(document.getElementById('slider-l').value);
+
+            document.getElementById('slider-r-val').innerText = `${r} cm`;
+            document.getElementById('slider-l-val').innerText = `${l} cm`;
+
+            // 計算圓心角
+            const angle = Math.round(360 * r / l);
+            const ratio = (r / l).toFixed(2);
+            const ratioFraction = simplifyFraction(r, l);
+
+            document.getElementById('calc-sector-angle').innerText = `${angle}°`;
+            document.getElementById('calc-sector-ratio').innerText = `${ratioFraction} (${Math.round(ratio * 100)}%)`;
+
+            // 計算 SVG 幾何定位 (中心 (140, 100))
+            const cx = 140;
+            const cy = 100;
+
+            // 縮放比例 (以 12cm 為滿版)
+            const scale = 110 / 12;
+            const svgL = l * scale;
+            const svgR = r * scale;
+
+            // 1. 繪製展開扇形 (以 (cx, cy) 為圓心)
+            const angleRad = (angle * Math.PI) / 180;
+
+            // 扇形起點：(cx, cy - svgL) (即上方 12 點鐘位置)
+            const startX = cx;
+            const startY = cy - svgL;
+
+            // 扇形終點
+            const endX = cx + svgL * Math.sin(angleRad);
+            const endY = cy - svgL * Math.cos(angleRad);
+
+            // 大弧旗標：如果度數大於 180，LargeArcFlag 為 1
+            const largeArcFlag = angle > 180 ? 1 : 0;
+
+            let sectorPath = "";
+            if (angle === 360) {
+                // 如果是 360 度，繪製完整圓形
+                sectorPath = `M ${cx} ${cy} m 0 -${svgL} a ${svgL} ${svgL} 0 1 1 0 ${svgL * 2} a ${svgL} ${svgL} 0 1 1 0 -${svgL * 2}`;
+            } else {
+                sectorPath = `M ${cx} ${cy} L ${startX} ${startY} A ${svgL} ${svgL} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
+            }
+
+            document.getElementById('unfold-sector').setAttribute('d', sectorPath);
+
+            // 斜高文字位置 (斜線中間)
+            const midAngle = angleRad / 2;
+            const midTextX = cx + (svgL / 2) * Math.sin(midAngle) + 12;
+            const midTextY = cy - (svgL / 2) * Math.cos(midAngle);
+            const textL = document.getElementById('unfold-l-text');
+            textL.setAttribute('x', midTextX);
+            textL.setAttribute('y', midTextY);
+            textL.textContent = `斜高=${l}`;
+
+            // 2. 繪製底面圓形 (定位在扇形弧線下方，為了簡化，固定在底部方便觀察)
+            const baseCircle = document.getElementById('unfold-base');
+            baseCircle.setAttribute('cx', cx);
+            baseCircle.setAttribute('cy', cy + 80);
+            baseCircle.setAttribute('r', svgR);
+
+            // 底面圓形半徑線
+            const rLine = document.getElementById('unfold-r-line');
+            rLine.setAttribute('x1', cx);
+            rLine.setAttribute('y1', cy + 80);
+            rLine.setAttribute('x2', cx + svgR);
+            rLine.setAttribute('y2', cy + 80);
+
+            // 半徑文字
+            const textR = document.getElementById('unfold-r-text');
+            textR.setAttribute('x', cx + svgR / 2);
+            textR.setAttribute('y', cy + 74);
+            textR.textContent = `r=${r}`;
+        }
+
+        // 簡化分數算法
+        function simplifyFraction(numerator, denominator) {
+            const gcd = (a, b) => b ? gcd(b, a % b) : a;
+            const divisor = gcd(numerator, denominator);
+            const num = numerator / divisor;
+            const den = denominator / divisor;
+            return den === 1 ? `${num}` : `${num}/${den}`;
+        }
+
+
+        // ---------------------------------------------
+        // 模組二：3D 錐體觀測台 (Three.js) 邏輯
+        // ---------------------------------------------
+        function initThreeJS() {
+            const container = document.getElementById('three-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // 創建場景
+            threeScene = new THREE.Scene();
+            threeScene.background = new THREE.Color(0x0f172a); // Slate-900
+
+            // 創建相機
+            threeCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            threeCamera.position.set(4, 5, 6);
+            threeCamera.lookAt(0, 0.5, 0);
+
+            // 渲染器
+            threeRenderer = new THREE.WebGLRenderer({ antialias: true });
+            threeRenderer.setSize(width, height);
+            container.appendChild(threeRenderer.domElement);
+
+            // 燈光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            threeScene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            threeScene.add(dirLight);
+
+            // 建立 3D 物件組
+            buildThreeGeometries();
+
+            // 滑鼠簡易旋轉邏輯
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+
+            container.addEventListener('mousedown', (e) => { isDragging = true; });
+            container.addEventListener('mousemove', (e) => {
+                const deltaMove = {
+                    x: e.offsetX - previousMousePosition.x,
+                    y: e.offsetY - previousMousePosition.y
+                };
+
+                if (isDragging) {
+                    const deltaRotationQuaternion = new THREE.Quaternion()
+                        .setFromEuler(new THREE.Euler(
+                            toRadians(deltaMove.y * 0.5),
+                            toRadians(deltaMove.x * 0.5),
+                            0,
+                            'XYZ'
+                        ));
+
+                    if (threeCone) threeCone.quaternion.multiplyQuaternions(deltaRotationQuaternion, threeCone.quaternion);
+                    if (threePyramid) threePyramid.quaternion.multiplyQuaternions(deltaRotationQuaternion, threePyramid.quaternion);
+                }
+
+                previousMousePosition = {
+                    x: e.offsetX,
+                    y: e.offsetY
+                };
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            // 觸控支援
+            container.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                const touch = e.touches[0];
+                previousMousePosition = { x: touch.clientX, y: touch.clientY };
+            });
+            container.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const touch = e.touches[0];
+                const deltaMove = {
+                    x: touch.clientX - previousMousePosition.x,
+                    y: touch.clientY - previousMousePosition.y
+                };
+                const deltaRotationQuaternion = new THREE.Quaternion()
+                    .setFromEuler(new THREE.Euler(
+                        toRadians(deltaMove.y * 0.5),
+                        toRadians(deltaMove.x * 0.5),
+                        0,
+                        'XYZ'
+                    ));
+                if (threeCone) threeCone.quaternion.multiplyQuaternions(deltaRotationQuaternion, threeCone.quaternion);
+                if (threePyramid) threePyramid.quaternion.multiplyQuaternions(deltaRotationQuaternion, threePyramid.quaternion);
+                previousMousePosition = { x: touch.clientX, y: touch.clientY };
+            });
+            container.addEventListener('touchend', () => { isDragging = false; });
+
+            // 開始動畫迴圈 (呼吸脈衝效果動態讀取物件)
+            function animate() {
+                requestAnimationFrame(animate);
+
+                const time = Date.now() * 0.001;
+
+                if (threeCone && threePyramid) {
+                    const activeGroup = (activeThreeGeo === 'cone') ? threeCone : threePyramid;
+                    const activeLineH = activeGroup.getObjectByName("lineH");
+                    if (activeLineH && activeLineH.visible) {
+                        // 模擬垂直高上的呼吸特效
+                        const pulse = 1.0 + Math.sin(time * 5) * 0.05;
+                        activeLineH.scale.set(pulse, 1, pulse);
+                    }
+                }
+
+                threeRenderer.render(threeScene, threeCamera);
+            }
+            animate();
+        }
+
+        function toRadians(angle) { return angle * (Math.PI / 180); }
+
+        function buildThreeGeometries() {
+            // 1. 圓錐 (Cone)
+            threeCone = new THREE.Group();
+
+            // 圓錐殼 (半透明方便看裡面)
+            const coneGeo = new THREE.ConeGeometry(1.5, 3, 32, 1, true);
+            const coneMat = new THREE.MeshPhongMaterial({
+                color: 0x3b82f6,
+                transparent: true,
+                opacity: 0.4,
+                side: THREE.DoubleSide,
+                flatShading: true
+            });
+            const coneMesh = new THREE.Mesh(coneGeo, coneMat);
+            coneMesh.position.y = 1.5; // 底部對齊 y=0
+            threeCone.add(coneMesh);
+
+            // 圓錐底圓
+            const discGeo = new THREE.CircleGeometry(1.5, 32);
+            const discMat = new THREE.MeshPhongMaterial({ color: 0x1d4ed8, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+            const discMesh = new THREE.Mesh(discGeo, discMat);
+            discMesh.rotation.x = Math.PI / 2;
+            threeCone.add(discMesh);
+
+            // 2. 四角錐 (Pyramid) - 幾何精確對齊修正
+            threePyramid = new THREE.Group();
+            const pyrGeo = new THREE.ConeGeometry(1.6, 3, 4, 1, true); // 4面的 Cone 就是四角錐
+            pyrGeo.rotateY(Math.PI / 4); // 旋轉 45 度呈正方形外觀
+            const pyrMat = new THREE.MeshPhongMaterial({
+                color: 0x8b5cf6,
+                transparent: true,
+                opacity: 0.4,
+                side: THREE.DoubleSide,
+                flatShading: true
+            });
+            const pyrMesh = new THREE.Mesh(pyrGeo, pyrMat);
+            pyrMesh.position.y = 1.5;
+            threePyramid.add(pyrMesh);
+
+            // 正方形底 - 改用與 ConeGeometry (1.6, 3, 4) 完全匹配的 CircleGeometry 確保頂點完全吻合！
+            const rectGeo = new THREE.CircleGeometry(1.6, 4);
+            rectGeo.rotateX(-Math.PI / 2); // 轉為水平面 (XZ)
+            rectGeo.rotateY(Math.PI / 4);  // 與上面的側邊角錐做同角度旋轉，完美對齊底角！
+
+            const rectMat = new THREE.MeshPhongMaterial({
+                color: 0x6d28d9,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            const rectMesh = new THREE.Mesh(rectGeo, rectMat);
+            rectMesh.position.y = 0; // 置於底部
+            threePyramid.add(rectMesh);
+
+            // 初始將圓錐加入場景，角錐先隱藏
+            threeScene.add(threeCone);
+            threeScene.add(threePyramid);
+            threePyramid.visible = false;
+
+            // 3. 建立公用輔助高度與三角形遮罩
+            setupAuxiliaryLines();
+        }
+
+        function setupAuxiliaryLines() {
+            // ==========================================
+            // A. 為圓錐 (Cone) 建立輔助線 (半徑 R = 1.5, 高 H = 3)
+            // ==========================================
+            // 1. 垂直高 Line (綠色)
+            const coneHPoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 3, 0)];
+            const coneHGeo = new THREE.BufferGeometry().setFromPoints(coneHPoints);
+            const coneHMat = new THREE.LineBasicMaterial({ color: 0x10B981, linewidth: 4 });
+            const coneLineH = new THREE.Line(coneHGeo, coneHMat);
+            coneLineH.name = "lineH";
+            threeCone.add(coneLineH);
+
+            // 2. 斜高 Line (橘色) - 連接底圓邊緣 (1.5, 0, 0) 到頂點 (0, 3, 0)
+            const coneLPoints = [new THREE.Vector3(1.5, 0, 0), new THREE.Vector3(0, 3, 0)];
+            const coneLGeo = new THREE.BufferGeometry().setFromPoints(coneLPoints);
+            const coneLMat = new THREE.LineBasicMaterial({ color: 0xF97316, linewidth: 4 });
+            const coneLineL = new THREE.Line(coneLGeo, coneLMat);
+            coneLineL.name = "lineL";
+            threeCone.add(coneLineL);
+
+            // 3. 直角三角形遮罩 (紫色)
+            const coneTriPoints = new Float32Array([
+                0, 0, 0,     // 中心
+                1.5, 0, 0,   // 底圓邊緣
+                0, 3, 0      // 頂點
+            ]);
+            const coneTriGeo = new THREE.BufferGeometry();
+            coneTriGeo.setAttribute('position', new THREE.BufferAttribute(coneTriPoints, 3));
+            const coneTriMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+            const coneTriangle = new THREE.Mesh(coneTriGeo, coneTriMat);
+            coneTriangle.name = "triangleMask";
+            threeCone.add(coneTriangle);
+
+
+            // ==========================================
+            // B. 為四角錐 (Pyramid) 建立輔助線 (底邊中點 R_mid ≈ 1.13, 高 H = 3)
+            // ==========================================
+            // 1. 垂直高 Line (綠色)
+            const pyrHPoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 3, 0)];
+            const pyrHGeo = new THREE.BufferGeometry().setFromPoints(pyrHPoints);
+            const pyrHMat = new THREE.LineBasicMaterial({ color: 0x10B981, linewidth: 4 });
+            const pyrLineH = new THREE.Line(pyrHGeo, pyrHMat);
+            pyrLineH.name = "lineH";
+            threePyramid.add(pyrLineH);
+
+            // 2. 斜高 Line (橘色) - 連接底邊中點 (1.13, 0, 0) 到頂點 (0, 3, 0)
+            // 在底面正方形旋轉45度後，底邊中點剛好落在 X 軸上的 1.6 * cos(45度) ≈ 1.13 處
+            const pyrLPoints = [new THREE.Vector3(1.13, 0, 0), new THREE.Vector3(0, 3, 0)];
+            const pyrLGeo = new THREE.BufferGeometry().setFromPoints(pyrLPoints);
+            const pyrLMat = new THREE.LineBasicMaterial({ color: 0xF97316, linewidth: 4 });
+            const pyrLineL = new THREE.Line(pyrLGeo, pyrLMat);
+            pyrLineL.name = "lineL";
+            threePyramid.add(pyrLineL);
+
+            // 3. 直角三角形遮罩 (紫色)
+            const pyrTriPoints = new Float32Array([
+                0, 0, 0,     // 中心
+                1.13, 0, 0,  // 底邊中點
+                0, 3, 0      // 頂點
+            ]);
+            const pyrTriGeo = new THREE.BufferGeometry();
+            pyrTriGeo.setAttribute('position', new THREE.BufferAttribute(pyrTriPoints, 3));
+            const pyrTriMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+            const pyrTriangle = new THREE.Mesh(pyrTriGeo, pyrTriMat);
+            pyrTriangle.name = "triangleMask";
+            threePyramid.add(pyrTriangle);
+
+            // 初始設定可視性狀態
+            update3DHeightVisibility();
+        }
+
+        function toggleThreeGeometry(type) {
+            activeThreeGeo = type;
+            if (type === 'cone') {
+                threeCone.visible = true;
+                threePyramid.visible = false;
+                document.getElementById('btn-three-cone').className = "bg-blue-600 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold shadow";
+                document.getElementById('btn-three-pyramid').className = "bg-slate-700 text-slate-300 text-xs px-2.5 py-1.5 rounded-lg hover:bg-slate-600 transition";
+            } else {
+                threeCone.visible = false;
+                threePyramid.visible = true;
+                document.getElementById('btn-three-cone').className = "bg-slate-700 text-slate-300 text-xs px-2.5 py-1.5 rounded-lg hover:bg-slate-600 transition";
+                document.getElementById('btn-three-pyramid').className = "bg-purple-600 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold shadow";
+            }
+            update3DHeightVisibility();
+        }
+
+        function select3DHeightType(type) {
+            selectedHeightType = type;
+
+            const btnH = document.getElementById('btn-select-h');
+            const btnL = document.getElementById('btn-select-l');
+            const card = document.getElementById('mnemonics-card');
+            const text = document.getElementById('mnemonics-text');
+            const desc = document.getElementById('mnemonics-desc');
+
+            if (type === 'H') {
+                btnH.className = "flex items-center justify-between p-3 rounded-xl border-2 border-volume bg-emerald-50/50 text-left transition duration-200";
+                btnL.className = "flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-slate-300 text-left transition duration-200";
+
+                btnH.querySelector('i:last-child').className = "fa-solid fa-check-circle text-volume text-lg";
+                btnL.querySelector('i:last-child').className = "fa-regular fa-circle text-slate-300 text-lg";
+
+                card.className = "bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-5 rounded-2xl shadow-md space-y-3 transition-all duration-300";
+                text.innerText = "體積看裡面，要用垂直高！";
+                desc.innerText = "垂直高是在錐體「體腔內部」的直線，就像是量身高一樣，算體積時一定必須要使用這條垂直高。";
+                setElfMessage("垂直高用來算體積。想像一下往錐體內部倒水，裝水的立體容積是由『垂直高度』決定的！");
+            } else {
+                btnL.className = "flex items-center justify-between p-3 rounded-xl border-2 border-slant bg-orange-50/50 text-left transition duration-200";
+                btnH.className = "flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-slate-300 text-left transition duration-200";
+
+                btnL.querySelector('i:last-child').className = "fa-solid fa-check-circle text-slant text-lg";
+                btnH.querySelector('i:last-child').className = "fa-regular fa-circle text-slate-300 text-lg";
+
+                card.className = "bg-gradient-to-br from-orange-500 to-amber-600 text-white p-5 rounded-2xl shadow-md space-y-3 transition-all duration-300";
+                text.innerText = "表面看外面，要用斜高算！";
+                desc.innerText = "斜高是在錐體「外部表面」的直線，就像坐滑滑梯一樣順著滑下。在算外殼側面積與表面積時，必須要使用這條斜高。";
+                setElfMessage("斜高用來算側面積。想像展開錐體的外殼包裝，決定扇形/三角形大小的尺寸就是這條外部的『斜高』！");
+            }
+            update3DHeightVisibility();
+        }
+
+        function toggleTriangleMask() {
+            isTriangleMaskOn = document.getElementById('chk-triangle-mask').checked;
+            update3DHeightVisibility();
+            if (isTriangleMaskOn) {
+                setElfMessage("點亮內部直角三角形！有沒有發現，斜高（直角三角形的斜邊）永遠比垂直高（直角邊）還要長喔！");
+            }
+        }
+
+        function update3DHeightVisibility() {
+            // 取得當前激活群組與非激活群組
+            const activeGroup = (activeThreeGeo === 'cone') ? threeCone : threePyramid;
+            const inactiveGroup = (activeThreeGeo === 'cone') ? threePyramid : threeCone;
+
+            // 確保非激活群組的所有線條與遮罩都隱藏
+            inactiveGroup.children.forEach(c => {
+                if (c.name === "lineH" || c.name === "lineL" || c.name === "triangleMask") {
+                    c.visible = false;
+                }
+            });
+
+            // 獲取激活群組底下的各線條與遮罩組件
+            const activeLineH = activeGroup.getObjectByName("lineH");
+            const activeLineL = activeGroup.getObjectByName("lineL");
+            const activeTriangle = activeGroup.getObjectByName("triangleMask");
+
+            // 套用使用者當前的點亮選擇
+            if (activeLineH) activeLineH.visible = (selectedHeightType === 'H' || isTriangleMaskOn);
+            if (activeLineL) activeLineL.visible = (selectedHeightType === 'L' || isTriangleMaskOn);
+            if (activeTriangle) activeTriangle.visible = isTriangleMaskOn;
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('three-container');
+            if (!container || !threeCamera) return;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            threeCamera.aspect = width / height;
+            threeCamera.updateProjectionMatrix();
+            threeRenderer.setSize(width, height);
+        }
+
+
+        // ---------------------------------------------
+        // 模組三：引導解題 (Wizard) 邏輯
+        // ---------------------------------------------
+        function switchWizardType(type) {
+            wizardType = type;
+            wizardStep = 1;
+
+            const btnPyramid = document.getElementById('btn-wiz-pyramid');
+            const btnCone = document.getElementById('btn-wiz-cone');
+
+            if (type === 'pyramid') {
+                btnPyramid.className = "py-2.5 rounded-lg font-bold text-sm bg-white text-slate-900 shadow-sm transition";
+                btnCone.className = "py-2.5 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-50 transition";
+            } else {
+                btnCone.className = "py-2.5 rounded-lg font-bold text-sm bg-white text-slate-900 shadow-sm transition";
+                btnPyramid.className = "py-2.5 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-50 transition";
+            }
+
+            renderWizardDiagram();
+            loadWizardStep();
+        }
+
+        function renderWizardDiagram() {
+            const svg = document.getElementById('wizard-diagram-svg');
+            svg.innerHTML = ''; // 清空
+
+            if (wizardType === 'pyramid') {
+                // 畫四角錐 2D 透視示意圖
+                svg.innerHTML = `
+                    <polygon points="90,20 40,110 90,130 140,110" fill="rgba(139, 92, 246, 0.1)" stroke="#8B5CF6" stroke-width="2" />
+                    <line x1="90" y1="20" x2="90" y2="115" stroke="#10B981" stroke-width="2" stroke-dasharray="3" id="diag-h-line" /> <!-- 垂直高 -->
+                    <line x1="90" y1="20" x2="90" y2="130" stroke="#F97316" stroke-width="2" id="diag-l-line" /> <!-- 斜高 -->
+                    <!-- 底邊 -->
+                    <text x="90" y="145" text-anchor="middle" font-size="11" font-weight="bold" fill="#6d28d9">邊長 10 cm</text>
+                    <text x="75" y="75" font-size="11" font-weight="bold" fill="#10B981">高 12</text>
+                    <text x="100" y="65" font-size="11" font-weight="bold" fill="#F97316">斜高 13</text>
+                `;
+            } else {
+                // 畫圓錐 2D 透視示意圖
+                svg.innerHTML = `
+                    <ellipse cx="90" cy="115" rx="50" ry="15" fill="rgba(37, 99, 235, 0.1)" stroke="#2563EB" stroke-width="2" />
+                    <polygon points="90,20 40,115 140,115" fill="none" stroke="#2563EB" stroke-dasharray="2" />
+                    <line x1="90" y1="20" x2="140" y2="115" stroke="#F97316" stroke-width="2" /> <!-- 斜高 -->
+                    <line x1="90" y1="20" x2="90" y2="115" stroke="#10B981" stroke-width="2" stroke-dasharray="3" /> <!-- 內高 -->
+                    <line x1="90" y1="115" x2="140" y2="115" stroke="#2563EB" stroke-width="2" /> <!-- 半徑 -->
+                    <text x="115" y="130" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563EB">半徑 3</text>
+                    <text x="125" y="65" font-size="11" font-weight="bold" fill="#F97316">斜高 5</text>
+                `;
+            }
+        }
+
+        function loadWizardStep() {
+            const data = wizardData[wizardType];
+            const stepInfo = data.steps[wizardStep - 1];
+
+            document.getElementById('wizard-problem-description').innerText = data.desc;
+            document.getElementById('wizard-progress-text').innerText = `步驟 ${wizardStep} / ${data.steps.length}`;
+            document.getElementById('wizard-progress-bar').style.width = `${(wizardStep / data.steps.length) * 100}%`;
+
+            document.getElementById('wizard-step-badge').innerText = `步驟 ${wizardStep}`;
+            document.getElementById('wizard-step-instruction').innerText = stepInfo.instruction;
+            document.getElementById('wizard-step-tip').innerText = stepInfo.tip;
+            document.getElementById('wizard-unit').innerText = stepInfo.unit;
+
+            // 清空與控制按鈕
+            document.getElementById('wizard-input').value = '';
+            document.getElementById('wizard-input').className = "w-full bg-white border-2 border-slate-300 focus:border-primary focus:outline-none rounded-xl py-2.5 px-4 font-mono font-bold text-lg";
+            document.getElementById('btn-wizard-prev').disabled = (wizardStep === 1);
+            document.getElementById('btn-wizard-next').disabled = true;
+
+            // 輔助 SVG 視覺亮起
+            const diagH = document.getElementById('diag-h-line');
+            const diagL = document.getElementById('diag-l-line');
+            if (diagH && diagL) {
+                if (wizardStep === 2) {
+                    diagH.setAttribute('stroke-width', '4');
+                    diagL.setAttribute('stroke-width', '1');
+                } else if (wizardStep >= 3) {
+                    diagH.setAttribute('stroke-width', '1');
+                    diagL.setAttribute('stroke-width', '4');
+                } else {
+                    diagH.setAttribute('stroke-width', '2');
+                    diagL.setAttribute('stroke-width', '2');
+                }
+            }
+        }
+
+        function checkWizardStepAnswer() {
+            const val = parseFloat(document.getElementById('wizard-input').value);
+            const data = wizardData[wizardType];
+            const stepInfo = data.steps[wizardStep - 1];
+
+            if (isNaN(val)) {
+                showToast("請輸入有效的計算數值喔！", "error");
+                return;
+            }
+
+            // 容許小數誤差
+            if (Math.abs(val - stepInfo.answer) < 0.01) {
+                showToast("恭喜你！算對了！🎉", "success");
+                document.getElementById('wizard-input').className = "w-full bg-emerald-50 border-2 border-emerald-500 focus:outline-none rounded-xl py-2.5 px-4 font-mono font-bold text-lg text-emerald-800";
+
+                // 解鎖下一步
+                if (wizardStep < data.steps.length) {
+                    document.getElementById('btn-wizard-next').disabled = false;
+                    document.getElementById('btn-wizard-next').onclick = () => {
+                        wizardStep++;
+                        loadWizardStep();
+                    };
+                    setElfMessage(`回答正確！趕快點擊「下一步」解鎖關卡！`);
+                } else {
+                    setElfMessage(`恭喜你！完全破解了這個「${data.title}」的全部步驟！你已經是幾何高手囉！`);
+                    showToast("整道題已完整破解！太強了！🏆", "success");
+                }
+            } else {
+                showToast("答案好像不對喔，再檢查看看算式！", "error");
+                document.getElementById('wizard-input').className = "w-full bg-red-50 border-2 border-red-400 focus:outline-none rounded-xl py-2.5 px-4 font-mono font-bold text-lg text-red-800 animate-shake";
+                setElfMessage("算式列出來了嗎？如果需要計算輔助，可以將算式直接丟入右側的「數位計算紙」喔！");
+            }
+        }
+
+        function prevWizardStep() {
+            if (wizardStep > 1) {
+                wizardStep--;
+                loadWizardStep();
+            }
+        }
+
+        function revealWizardAnswer() {
+            const data = wizardData[wizardType];
+            const stepInfo = data.steps[wizardStep - 1];
+            document.getElementById('wizard-input').value = stepInfo.answer;
+            showToast("已為你填入標準答案，請對照解析學習！", "info");
+            setElfMessage(`這一步的答案是 ${stepInfo.answer}。請看提示並理解其計算過程喔！`);
+        }
+
+
+        // ---------------------------------------------
+        // 模組四：複合圖形實戰 2D 分離 SVG
+        // ---------------------------------------------
+        function initCompoundSVG() {
+            const svg = document.getElementById('compound-svg');
+            svg.innerHTML = `
+                <g id="compound-cylinder-group">
+                    <!-- 圓柱底部 -->
+                    <ellipse cx="110" cy="200" rx="60" ry="18" fill="rgba(37, 99, 235, 0.2)" stroke="#2563EB" stroke-width="2" />
+                    <!-- 圓柱高邊 -->
+                    <line x1="50" y1="120" x2="50" y2="200" stroke="#2563EB" stroke-width="2" />
+                    <line x1="170" y1="120" x2="170" y2="200" stroke="#2563EB" stroke-width="2" />
+                    <!-- 圓柱體殼 -->
+                    <rect x="50" y="120" width="120" height="80" fill="rgba(37, 99, 235, 0.05)" />
+                    <!-- 圓柱頂部圓 (重疊部分) -->
+                    <ellipse id="cylinder-top-overlap" cx="110" cy="120" rx="60" ry="18" fill="rgba(239, 68, 68, 0.3)" stroke="#EF4444" stroke-width="2" class="transition-all duration-500" />
+                </g>
+
+                <g id="compound-cone-group" class="transition-transform duration-700">
+                    <!-- 圓錐主體 -->
+                    <path d="M 110,30 L 170,120 A 60,18 0 0,1 50,120 Z" fill="rgba(249, 115, 22, 0.15)" stroke="#F97316" stroke-width="2" />
+                    <!-- 圓錐底面 (重疊部分) -->
+                    <ellipse id="cone-bottom-overlap" cx="110" cy="120" rx="60" ry="18" fill="rgba(239, 68, 68, 0.3)" stroke="#EF4444" stroke-width="2" class="transition-all duration-500" />
+                </g>
+            `;
+        }
+
+        function toggleCompoundSeparation() {
+            isCompoundSeparated = !isCompoundSeparated;
+            const coneGroup = document.getElementById('compound-cone-group');
+            const cylTop = document.getElementById('cylinder-top-overlap');
+            const coneBot = document.getElementById('cone-bottom-overlap');
+            const btnText = document.getElementById('btn-separate-text');
+
+            if (isCompoundSeparated) {
+                // 向上平移圓錐
+                coneGroup.style.transform = "translateY(-40px)";
+                cylTop.setAttribute('fill', 'rgba(16, 185, 129, 0.2)'); // 變綠 (代表分離後看得見了)
+                cylTop.setAttribute('stroke', '#10B981');
+                coneBot.setAttribute('fill', 'rgba(16, 185, 129, 0.2)');
+                coneBot.setAttribute('stroke', '#10B981');
+                btnText.innerText = "點擊組合圓錐與圓柱";
+                setElfMessage("圓錐與圓柱分開了！看到這兩個亮綠色的接觸圓了嗎？當它們疊在一起時，因為藏在圖形裡面，所以不能算進表面積喔！");
+            } else {
+                coneGroup.style.transform = "translateY(0px)";
+                cylTop.setAttribute('fill', 'rgba(239, 68, 68, 0.4)'); // 變回警告紅
+                cylTop.setAttribute('stroke', '#EF4444');
+                coneBot.setAttribute('fill', 'rgba(239, 68, 68, 0.4)');
+                coneBot.setAttribute('stroke', '#EF4444');
+                btnText.innerText = "點擊分離圓錐與圓柱";
+                setElfMessage("現在它們黏在一起了。重疊的兩個圓形被「封印」在內部。所以：表面積 = 圓柱底面 + 圓柱側面 + 圓錐側面！");
+            }
+        }
+
+
+        // ---------------------------------------------
+        // 模組五：隨堂小測驗 (Quiz) 動態生成邏輯
+        // ---------------------------------------------
+        const quizScenarios = {
+            coneVol: [
+                { text: "[NAME] 去幾何烘焙坊買了一個圓錐形的脆皮甜筒，老闆說這個甜筒的底面直徑是 [D] 公分、內部垂直高度是 [H] 公分。請問這個脆皮甜筒的體積是多少立方公分呢？", mode: "D" },
+                { text: "為了準備魔法學校的派對，[NAME] 用厚紙板做了一頂圓錐形的巫師帽。已知這頂帽子的底面半徑是 [R] 公分、垂直高度是 [H] 公分。請問這頂巫師帽內部空間的體積是多少立方公分？", mode: "R" }
+            ],
+            pyrVol: [
+                { text: "學校舉辦歷史創客展，[NAME] 用黏土捏出了一個正四角錐的埃及金字塔模型。量得這個模型的底面正方形邊長為 [S] 公分，內部垂直高度為 [H] 公分。請問這個金字塔模型的體積是多少立方公分？" },
+                { text: "精品糖果店推出了一款包裝極具設計感的正四角錐進口巧克力。包裝紙盒的底面是邊長 [S] 公分的正方形，內裝的垂直高度是 [H] 公分。請問這款巧克力盒的容積是多少立方公分？" }
+            ],
+            pyrArea: [
+                { text: "[NAME] 家族去原野露營，搭起了一個正四角錐形的原住民風野外帳篷。帳篷的底面是邊長 [S] 公尺的正方形。若帳篷的四個側面三角形，其滑落的斜高均為 [L] 公尺。請問搭這個帳篷總共需要多少平方公尺的帆布(含正方形底墊)？" },
+                { text: "學校的中庭花園蓋了一座正四角錐形的玻璃觀景涼亭。已知這座涼亭的底面是邊長 [S] 公尺的正方形，四個三角形側面的玻璃斜高均為 [L] 公尺。請問總共用了多少平方公尺的玻璃來建造這座涼亭(含玻璃底面)？" }
+            ],
+            coneArea: [
+                { text: "[NAME] 為他的寵物貓用帆布縫製了一個圓錐形的印第安小帳篷（包含圓形底墊）。量得底面圓形的半徑為 [R] 公分，側面的斜高為 [L] 公分。請問 [NAME] 總共需要多少平方公分的帆布？(圓周率請統一用 3.14)" },
+                { text: "市政道路工程需要為一批新製的圓錐形交通錐表面（含圓形底面）塗上反光漆。已知該交通錐的底面半徑為 [R] 公分，外部的斜高為 [L] 公分。請問塗一個交通錐需要多少平方公分的反光漆？(圓周率請統一用 3.14)" }
+            ],
+            coneAngle: [
+                { text: "在手工藝自學課上，老師要求將一個圓錐形的紙杯沿著側邊剪開、攤平。如果這個圓錐杯子的底面半徑是 [R] 公分，側邊斜高是 [L] 公分，請問展開後的扇形圓心角是多少度？" }
+            ]
+        };
+
+        const randomNames = ["小美", "小明", "阿豪", "小華", "小莉", "小雅", "軒軒", "冠宇"];
+
+        function generateFreshQuiz() {
+            quizQuestions = [];
+            isQuizInReviewMode = false;
+
+            // 隱藏得分板，恢復控制按鈕
+            document.getElementById('quiz-score-board').classList.add('hidden');
+            document.getElementById('quiz-normal-controls').classList.remove('hidden');
+            document.getElementById('quiz-review-controls').classList.add('hidden');
+
+            // 1. 生成 5 大題型
+            // 題型 1: 圓錐體積
+            const q1_scen = quizScenarios.coneVol[Math.floor(Math.random() * quizScenarios.coneVol.length)];
+            const q1_r = Math.floor(Math.random() * 8) + 3; // 3 ~ 10
+            const q1_h = (Math.floor(Math.random() * 4) + 2) * 3; // 6, 9, 12, 15 (確保可除以3)
+            let q1_text = q1_scen.text.replace("[NAME]", getRandomName());
+            let q1_ans = 0;
+            if (q1_scen.mode === "D") {
+                q1_text = q1_text.replace("[D]", (q1_r * 2).toString()).replace("[H]", q1_h.toString());
+            } else {
+                q1_text = q1_text.replace("[R]", q1_r.toString()).replace("[H]", q1_h.toString());
+            }
+            q1_ans = Math.round((q1_r * q1_r * 3.14 * q1_h / 3) * 10000) / 10000;
+            const q1_explain = `💡 圓錐體積公式 = 底面積 × 垂直高度 ÷ 3<br>
+                                 底半徑為 ${q1_r} cm (若給直徑，先除以2)，垂直高為 ${q1_h} cm。<br>
+                                 底面積 = ${q1_r} × ${q1_r} × 3.14 = ${Math.round(q1_r * q1_r * 3.14 * 100) / 100} 平方公分。<br>
+                                 體積 = ${Math.round(q1_r * q1_r * 3.14 * 100) / 100} × ${q1_h} ÷ 3 = ${q1_ans} 立方公分。`;
+
+            quizQuestions.push({ id: 1, type: "圓錐體積", text: q1_text, answer: q1_ans, explain: q1_explain, unit: "立方公分" });
+
+            // 題型 2: 角錐體積
+            const q2_scen = quizScenarios.pyrVol[Math.floor(Math.random() * quizScenarios.pyrVol.length)];
+            const q2_s = Math.floor(Math.random() * 8) + 5; // 5 ~ 12
+            const q2_h = (Math.floor(Math.random() * 5) + 2) * 3; // 6, 9, 12, 15, 18
+            let q2_text = q2_scen.text.replace("[NAME]", getRandomName()).replace("[S]", q2_s.toString()).replace("[H]", q2_h.toString());
+            let q2_ans = Math.round((q2_s * q2_s * q2_h / 3) * 100) / 100;
+            const q2_explain = `💡 正四角錐體積公式 = 底面積 × 垂直高度 ÷ 3<br>
+                                 底面是邊長 ${q2_s} cm 的正方形，底面積 = ${q2_s} × ${q2_s} = ${q2_s * q2_s} 平方公分。<br>
+                                 體積 = ${q2_s * q2_s} × ${q2_h} ÷ 3 = ${q2_ans} 立方公分。`;
+
+            quizQuestions.push({ id: 2, type: "角錐體積", text: q2_text, answer: q2_ans, explain: q2_explain, unit: "立方公分" });
+
+            // 題型 3: 正角錐表面積
+            const q3_scen = quizScenarios.pyrArea[Math.floor(Math.random() * quizScenarios.pyrArea.length)];
+            const q3_s = Math.floor(Math.random() * 7) + 4; // 4 ~ 10
+            const q3_l = Math.floor(Math.random() * 8) + 5; // 5 ~ 12
+            let q3_text = q3_scen.text.replace("[NAME]", getRandomName()).replace("[S]", q3_s.toString()).replace("[L]", q3_l.toString());
+            let q3_ans = q3_s * q3_s + (q3_s * q3_l / 2) * 4;
+            const q3_explain = `💡 正四角錐表面積 = 底面積 + 總側面積<br>
+                                 1. 底面積(正方形) = ${q3_s} × ${q3_s} = ${q3_s * q3_s} 平方公尺。<br>
+                                 2. 單一側面(三角形) = 底 × 斜高 ÷ 2 = ${q3_s} × ${q3_l} ÷ 2 = ${q3_s * q3_l / 2} 平方公尺。<br>
+                                 3. 總側面積 = ${q3_s * q3_l / 2} × 4 = ${q3_s * q3_l * 2} 平方公尺。<br>
+                                 4. 總表面積 = ${q3_s * q3_s} + ${q3_s * q3_l * 2} = ${q3_ans} 平方公尺。`;
+
+            quizQuestions.push({ id: 3, type: "正角錐表面積", text: q3_text, answer: q3_ans, explain: q3_explain, unit: "平方公尺" });
+
+            // 題型 4: 圓錐表面積
+            const q4_scen = quizScenarios.coneArea[Math.floor(Math.random() * quizScenarios.coneArea.length)];
+            const q4_r = Math.floor(Math.random() * 6) + 3; // 3 ~ 8
+            const q4_l = Math.floor(Math.random() * 11) + 10; // 10 ~ 20
+            let q4_text = q4_scen.text.replace("[NAME]", getRandomName()).replace("[R]", q4_r.toString()).replace("[L]", q4_l.toString());
+            let q4_ans = Math.round((q4_r * q4_r * 3.14 + q4_r * q4_l * 3.14) * 10000) / 10000;
+            const q4_explain = `💡 圓錐表面積 = 底面積 + 側面積<br>
+                                 1. 底面積 = ${q4_r} × ${q4_r} × 3.14 = ${Math.round(q4_r * q4_r * 3.14 * 100) / 100} 平方公分。<br>
+                                 2. 側面積 (利用速算法) = 底半徑 × 斜高 × 3.14 = ${q4_r} × ${q4_l} × 3.14 = ${Math.round(q4_r * q4_l * 3.14 * 100) / 100} 平方公分。<br>
+                                 3. 總表面積 = ${Math.round(q4_r * q4_r * 3.14 * 100) / 100} + ${Math.round(q4_r * q4_l * 3.14 * 100) / 100} = ${q4_ans} 平方公分。`;
+
+            quizQuestions.push({ id: 4, type: "圓錐表面積", text: q4_text, answer: q4_ans, explain: q4_explain, unit: "平方公分" });
+
+            // 題型 5: 圓錐側面圓心角
+            const q5_scen = quizScenarios.coneAngle[0];
+            const q5_options = [
+                { l: 6, r: [2, 3, 4] },
+                { l: 8, r: [2, 4, 6] },
+                { l: 10, r: [2, 5, 8] },
+                { l: 12, r: [3, 4, 6, 9] }
+            ];
+            const q5_pickL = q5_options[Math.floor(Math.random() * q5_options.length)];
+            const q5_l = q5_pickL.l;
+            const q5_r = q5_pickL.r[Math.floor(Math.random() * q5_pickL.r.length)];
+            let q5_text = q5_scen.text.replace("[R]", q5_r.toString()).replace("[L]", q5_l.toString());
+            let q5_ans = 360 * q5_r / q5_l;
+            const q5_explain = `💡 圓錐展開扇形圓心角公式：$$360^\\circ \\times \\frac{\\text{底面半徑}}{\\text{斜高}}$$
+                                 代入數值：$360^\\circ \\times \\frac{${q5_r}}{${q5_l}} = 360^\\circ \\times ${simplifyFraction(q5_r, q5_l)} = ${q5_ans}^\\circ$。`;
+
+            quizQuestions.push({ id: 5, type: "圓錐側面圓心角", text: q5_text, answer: q5_ans, explain: q5_explain, unit: "度" });
+
+            renderQuizDOM();
+            showToast("已刷新全新動態測驗題庫！", "success");
+        }
+
+        function getRandomName() {
+            return randomNames[Math.floor(Math.random() * randomNames.length)];
+        }
+
+        function renderQuizDOM() {
+            const container = document.getElementById('quiz-questions-container');
+            container.innerHTML = ''; // 清空
+
+            quizQuestions.forEach((q, idx) => {
+                const questionCard = document.createElement('div');
+                questionCard.id = `quiz-card-${q.id}`;
+                questionCard.className = `p-5 rounded-2xl border border-slate-200 bg-white shadow-sm space-y-4 transition duration-300`;
+
+                // 答題模式下的輸入結構
+                questionCard.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <span class="bg-indigo-100 text-indigo-800 text-xs font-black px-2.5 py-1 rounded-lg">第 ${idx + 1} 題 · ${q.type}</span>
+                        <span id="quiz-badge-${q.id}" class="hidden"></span>
+                    </div>
+                    <p class="text-sm md:text-base font-bold text-slate-800 leading-relaxed font-mono">${q.text}</p>
+                    
+                    <div class="flex items-center gap-2 max-w-sm">
+                        <span class="text-xs md:text-sm text-slate-500 font-bold flex-shrink-0">填入你的解答：</span>
+                        <div class="relative flex-grow">
+                            <input type="number" id="quiz-input-${q.id}" placeholder="請輸入數值" class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl py-2 px-3 font-mono font-bold text-sm">
+                            <span class="absolute right-3 top-2 text-xs text-slate-400 font-bold">${q.unit}</span>
+                        </div>
+                    </div>
+
+                    <!-- 摺疊詳細詳解面板 -->
+                    <div id="quiz-explain-panel-${q.id}" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs md:text-sm text-slate-700 leading-relaxed space-y-2 mt-2">
+                        <p class="font-bold text-indigo-900 flex items-center gap-1"><i class="fa-solid fa-graduation-cap"></i> 分步解題精準解析：</p>
+                        <div class="font-mono">${q.explain}</div>
+                    </div>
+                `;
+                container.appendChild(questionCard);
+            });
+        }
+
+        // 提交試卷
+        function submitQuiz() {
+            let correctCount = 0;
+            isQuizInReviewMode = true;
+
+            quizQuestions.forEach(q => {
+                const inputEl = document.getElementById(`quiz-input-${q.id}`);
+                const card = document.getElementById(`quiz-card-${q.id}`);
+                const badge = document.getElementById(`quiz-badge-${q.id}`);
+                const explainPanel = document.getElementById(`quiz-explain-panel-${q.id}`);
+
+                const studentAnswer = parseFloat(inputEl.value);
+                const isCorrect = !isNaN(studentAnswer) && Math.abs(studentAnswer - q.answer) < 0.1;
+
+                // 鎖定輸入
+                inputEl.disabled = true;
+
+                if (isCorrect) {
+                    correctCount++;
+                    card.className = "p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/40 shadow-sm space-y-4 transition duration-300";
+                    badge.className = "bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> 答對了`;
+                } else {
+                    card.className = "p-5 rounded-2xl border-2 border-red-400 bg-red-50/40 shadow-sm space-y-4 transition duration-300";
+                    badge.className = "bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 答錯了`;
+
+                    // 並列標註正確答案與學生作答
+                    const errTip = document.createElement('p');
+                    errTip.className = "text-xs font-bold text-red-700 mt-1";
+                    errTip.innerHTML = `⚠️ 你的作答是: <span class="font-mono bg-red-100 px-1.5 py-0.5 rounded">${isNaN(studentAnswer) ? '無' : studentAnswer}</span>，正確標準答案是: <span class="font-mono bg-emerald-100 px-1.5 py-0.5 rounded text-emerald-800">${q.answer}</span>`;
+                    inputEl.parentNode.parentNode.appendChild(errTip);
+                }
+
+                badge.classList.remove('hidden');
+                explainPanel.classList.remove('hidden'); // 自動展開詳解，提供最強自學反饋
+            });
+
+            // 得分計算
+            const score = Math.round((correctCount / quizQuestions.length) * 100);
+
+            // 顯示得分看板
+            const board = document.getElementById('quiz-score-board');
+            const scoreText = document.getElementById('quiz-score-text');
+            const congrats = document.getElementById('quiz-congrats');
+
+            board.classList.remove('hidden');
+            scoreText.innerText = `${score} / 100 分`;
+            if (score === 100) {
+                congrats.innerText = "🎉 滿分！太神了！所有空間幾何與錐體計算完全難不倒你！";
+            } else if (score >= 60) {
+                congrats.innerText = "👍 讚喔！及格了！有部分計算小細節要注意，看下方詳解就可以學會！";
+            } else {
+                congrats.innerText = "💪 不要灰心！多加練習，配合右邊「計算紙」重新驗算一次「原題再戰」吧！";
+            }
+
+            // 切換控制列為檢討模式
+            document.getElementById('quiz-normal-controls').classList.add('hidden');
+            document.getElementById('quiz-review-controls').classList.remove('hidden');
+
+            showToast(`全卷批改完成！得分: ${score}`, score >= 60 ? 'success' : 'info');
+            setElfMessage(`測驗結束！獲得了 ${score} 分。快往下滾動，每一題都附帶精心設計的代入參數公式詳解喔！`);
+        }
+
+        // 原題再戰 (保留數值，清空輸入)
+        function retakeSameQuiz() {
+            isQuizInReviewMode = false;
+            document.getElementById('quiz-score-board').classList.add('hidden');
+            document.getElementById('quiz-normal-controls').classList.remove('hidden');
+            document.getElementById('quiz-review-controls').classList.add('hidden');
+
+            renderQuizDOM(); // 重新渲染無狀態的 DOM (保留 quizQuestions 現有隨機內容)
+            showToast("已清空作答，原題再戰！加油！", "info");
+        }
+
+
+        // ---------------------------------------------
+        // 輔劇工具規格：數位計算紙 (CLI Calculator) 邏輯
+        // ---------------------------------------------
+        function toggleMobileCalculator(show) {
+            const drawer = document.getElementById('cli-calculator');
+            if (show) {
+                drawer.classList.remove('hidden', 'lg:hidden');
+                drawer.classList.add('fixed', 'bottom-0', 'left-0', 'right-0', 'z-50', 'rounded-t-[32px]', 'shadow-2xl', 'p-6', 'flex');
+                setElfMessage("已為你拉起數位計算紙，在此輸入任意算式即可得到精準答案！");
+            } else {
+                drawer.classList.add('hidden');
+                drawer.classList.remove('fixed', 'bottom-0', 'left-0', 'right-0', 'z-50', 'rounded-t-[32px]', 'shadow-2xl', 'p-6', 'flex');
+            }
+        }
+
+        function handleCalcKeyDown(e) {
+            if (e.key === 'Enter') {
+                submitCalculator();
+            }
+        }
+
+        function insertToCalc(symbol) {
+            const input = document.getElementById('calc-input');
+            input.value += symbol;
+            input.focus();
+        }
+
+        // 核心安全執行與預處理引擎
+        function submitCalculator() {
+            const input = document.getElementById('calc-input');
+            const rawExpr = input.value.trim();
+            if (!rawExpr) return;
+
+            // 1. 預處理 (容錯與正規替換)
+            let processed = rawExpr
+                .replace(/[xX×]/g, '*')                          // 容錯乘號
+                .replace(/(\d+(?:\.\d+)?)%/g, '($1/100)')         // 百分比
+                .replace(/\^/g, '**')                             // 指數
+                .replace(/pi|π/g, '3.14')                         // 專用圓周率 (按國小高年級教材標準規範)
+                .replace(/sqrt\(([^)]+)\)/g, 'Math.sqrt($1)');   // 平方根
+
+            // 2. 安全沙箱執行 (嚴禁 eval)
+            let result;
+            try {
+                const compute = new Function(`return (${processed});`);
+                result = compute();
+            } catch (err) {
+                result = "ERR_SYNTAX";
+            }
+
+            // 3. 異常檢測與萬分之一誤差防範
+            if (result === "ERR_SYNTAX" || isNaN(result)) {
+                showToast("算式不正確，請重新檢查符號喔！", "error");
+                return;
+            }
+
+            // 四捨五入萬分之一精確度演算法 (剔除無意義0，保留最多4位小數)
+            let finalResult = Math.round(result * 10000) / 10000;
+
+            // 4. 加入歷史紀錄並渲染
+            calculationHistory.push({ formula: rawExpr, result: finalResult });
+            renderCalcHistory();
+
+            // 清空並聚焦輸入框
+            input.value = '';
+            input.focus();
+            showToast("運算成功！", "success");
+        }
+
+        function renderCalcHistory() {
+            const container = document.getElementById('calc-history-container');
+            const emptyTip = document.getElementById('calc-empty-tip');
+
+            // 移除空提示
+            if (calculationHistory.length > 0) {
+                emptyTip.classList.add('hidden');
+            } else {
+                emptyTip.classList.remove('hidden');
+            }
+
+            // 渲染列表 (雙欄設計)
+            container.innerHTML = '';
+            container.appendChild(emptyTip);
+
+            calculationHistory.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center bg-slate-800 border border-slate-700/50 p-2.5 rounded-xl mb-1.5 transition duration-150 group";
+                row.innerHTML = `
+                    <div class="flex flex-col flex-grow max-w-[70%] text-left">
+                        <span class="text-xs text-slate-400 font-mono truncate cursor-pointer" onclick="copyTextToClipboard('${item.formula}')" title="點擊複製公式">${item.formula}</span>
+                        <span class="text-xs text-slate-400 font-bold mt-0.5">＝ <span class="text-emerald-400 font-mono text-sm">${item.result}</span></span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="copyTextToClipboard('${item.result}')" class="text-slate-500 hover:text-emerald-400 p-1.5 transition" title="複製結果">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                        <button onclick="deleteHistoryItem(${idx})" class="text-slate-500 hover:text-red-400 p-1.5 transition" title="刪除此筆">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+
+            // 更新行動端角標
+            const badge = document.getElementById('mobile-history-badge');
+            if (calculationHistory.length > 0) {
+                badge.innerText = calculationHistory.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function deleteHistoryItem(index) {
+            calculationHistory.splice(index, 1);
+            renderCalcHistory();
+            showToast("已移除一筆紀錄", "info");
+        }
+
+        function clearCalculator() {
+            calculationHistory = [];
+            renderCalcHistory();
+            document.getElementById('calc-input').value = '';
+            showToast("歷史紀錄已清空", "info");
+        }
+
+        // 符合 iFrame 限制的安全剪貼簿複製
+        function copyTextToClipboard(text) {
+            const tempInput = document.createElement("input");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy"); // 採用安全的標準 pattern
+            document.body.removeChild(tempInput);
+            showToast(`已成功複製: ${text}`, "success");
+        }
+    </script>
+</body>
+
+</html>
