@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌸 歡樂花片數學世界 🌸</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .bubble-font {
+            font-family: 'Fredoka One', 'Noto Sans TC', sans-serif;
+        }
+
+        /* 歡樂花片微光與彈跳動畫 */
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6));
+            }
+
+            50% {
+                filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.9));
+            }
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes success-glow {
+
+            0%,
+            100% {
+                filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.6));
+            }
+
+            50% {
+                filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
+            }
+        }
+
+        .success-glow {
+            animation: success-glow 1.5s infinite;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-6px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(6px);
+            }
+        }
+
+        .shake-anim {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes pop-bubble {
+            0% {
+                transform: scale(0) translateY(10px);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.2) translateY(-5px);
+                opacity: 0.9;
+            }
+
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .pop-bubble-enter {
+            animation: pop-bubble 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes gift-merge {
+            0% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+
+            50% {
+                transform: scale(1.15);
+                filter: brightness(1.3);
+            }
+
+            100% {
+                transform: scale(1);
+                filter: brightness(1.1);
+            }
+        }
+
+        .gift-merge-active {
+            animation: gift-merge 1s ease-in-out forwards;
+        }
+
+        /* 隱藏橫向滾動條 */
+        .scrollbar-none::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-none {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gradient-to-br from-pink-50 via-amber-50 to-emerald-50 min-h-screen text-slate-800 overflow-x-hidden pb-12">
+
+    <div id="app" class="max-w-6xl mx-auto px-4 py-4" v-cloak>
+
+        <!-- 1. 遊戲化主題頂欄 -->
+        <header class="text-center mb-4">
+            <h1
+                class="text-3xl md:text-4xl font-extrabold text-pink-600 drop-shadow-sm tracking-wide flex items-center justify-center gap-2">
+                <span>🌸</span> 歡樂花片數學世界 <span>🌸</span>
+            </h1>
+            <p class="text-slate-500 text-xs md:text-sm mt-1 font-medium">拖曳彩色花片，點選關卡開啟好玩的自學魔法之旅！</p>
+        </header>
+
+        <!-- 2. 學習島嶼自主關卡選單 -->
+        <div class="mb-6 bg-white/70 backdrop-blur-sm p-3 rounded-2xl border-2 border-pink-200 shadow-sm">
+            <div class="text-xs font-black text-pink-700 mb-2 flex items-center gap-1.5 px-1">
+                <i class="fas fa-map-marked-alt"></i>
+                <span>自學魔法地圖 (點擊任意氣球自由選關)：</span>
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <button v-for="(lbl, idx) in levelLabels" :key="idx" @click="selectLevel(idx)"
+                    class="flex-shrink-0 px-3.5 py-2.5 rounded-2xl font-black text-sm transition-all duration-300 shadow-sm flex items-center gap-2"
+                    :class="[
+                  currentProblemIndex === idx 
+                    ? 'bg-pink-500 text-white scale-105 ring-4 ring-pink-200' 
+                    : 'bg-white hover:bg-pink-50 text-slate-600 border border-slate-200 active:scale-95'
+                ]">
+                    <span class="text-base">{{ lbl.icon }}</span>
+                    <span>第 {{ idx }} 關：{{ lbl.shortName }}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. 主卡片區域 -->
+        <div v-if="!isCompleted" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- 左側：問題引導與互動工作區 (占 8 欄) -->
+            <div class="lg:col-span-8 space-y-6">
+
+                <!-- 題型進度與素養情境敘述 -->
+                <div class="bg-white rounded-3xl p-5 shadow-md border-4 border-pink-100 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-2 bg-pink-400"></div>
+
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="bg-pink-100 text-pink-700 px-4 py-1 rounded-full text-xs font-bold tracking-wider">
+                            當前探索：第 {{ currentProblemIndex }} 關 - {{ currentProblem.typeTitle }}
+                        </span>
+                        <div class="flex gap-1">
+                            <span v-for="i in 6" :key="i" class="w-2.5 h-2.5 rounded-full transition-all duration-300"
+                                :class="(i - 1) === currentProblemIndex ? 'bg-pink-500 scale-125 animate-bounce' : 'bg-slate-200'">
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 素養題幹描述 -->
+                    <div class="text-lg md:text-2xl font-black text-slate-800 leading-relaxed mb-3">
+                        {{ currentProblem.scenarioText }}
+                    </div>
+
+                    <!-- 引導小助手對話框 -->
+                    <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 flex items-start gap-3 relative">
+                        <button @click="speakGuide"
+                            class="absolute top-3 right-3 bg-amber-500 hover:bg-amber-600 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-sm transition-transform active:scale-95"
+                            title="播放題目與引導語音">
+                            <i class="fas fa-volume-up text-base"></i>
+                        </button>
+
+                        <div
+                            class="w-12 h-12 flex-shrink-0 bg-white rounded-full flex items-center justify-center shadow-inner text-2xl">
+                            💡
+                        </div>
+                        <div class="pr-8">
+                            <span class="text-xs font-bold text-amber-600 block mb-0.5">小助手妙妙說：</span>
+                            <p class="text-sm md:text-base text-amber-900 font-bold leading-relaxed">
+                                {{ currentStepMessage }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 核心互動工作區 (Canvas Sandbox) -->
+                <div class="bg-white rounded-3xl shadow-lg border-4 border-amber-200 p-4 relative">
+
+                    <!-- 工作區狀態提示浮標 -->
+                    <div
+                        class="absolute top-3 left-4 z-10 bg-slate-800/90 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <span>花片操作盤 (支援觸控與滑鼠)</span>
+                    </div>
+
+                    <!-- 畫布主容器 -->
+                    <div id="sandbox-canvas"
+                        class="w-full h-[320px] md:h-[420px] bg-sky-50/50 rounded-2xl relative overflow-hidden border-2 border-dashed border-sky-200"
+                        @pointermove="onPointerMove" @pointerup="onPointerUp" @pointerleave="onPointerUp">
+
+                        <!-- A. 十格陣背景 (用於 Stage 0, 1, 2, 4, 5) -->
+                        <div v-if="shouldShowTenFrame"
+                            class="absolute bg-white/95 border-4 rounded-3xl shadow-inner transition-all duration-500 flex flex-col justify-between"
+                            :class="tenFrameBoxStyle" style="box-sizing: border-box;">
+
+                            <!-- 滿10 變一組標籤 -->
+                            <div v-if="isTenGroupMerged"
+                                class="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-20 animate-bounce">
+                                滿 10 變一組囉！🎁
+                            </div>
+
+                            <!-- 十格陣內部標題 -->
+                            <div
+                                class="text-center font-black text-slate-500 text-xs py-1.5 flex justify-between px-3 h-[20%]">
+                                <span>十格陣一組 (最多裝10個)</span>
+                                <span v-if="currentProblem.type === 4 || currentProblem.type === 5"
+                                    class="text-amber-600">【10 的好朋友區】</span>
+                            </div>
+
+                            <!-- 雙排十格陣格子 (佔 80% 高度，由 CSS 絕對與 JS 計算完美同步) -->
+                            <div class="absolute top-[20%] bottom-[4%] left-[4%] right-[4%] grid grid-rows-2 gap-2">
+                                <!-- 第一排 (1-5格) -->
+                                <div class="grid grid-cols-5 gap-2 h-full">
+                                    <div v-for="i in 5" :key="'g1-'+i"
+                                        class="border-2 border-dashed border-sky-200 rounded-xl bg-sky-50/30 flex items-center justify-center relative">
+                                        <span class="absolute text-xs font-black text-sky-200 select-none">{{ i
+                                            }}</span>
+                                    </div>
+                                </div>
+                                <!-- 第二排 (6-10格) -->
+                                <div class="grid grid-cols-5 gap-2 h-full">
+                                    <div v-for="i in 5" :key="'g2-'+i"
+                                        class="border-2 border-dashed border-sky-200 rounded-xl bg-sky-50/30 flex items-center justify-center relative">
+                                        <span class="absolute text-xs font-black text-sky-200 select-none">{{ i + 5
+                                            }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- B. 垃圾桶/回收桶元件 (用於減法關卡 Stage 2, 5) -->
+                        <div v-if="currentProblem.type === 2 || (currentProblem.type === 5 && currentStep >= 2)"
+                            class="absolute bottom-4 right-4 w-28 h-28 bg-rose-50 border-4 border-rose-300 rounded-2xl flex flex-col items-center justify-center shadow-md transition-all z-10"
+                            :class="trashBinHover ? 'scale-110 bg-rose-100 border-rose-500' : ''">
+                            <div class="text-rose-500 text-3xl mb-1">
+                                <i class="fas"
+                                    :class="trashBinHover ? 'fa-trash-restore animate-bounce' : 'fa-trash-alt'"></i>
+                            </div>
+                            <span class="text-rose-700 font-extrabold text-xs">拖來這裡拿走</span>
+                            <span
+                                class="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded-full mt-1 font-bold">
+                                已拿走: {{ recycledCount }} / {{ currentProblem.B }}
+                            </span>
+                        </div>
+
+                        <!-- C. 比較模式專用背景格 (用於 Stage 3) -->
+                        <div v-if="currentProblem.type === 3" class="absolute inset-0">
+
+                            <!-- 紅色列盒子 (第一排，絕對定位防止誤差) -->
+                            <div
+                                class="absolute top-[6%] left-[4%] right-[4%] h-[26%] bg-red-50/60 border-2 border-red-200 rounded-2xl p-2 flex flex-col justify-between">
+                                <div class="text-red-700 text-xs font-black">🔴 {{ currentProblem.person1 }} 的花片列 (需要放置:
+                                    {{ currentProblem.A }} 個)</div>
+                                <div class="grid grid-cols-10 gap-1 h-[60%]">
+                                    <div v-for="i in 10" :key="'row1-'+i"
+                                        class="border-2 border-dashed rounded-lg bg-white/80 flex items-center justify-center relative"
+                                        :class="i <= currentProblem.A ? 'border-red-200' : 'opacity-10'">
+                                        <span class="text-[9px] text-red-300 font-bold">{{ i }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 配對連接線與 SVG (中段) -->
+                            <div
+                                class="absolute top-[34%] bottom-[34%] left-[4%] right-[4%] flex items-center justify-center">
+                                <svg class="absolute inset-0 w-full h-full pointer-events-none">
+                                    <g v-for="i in Math.min(snappedRedCount, snappedYellowCount)" :key="'link-'+i">
+                                        <!-- 對齊格連線 -->
+                                        <line :x1="getComparisonX(i)" y1="10%" :x2="getComparisonX(i)" y2="90%"
+                                            stroke="#10b981" stroke-width="4" stroke-dasharray="4 4" />
+                                        <circle :cx="getComparisonX(i)" cy="50%" r="5" fill="#10b981" />
+                                    </g>
+                                </svg>
+                                <span v-if="Math.min(snappedRedCount, snappedYellowCount) > 0"
+                                    class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow">
+                                    已配對連線: {{ Math.min(snappedRedCount, snappedYellowCount) }} 對
+                                </span>
+                                <span v-else class="text-slate-400 text-xs font-medium">請將花片拖進紅白/黃白軌道內，進行一對一配對！</span>
+                            </div>
+
+                            <!-- 黃色列格子 (第二排，絕對定位防止誤差) -->
+                            <div
+                                class="absolute bottom-[6%] left-[4%] right-[4%] h-[26%] bg-amber-50/60 border-2 border-amber-200 rounded-2xl p-2 flex flex-col justify-between">
+                                <div class="text-amber-700 text-xs font-black">🟡 {{ currentProblem.person2 }} 的花片列
+                                    (需要放置: {{ currentProblem.B }} 個)</div>
+                                <div class="grid grid-cols-10 gap-1 h-[60%]">
+                                    <div v-for="i in 10" :key="'row2-'+i"
+                                        class="border-2 border-dashed rounded-lg bg-white/80 flex items-center justify-center relative"
+                                        :class="i <= currentProblem.B ? 'border-amber-200' : 'opacity-10'">
+                                        <span class="text-[9px] text-amber-300 font-bold">{{ i }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- D. 借十法模式：點選開10個大禮包 (用於 Stage 5 第一步) -->
+                        <div v-if="currentProblem.type === 5 && currentStep === 1" @click="unpackTenGroup"
+                            class="absolute left-6 top-1/2 -translate-y-1/2 w-48 h-40 bg-gradient-to-br from-amber-400 to-amber-600 border-4 border-amber-300 rounded-2xl flex flex-col items-center justify-center shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all pulse-glow z-10">
+                            <div class="text-white text-5xl mb-2">🎁</div>
+                            <span class="text-white font-black text-sm tracking-wider">10 個一排大禮包</span>
+                            <span
+                                class="text-amber-100 text-xs mt-1 font-bold bg-amber-700/50 px-2 py-1 rounded-full animate-bounce">👉
+                                點擊借開它！</span>
+                        </div>
+
+                        <!-- F. 進位加法模式：點選 10 的好朋友數量 (用於 Stage 4 第一步，解鎖花片拖曳) -->
+                        <div v-if="currentProblem.type === 4 && currentStep === 1"
+                            class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-4 z-40">
+                            <div
+                                class="bg-white p-6 rounded-3xl border-4 border-emerald-400 max-w-sm text-center shadow-2xl space-y-4">
+                                <div class="text-5xl animate-bounce">🤔</div>
+                                <h4 class="text-xl font-black text-slate-800 leading-snug">
+                                    左邊有 <span class="text-red-500 text-2xl bubble-font">{{ currentProblem.A }}</span>
+                                    個紅花片，<br>
+                                    想要湊滿 10 個，<br>
+                                    還需要幾個黃花片呢？
+                                </h4>
+                                <p class="text-xs text-slate-500 font-black">點選下面對的數字來幫助妙妙：</p>
+                                <div class="flex justify-center gap-4 pt-2">
+                                    <button v-for="opt in friendOptions" :key="opt" @click="checkFriendAnswer(opt)"
+                                        class="w-14 h-14 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black text-2xl flex items-center justify-center active:scale-90 transition-all shadow-md border-3 border-emerald-300">
+                                        {{ opt }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- E. 渲染所有可交互花片元件 -->
+                        <div v-for="flower in flowers" :key="flower.id" v-show="!flower.hidden"
+                            class="absolute select-none transition-transform" :class="[
+                   flower.isDragging ? 'z-50 scale-110 pointer-events-none' : 'z-30',
+                   flower.locked ? 'opacity-80' : 'cursor-grab active:cursor-grabbing'
+                 ]" :style="{
+                   left: flower.x + '%',
+                   top: flower.y + '%',
+                   width: isMobile ? '52px' : '64px',
+                   height: isMobile ? '52px' : '64px',
+                   marginLeft: isMobile ? '-26px' : '-32px',
+                   marginTop: isMobile ? '-26px' : '-32px',
+                   transform: `rotate(${flower.rotate}deg)`,
+                   transition: flower.isDragging ? 'none' : 'left 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.1), top 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.1)'
+                 }" @pointerdown="onPointerDown($event, flower)">
+
+                            <!-- 花片精緻外觀 SVG -->
+                            <svg class="w-full h-full filter drop-shadow-md hover:brightness-105" viewBox="0 0 100 100">
+                                <defs>
+                                    <radialGradient :id="'redGrad-' + flower.id" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stop-color="#ff8e8e" />
+                                        <stop offset="100%" stop-color="#e53e3e" />
+                                    </radialGradient>
+                                    <radialGradient :id="'yellowGrad-' + flower.id" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stop-color="#fff586" />
+                                        <stop offset="100%" stop-color="#ecc94b" />
+                                    </radialGradient>
+                                </defs>
+                                <!-- 花瓣 -->
+                                <g
+                                    :fill="flower.color === 'red' ? 'url(#redGrad-' + flower.id + ')' : 'url(#yellowGrad-' + flower.id + ')'">
+                                    <circle cx="50" cy="18" r="15" />
+                                    <circle cx="50" cy="82" r="15" />
+                                    <circle cx="18" cy="50" r="15" />
+                                    <circle cx="82" cy="50" r="15" />
+                                    <circle cx="27" cy="27" r="15" />
+                                    <circle cx="73" cy="73" r="15" />
+                                    <circle cx="27" cy="73" r="15" />
+                                    <circle cx="73" cy="27" r="15" />
+                                </g>
+                                <!-- 花心圈 -->
+                                <circle cx="50" cy="50" r="20" fill="#ffffff" stroke="#e2e8f0" stroke-width="2" />
+                                <circle cx="50" cy="50" r="15" :fill="flower.color === 'red' ? '#e59b12' : '#d23232'" />
+
+                                <!-- 笑臉或點數數字 -->
+                                <g v-if="flower.tappedIndex !== null">
+                                    <text x="50" y="58" text-anchor="middle" fill="#ffffff" font-size="22"
+                                        font-weight="900" class="bubble-font">
+                                        {{ flower.tappedIndex }}
+                                    </text>
+                                </g>
+                                <g v-else>
+                                    <!-- 預設微笑 -->
+                                    <circle cx="43" cy="46" r="2.5" fill="#ffffff" />
+                                    <circle cx="57" cy="46" r="2.5" fill="#ffffff" />
+                                    <path d="M 40 54 Q 50 62 60 54" fill="none" stroke="#ffffff" stroke-width="3"
+                                        stroke-linecap="round" />
+                                </g>
+                            </svg>
+
+                            <!-- 接著數氣泡特效 -->
+                            <div v-if="flower.tappedIndex !== null"
+                                class="absolute -top-8 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-md pop-bubble-enter z-40">
+                                {{ flower.tappedIndex }}!
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- 重置機制按鈕 -->
+                    <div class="flex justify-between mt-3 text-xs text-slate-400 px-1">
+                        <span>💡 提示：點擊花片可以跟著 1、2、3 接著數喔！</span>
+                        <button @click="resetCurrentProblem"
+                            class="text-pink-500 hover:text-pink-600 font-extrabold flex items-center gap-1">
+                            <i class="fas fa-undo"></i> 重新排本關花片
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 右側：數學公式輔助板與數字鍵盤 (占 4 欄) -->
+            <div class="lg:col-span-4 space-y-6">
+
+                <!-- 算式動態引導 -->
+                <div class="bg-white rounded-3xl p-5 shadow-md border-4 border-emerald-100">
+                    <h3 class="text-base font-black text-emerald-800 mb-3 flex items-center gap-1.5">
+                        <span class="text-lg">📝</span>
+                        <span>算式與分解紀錄板</span>
+                    </h3>
+
+                    <!-- 動態步驟算式解析 (帶領自學) -->
+                    <div class="space-y-4 mb-5">
+
+                        <!-- 關卡 0. 基礎數數與湊十 -->
+                        <div v-if="currentProblem.type === 0" class="text-center">
+                            <div
+                                class="flex justify-center items-center gap-2 text-3xl font-extrabold bubble-font mb-2">
+                                <span class="text-red-500">數一數：</span>
+                                <span
+                                    class="px-4 py-1.5 bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 min-w-[70px]"
+                                    :class="inputAnswer ? 'text-pink-600 bg-pink-50 border-pink-400' : 'text-slate-300'">
+                                    {{ inputAnswer || '?' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 font-bold">請將所有花片拖進十格陣，再點擊它們數數看有幾個。</p>
+                        </div>
+
+                        <!-- A. 加法 (10以內不進位) -->
+                        <div v-if="currentProblem.type === 1" class="text-center">
+                            <div
+                                class="flex justify-center items-center gap-2 text-3xl font-extrabold bubble-font mb-2">
+                                <span class="text-red-500">{{ currentProblem.A }}</span>
+                                <span class="text-slate-400">+</span>
+                                <span class="text-yellow-500">{{ currentProblem.B }}</span>
+                                <span class="text-slate-400">=</span>
+                                <span
+                                    class="px-4 py-1.5 bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 min-w-[70px]"
+                                    :class="inputAnswer ? 'text-pink-600 bg-pink-50 border-pink-400' : 'text-slate-300'">
+                                    {{ inputAnswer || '?' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 font-bold">先放紅花片，再放黃花片，接著數一數共有幾個。</p>
+                        </div>
+
+                        <!-- B. 減法 (10以內不退位) -->
+                        <div v-if="currentProblem.type === 2" class="text-center">
+                            <div
+                                class="flex justify-center items-center gap-2 text-3xl font-extrabold bubble-font mb-2">
+                                <span class="text-red-500">{{ currentProblem.A }}</span>
+                                <span class="text-slate-400">-</span>
+                                <span class="text-slate-400">{{ currentProblem.B }}</span>
+                                <span class="text-slate-400">=</span>
+                                <span
+                                    class="px-4 py-1.5 bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 min-w-[70px]"
+                                    :class="inputAnswer ? 'text-pink-600 bg-pink-50 border-pink-400' : 'text-slate-300'">
+                                    {{ inputAnswer || '?' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 font-bold">排好全部的花片，用小手拿走 {{ currentProblem.B }} 個。</p>
+                        </div>
+
+                        <!-- C. 比較減法 (10以內比大小) -->
+                        <div v-if="currentProblem.type === 3" class="text-center">
+                            <div
+                                class="flex justify-center items-center gap-2 text-3xl font-extrabold bubble-font mb-2">
+                                <span class="text-red-500">{{ Math.max(currentProblem.A, currentProblem.B) }}</span>
+                                <span class="text-slate-400">-</span>
+                                <span class="text-yellow-500">{{ Math.min(currentProblem.A, currentProblem.B) }}</span>
+                                <span class="text-slate-400">=</span>
+                                <span
+                                    class="px-4 py-1.5 bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 min-w-[70px]"
+                                    :class="inputAnswer ? 'text-pink-600 bg-pink-50 border-pink-400' : 'text-slate-300'">
+                                    {{ inputAnswer || '?' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 font-bold">把花片排好對齊，數數看多出來的部分有幾個。</p>
+                        </div>
+
+                        <!-- D. 進位加法 (湊十法) -->
+                        <div v-if="currentProblem.type === 4" class="space-y-3">
+                            <div class="flex justify-center items-center gap-2 text-2xl font-extrabold bubble-font">
+                                <span class="text-red-500">{{ currentProblem.A }}</span>
+                                <span class="text-slate-400">+</span>
+                                <span class="text-yellow-500">{{ currentProblem.B }}</span>
+                                <span class="text-slate-400">=</span>
+                                <span
+                                    class="px-4 py-1.5 bg-slate-100 rounded-xl border-2 border-dashed border-emerald-400 text-emerald-600 min-w-[70px]">
+                                    {{ inputAnswer || '?' }}
+                                </span>
+                            </div>
+
+                            <!-- 湊十法思維解構 -->
+                            <div class="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-3 text-xs space-y-2">
+                                <div class="font-black text-emerald-800 text-center mb-1">💡 湊十魔法公式拆解：</div>
+                                <div class="flex items-center justify-between text-slate-600 font-bold">
+                                    <span>把小數拆開：</span>
+                                    <span class="bubble-font text-yellow-600">{{ currentProblem.B }} ➔ {{ 10 -
+                                        currentProblem.A }} 和 {{ currentProblem.B - (10 - currentProblem.A) }}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-600 font-bold">
+                                    <span>把大數湊成 10：</span>
+                                    <span class="bubble-font text-red-600">{{ currentProblem.A }} + {{ 10 -
+                                        currentProblem.A }} = 10 🎁</span>
+                                </div>
+                                <div
+                                    class="border-t border-dashed border-emerald-200 pt-1.5 flex items-center justify-between text-slate-700 font-extrabold text-sm">
+                                    <span>最後算式：</span>
+                                    <span class="bubble-font text-emerald-600">10 + {{ currentProblem.B - (10 -
+                                        currentProblem.A) }} = {{ inputAnswer || '?' }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- E. 退位減法 (借十法) -->
+                        <div v-if="currentProblem.type === 5" class="space-y-3">
+                            <div class="flex justify-center items-center gap-2 text-2xl font-extrabold bubble-font">
+                                <span class="text-red-500">{{ currentProblem.A }}</span>
+                                <span class="text-slate-400">-</span>
+                                <span class="text-slate-400">{{ currentProblem.B }}</span>
+                                <span class="text-slate-400">=</span>
+                                <span
+                                    class="px-4 py-1.5 bg-slate-100 rounded-xl border-2 border-dashed border-rose-400 text-rose-600 min-w-[70px]">
+                                    {{ inputAnswer || '?' }}
+                                </span>
+                            </div>
+
+                            <!-- 借十法思維解構 -->
+                            <div class="bg-rose-50/50 border border-rose-100 rounded-2xl p-3 text-xs space-y-2">
+                                <div class="font-black text-rose-800 text-center mb-1">💡 借十魔法公式拆解：</div>
+                                <div class="flex items-center justify-between text-slate-600 font-bold">
+                                    <span>個位不夠減：</span>
+                                    <span class="bubble-font text-rose-600">{{ currentProblem.A - 10 }} 個不夠減 {{
+                                        currentProblem.B }}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-600 font-bold">
+                                    <span>跟 10 借一組來減：</span>
+                                    <span class="bubble-font text-amber-600">10 - {{ currentProblem.B }} = {{ 10 -
+                                        currentProblem.B }}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-600 font-bold">
+                                    <span>合併剩下的：</span>
+                                    <span class="bubble-font text-red-600">{{ 10 - currentProblem.B }} + {{
+                                        currentProblem.A - 10 }}</span>
+                                </div>
+                                <div
+                                    class="border-t border-dashed border-rose-200 pt-1.5 flex items-center justify-between text-slate-700 font-extrabold text-sm">
+                                    <span>最後算式：</span>
+                                    <span class="bubble-font text-rose-600">{{ 10 - currentProblem.B }} + {{
+                                        currentProblem.A - 10 }} = {{ inputAnswer || '?' }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- 親子友善大型數字鍵盤 -->
+                    <div class="space-y-2">
+                        <div class="grid grid-cols-3 gap-2">
+                            <button v-for="num in [1, 2, 3, 4, 5, 6, 7, 8, 9]" :key="num" @click="pressKey(num)"
+                                class="bg-slate-100 hover:bg-slate-200 text-slate-700 active:bg-slate-300 font-black text-xl py-3 rounded-2xl transition-all shadow-sm">
+                                {{ num }}
+                            </button>
+                            <button @click="pressKey('clear')"
+                                class="bg-amber-100 hover:bg-amber-200 text-amber-700 active:bg-amber-300 font-black text-sm py-3 rounded-2xl transition-all shadow-sm">
+                                清除
+                            </button>
+                            <button @click="pressKey(0)"
+                                class="bg-slate-100 hover:bg-slate-200 text-slate-700 active:bg-slate-300 font-black text-xl py-3 rounded-2xl transition-all shadow-sm">
+                                0
+                            </button>
+                            <button @click="pressKey('back')"
+                                class="bg-rose-100 hover:bg-rose-200 text-rose-700 active:bg-rose-300 font-black text-xl py-3 rounded-2xl transition-all shadow-sm">
+                                <i class="fas fa-backspace"></i>
+                            </button>
+                        </div>
+
+                        <!-- 提交檢查大按鈕 -->
+                        <button @click="submitAnswer"
+                            class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg py-4 rounded-2xl transition-all shadow-md transform active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fas fa-check-circle"></i> 答案寫好了！送出檢查
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- 題庫即時重置與換新題目按鈕 -->
+                <div class="bg-amber-100/60 border-2 border-amber-200 rounded-3xl p-4 text-center">
+                    <p class="text-xs text-amber-800 font-bold mb-2">💡 答錯不用氣餒！可以隨時換一組題目喔。</p>
+                    <button @click="generateNewSession"
+                        class="bg-white border-2 border-amber-300 text-amber-700 hover:bg-amber-50 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-sm inline-flex items-center gap-1.5">
+                        <i class="fas fa-random"></i> 換一組全新生活素養題
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 4. 通關祝賀大螢幕 (Confetti Mode) -->
+        <div v-else
+            class="max-w-xl mx-auto bg-white rounded-3xl p-8 shadow-xl border-4 border-emerald-400 text-center space-y-6 my-12 relative overflow-hidden">
+            <div
+                class="absolute top-0 left-0 right-0 h-4 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500">
+            </div>
+            <div class="text-7xl animate-bounce">🏆</div>
+            <h2 class="text-3xl font-black text-emerald-700">哇！你太棒了！</h2>
+            <p class="text-slate-600 font-bold leading-relaxed text-sm md:text-base">
+                你用聰明的大腦和花片魔法，成功完成了全部關卡的挑戰！<br>
+                你已經是「花片數學」的小達人囉！
+            </p>
+
+            <button @click="generateNewSession"
+                class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg py-4 rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
+                <i class="fas fa-redo"></i> 挑戰下一組隨機素養題
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 網頁獨立音效合成器 (Web Audio API) ---
+        const Sound = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playPop() {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1000, this.ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.12);
+                } catch (e) { }
+            },
+            playChime() {
+                try {
+                    this.init();
+                    const now = this.ctx.currentTime;
+                    const playTone = (freq, delay, duration) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + delay);
+                        gain.gain.setValueAtTime(0.15, now + delay);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + delay + duration);
+                        osc.start(now + delay);
+                        osc.stop(now + delay + duration);
+                    };
+                    playTone(523.25, 0, 0.15); // C5
+                    playTone(659.25, 0.08, 0.15); // E5
+                    playTone(783.99, 0.16, 0.2); // G5
+                    playTone(1046.50, 0.24, 0.3); // C6
+                } catch (e) { }
+            },
+            playBoing() {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(60, this.ctx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.3);
+                } catch (e) { }
+            },
+            playBubble() {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.1);
+                } catch (e) { }
+            }
+        };
+
+        // --- STREAMING_CHUNK:定義隨機素養題庫元素池與自主關卡定義 ---
+        const NAMES = ['小明', '阿寶', '琪琪', '小安', '東東', '小美', '萱萱', '阿豪', '樂樂'];
+        const PLACES = ['公園', '客廳', '草地', '籃子裡', '桌子上', '冰箱裡', '池塘邊'];
+
+        const RED_ITEMS = [
+            { name: '紅蘋果', unit: '個' },
+            { name: '紅草莓', unit: '顆' },
+            { name: '紅花朵', unit: '朵' },
+            { name: '櫻桃', unit: '顆' }
+        ];
+
+        const YELLOW_ITEMS = [
+            { name: '黃香蕉', unit: '根' },
+            { name: '芒果', unit: '個' },
+            { name: '向日葵', unit: '朵' },
+            { name: '檸檬', unit: '個' }
+        ];
+
+        const NEUTRAL_ITEMS = [
+            { name: '糖果', unit: '顆' },
+            { name: '餅乾', unit: '塊' },
+            { name: '玩具車', unit: '輛' },
+            { name: '小貼紙', unit: '張' },
+            { name: '彩色筆', unit: '支' },
+            { name: '獎勵卡', unit: '張' }
+        ];
+
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const currentProblemIndex = ref(0);
+                const problems = ref([]);
+                const flowers = ref([]);
+                const inputAnswer = ref('');
+                const isCompleted = ref(false);
+                const currentStep = ref(1);
+                const isMobile = ref(false);
+
+                const recycledCount = ref(0);
+                const trashBinHover = ref(false);
+                const isTenGroupMerged = ref(false);
+
+                // 隨機選擇題的候選選項
+                const friendOptions = ref([]);
+
+                // 關卡標籤定義 (自主選關地圖)
+                const levelLabels = [
+                    { icon: '🎈', shortName: '數數與湊十' },
+                    { icon: '🍎', shortName: '加法合起來' },
+                    { icon: '🍪', shortName: '減法拿走' },
+                    { icon: '🚗', shortName: '比比多與少' },
+                    { icon: '🎁', shortName: '湊十法加法' },
+                    { icon: '🔑', shortName: '借十法減法' }
+                ];
+
+                const checkDevice = () => {
+                    isMobile.value = window.innerWidth < 768;
+                };
+
+                // --- STREAMING_CHUNK:編寫隨機生活素養題組裝引擎 (含關卡 0 數數) ---
+                const generateProblems = () => {
+                    const list = [];
+                    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+                    // 【關卡 0】：數數與湊十練習 (5 到 10 顆紅花片，最基本)
+                    const name0 = rand(NAMES);
+                    const place0 = rand(PLACES);
+                    const redItem0 = rand(RED_ITEMS);
+                    const count0 = randInt(5, 10);
+                    list.push({
+                        type: 0,
+                        typeTitle: '10以內數數與湊十',
+                        A: count0,
+                        B: 0,
+                        ans: count0,
+                        scenarioText: `${name0}在${place0}摘了 ${count0} ${redItem0.unit}${redItem0.name}。請你幫她數一數，總共有幾個？`
+                    });
+
+                    // 【關卡 1】：10以內加法 (A + B <= 10)
+                    const A1 = randInt(2, 6);
+                    const B1 = randInt(2, 10 - A1);
+                    const name1 = rand(NAMES);
+                    const place1 = rand(PLACES);
+                    const redItem1 = rand(RED_ITEMS);
+                    const yellowItem1 = rand(YELLOW_ITEMS);
+                    list.push({
+                        type: 1,
+                        typeTitle: '10以內不進位加法',
+                        A: A1,
+                        B: B1,
+                        ans: A1 + B1,
+                        scenarioText: `${name1}在${place1}放了 ${A1} ${redItem1.unit}${redItem1.name}，接著又放了 ${B1} ${yellowItem1.unit}${yellowItem1.name}，一共有幾個？`
+                    });
+
+                    // 【關卡 2】：10以內減法 (A <= 10, B >= 1)
+                    const A2 = randInt(6, 10);
+                    const B2 = randInt(2, A2 - 2);
+                    const name2 = rand(NAMES);
+                    const item2 = rand(NEUTRAL_ITEMS);
+                    list.push({
+                        type: 2,
+                        typeTitle: '10以內不退位減法',
+                        A: A2,
+                        B: B2,
+                        ans: A2 - B2,
+                        scenarioText: `${name2}原本帶了 ${A2} ${item2.unit}${item2.name}，送給同學 ${B2} ${item2.unit}後，還剩下幾個？`
+                    });
+
+                    // 【關卡 3】：10以內比較減法 (A, B <= 10, A != B)
+                    let A3 = randInt(5, 9);
+                    let B3 = randInt(2, 6);
+                    if (A3 === B3) B3 -= 1;
+                    const name3_1 = NAMES[0];
+                    const name3_2 = NAMES[1];
+                    const item3 = rand(NEUTRAL_ITEMS);
+                    list.push({
+                        type: 3,
+                        typeTitle: '10以內比較減法',
+                        A: A3,
+                        B: B3,
+                        person1: name3_1,
+                        person2: name3_2,
+                        ans: Math.abs(A3 - B3),
+                        scenarioText: `${name3_1}有 ${A3} ${item3.unit}${item3.name}，${name3_2}有 ${B3} ${item3.unit}${item3.name}。${name3_1}比${name3_2}多幾個？`
+                    });
+
+                    // 【關卡 4】：20以內進位加 (湊十法)
+                    const A4 = randInt(6, 9);
+                    const B4 = randInt(6, 9);
+                    const name4 = rand(NAMES);
+                    const redItem4 = rand(RED_ITEMS);
+                    const yellowItem4 = rand(YELLOW_ITEMS);
+                    list.push({
+                        type: 4,
+                        typeTitle: '20以內進位加法 (湊十法)',
+                        A: A4,
+                        B: B4,
+                        ans: A4 + B4,
+                        scenarioText: `${name4}的盤子裡有 ${A4} ${redItem4.unit}${redItem4.name}，媽媽又買了 ${B4} ${yellowItem4.unit}${yellowItem4.name}，一共有幾個？`
+                    });
+
+                    // 【關卡 5】：20以內退位減 (借十法)
+                    const units = randInt(1, 5);
+                    const A5 = 10 + units;
+                    const B5 = randInt(units + 1, 9);
+                    const name5 = rand(NAMES);
+                    const item5 = rand(NEUTRAL_ITEMS);
+                    list.push({
+                        type: 5,
+                        typeTitle: '20以內退位減法 (借十法)',
+                        A: A5,
+                        B: B5,
+                        ans: A5 - B5,
+                        scenarioText: `${name5}寫了 ${A5} ${item5.unit}${item5.name}挑戰，擦掉了其中 ${B5} ${item5.unit}，還剩下幾個？`
+                    });
+
+                    problems.value = list;
+                };
+
+                const currentProblem = computed(() => {
+                    return problems.value[currentProblemIndex.value] || {};
+                });
+
+                const shouldShowTenFrame = computed(() => {
+                    const type = currentProblem.value.type;
+                    if (type === 0 || type === 1 || type === 2) return true;
+                    if (type === 4) return true;
+                    if (type === 5 && currentStep.value >= 2) return true;
+                    return false;
+                });
+
+                // 調整十格陣外框容器
+                const tenFrameBoxStyle = computed(() => {
+                    const type = currentProblem.value.type;
+                    if (type === 4) {
+                        return 'left-[5%] top-[15%] w-[55%] h-[40%] border-emerald-300 ring-4 ring-emerald-50';
+                    }
+                    if (type === 5) {
+                        return 'left-[5%] top-[15%] w-[55%] h-[40%] border-rose-300 ring-4 ring-rose-50';
+                    }
+                    return 'left-[15%] top-[12%] w-[70%] h-[42%] border-sky-300';
+                });
+
+                // --- STREAMING_CHUNK:精準計算十格陣與比較列之「絕對吸附座標系」 ---
+                const getTenFrameSlots = (type) => {
+                    const slots = [];
+
+                    if (type === 4 || type === 5) {
+                        // 左對齊十格陣：left=5, top=15, width=55, height=40
+                        const left = 5, top = 15, width = 55, height = 40;
+                        const grid_left = left + 0.04 * width;
+                        const grid_width = 0.92 * width;
+                        const grid_top = top + 0.20 * height;
+                        const grid_height = 0.76 * height;
+
+                        const col_width = grid_width / 5;
+                        const row_height = grid_height / 2;
+
+                        for (let r = 0; r < 2; r++) {
+                            for (let c = 0; c < 5; c++) {
+                                slots.push({
+                                    x: grid_left + (c + 0.5) * col_width,
+                                    y: grid_top + (r + 0.5) * row_height
+                                });
+                            }
+                        }
+                    } else {
+                        // 預設置中十格陣：left=15, top=12, width=70, height=42
+                        const left = 15, top = 12, width = 70, height = 42;
+                        const grid_left = left + 0.04 * width;
+                        const grid_width = 0.92 * width;
+                        const grid_top = top + 0.20 * height;
+                        const grid_height = 0.76 * height;
+
+                        const col_width = grid_width / 5;
+                        const row_height = grid_height / 2;
+
+                        for (let r = 0; r < 2; r++) {
+                            for (let c = 0; c < 5; c++) {
+                                slots.push({
+                                    x: grid_left + (c + 0.5) * col_width,
+                                    y: grid_top + (r + 0.5) * row_height
+                                });
+                            }
+                        }
+                    }
+                    return slots;
+                };
+
+                // 比較模式對齊座標精算：使花片與上下列格子完美吻合
+                const getComparisonSlot = (rowIdx, colIdx) => {
+                    const baseLeft = 4;
+                    const col_width = 9.2;
+                    const targetX = baseLeft + (colIdx + 0.5) * col_width;
+                    const targetY = (rowIdx === 1) ? 20 : 82;
+                    return { x: targetX, y: targetY };
+                };
+
+                // --- STREAMING_CHUNK:初始化不同關卡的花片擺放位置 ---
+                const initFlowers = () => {
+                    const arr = [];
+                    const type = currentProblem.value.type;
+                    const A = currentProblem.value.A;
+                    const B = currentProblem.value.B;
+                    const randRot = () => Math.floor(Math.random() * 360);
+
+                    if (type === 0) {
+                        // 關卡 0：基礎數數
+                        for (let i = 0; i < A; i++) {
+                            const rx = 10 + (i * 9);
+                            const ry = 72 + (i % 2 * 8);
+                            arr.push({ id: `red-${i}`, x: rx, y: ry, initialX: rx, initialY: ry, color: 'red', isDragging: false, rotate: randRot(), snappedTo: null, tappedIndex: null });
+                        }
+                    }
+                    else if (type === 1) {
+                        // 關卡 1：加法。紅花片放左下，黃花片放右下
+                        for (let i = 0; i < A; i++) {
+                            arr.push({ id: `red-${i}`, x: 15 + (i * 6), y: 72 + (i % 2 * 6), initialX: 15 + (i * 6), initialY: 72 + (i % 2 * 6), color: 'red', isDragging: false, rotate: randRot(), snappedTo: null, tappedIndex: null });
+                        }
+                        for (let i = 0; i < B; i++) {
+                            arr.push({ id: `yellow-${i}`, x: 55 + (i * 6), y: 72 + (i % 2 * 6), initialX: 55 + (i * 6), initialY: 72 + (i % 2 * 6), color: 'yellow', isDragging: false, rotate: randRot(), snappedTo: null, tappedIndex: null });
+                        }
+                    }
+                    else if (type === 2) {
+                        // 關卡 2：減法。A個紅花片自動預排
+                        const slots = getTenFrameSlots(1);
+                        for (let i = 0; i < A; i++) {
+                            const s = slots[i];
+                            arr.push({ id: `red-${i}`, x: s.x, y: s.y, initialX: s.x, initialY: s.y, color: 'red', isDragging: false, rotate: 0, snappedTo: i, tappedIndex: null });
+                        }
+                    }
+                    else if (type === 3) {
+                        // 關卡 3：比較
+                        for (let i = 0; i < A; i++) {
+                            arr.push({ id: `red-${i}`, x: 10 + (i * 8), y: 44, initialX: 10 + (i * 8), initialY: 44, color: 'red', isDragging: false, rotate: 0, snappedTo: null, tappedIndex: null });
+                        }
+                        for (let i = 0; i < B; i++) {
+                            arr.push({ id: `yellow-${i}`, x: 10 + (i * 8), y: 56, initialX: 10 + (i * 8), initialY: 56, color: 'yellow', isDragging: false, rotate: 0, snappedTo: null, tappedIndex: null });
+                        }
+                    }
+                    else if (type === 4) {
+                        // 關卡 4：湊十法
+                        const slots = getTenFrameSlots(4);
+                        for (let i = 0; i < A; i++) {
+                            const s = slots[i];
+                            arr.push({ id: `red-${i}`, x: s.x, y: s.y, initialX: s.x, initialY: s.y, color: 'red', isDragging: false, rotate: 0, snappedTo: i, locked: true, tappedIndex: null });
+                        }
+                        // 右邊 B 個黃色花片散放
+                        for (let i = 0; i < B; i++) {
+                            const rx = 68 + (i % 3 * 10);
+                            const ry = 25 + (Math.floor(i / 3) * 15);
+                            arr.push({ id: `yellow-${i}`, x: rx, y: ry, initialX: rx, initialY: ry, color: 'yellow', isDragging: false, rotate: randRot(), snappedTo: null, tappedIndex: null });
+                        }
+                    }
+                    else if (type === 5) {
+                        // 關卡 5：借十法
+                        const looseCount = A - 10;
+                        for (let i = 0; i < looseCount; i++) {
+                            const rx = 68 + (i * 10);
+                            const ry = 40;
+                            arr.push({ id: `red-loose-${i}`, x: rx, y: ry, initialX: rx, initialY: ry, color: 'red', isDragging: false, rotate: randRot(), snappedTo: null, tappedIndex: null });
+                        }
+                    }
+
+                    flowers.value = arr;
+                    recycledCount.value = 0;
+                    isTenGroupMerged.value = false;
+                };
+
+                const getComparisonX = (index) => {
+                    const baseLeft = 4;
+                    const col_width = 9.2;
+                    const targetX = baseLeft + (index - 0.5) * col_width;
+                    return `${targetX}%`;
+                };
+
+                const snappedRedCount = computed(() => {
+                    return flowers.value.filter(f => f.color === 'red' && f.snappedTo !== null).length;
+                });
+
+                const snappedYellowCount = computed(() => {
+                    return flowers.value.filter(f => f.color === 'yellow' && f.snappedTo !== null).length;
+                });
+
+                // --- STREAMING_CHUNK:編寫關卡步驟的口訣訊息庫 ---
+                const currentStepMessage = computed(() => {
+                    const type = currentProblem.value.type;
+                    const A = currentProblem.value.A;
+                    const B = currentProblem.value.B;
+
+                    if (type === 0) {
+                        if (currentStep.value === 1) {
+                            return `這裡有好多漂亮的花片喔！請用小手指，把這 ${A} 個花片通通拖進「十格陣」中排列好。`;
+                        } else if (currentStep.value === 2) {
+                            return `排得好整齊！現在請「一個一個點擊」排好的花片，跟著妙妙大聲接著數，看看是不是 ${A} 唷！`;
+                        } else {
+                            return `太棒了！我們數到 ${A} 囉！請在右側鍵盤輸入「${A}」，然後送出檢查。`;
+                        }
+                    }
+                    else if (type === 1) {
+                        if (currentStep.value === 1) {
+                            return `請幫忙把全部紅色 (${A} 個) 和黃色 (${B} 個) 花片，通通拖進中間的十格陣中排列好唷！`;
+                        } else if (currentStep.value === 2) {
+                            return `好棒！滿 5 變一排，滿 10 變一組囉！現在請「一個一個點擊」排好的花片，跟著數字大聲「接著數」！`;
+                        } else {
+                            return `數完囉！一共有幾個呢？快在右手邊輸入答案，再按下「送出檢查」吧！`;
+                        }
+                    }
+                    else if (type === 2) {
+                        if (currentStep.value === 1) {
+                            return `原本有 ${A} 個紅花片整齊排好。請用小手，把其中的 ${B} 個，拖曳到右下角的「垃圾桶」拿走。`;
+                        } else {
+                            return `做得好！現在十格陣裡還剩下幾個呢？請利用右側鍵盤，寫下算式與最終答案。`;
+                        }
+                    }
+                    else if (type === 3) {
+                        if (currentStep.value === 1) {
+                            return `我們來排排看！請把 ${A} 個紅花片，與 ${B} 個黃花片拖到各自的軌道格內對齊。`;
+                        } else {
+                            return `太棒了！綠色的虛線表示他們有連線配對到。看一看，多出來、沒有好朋友配對的花片有幾個？輸入答案吧！`;
+                        }
+                    }
+                    else if (type === 4) {
+                        if (currentStep.value === 1) {
+                            return `左邊有 ${A} 個紅花片。大數 ${A} 想要湊滿 10 大關，還需要「幾個黃花片好朋友」呢？請回答中間的小問題來解鎖喔！`;
+                        } else if (currentStep.value === 2) {
+                            return `太聰明了！正是需要 ${10 - A} 個好朋友。現在請從右側拖曳 ${10 - A} 個黃色花片，塞進左邊十格陣的空白格子裡湊滿 10。`;
+                        } else if (currentStep.value === 3) {
+                            return `集滿囉！十格陣已經成功變成了「一組 10」，而右邊剩下 ${B - (10 - A)} 個。10 加 ${B - (10 - A)} 是多少？`;
+                        } else {
+                            return `看著「10 與剩下花片」合成的結構，在右邊寫出這道進位加法答案吧！`;
+                        }
+                    }
+                    else if (type === 5) {
+                        if (currentStep.value === 1) {
+                            return `我們有 ${A} 個花片（一疊大禮包 10 個，和散落的 ${A - 10} 個）。要拿走 ${B} 個。但是散落的花片不夠拿，怎麼辦？別擔心！請點點看「10個一整排大禮包」，向它借吧！`;
+                        } else if (currentStep.value === 2) {
+                            return `禮包借開囉！現在一整排 10 個出來了。請拖曳其中的 ${B} 個，丟進右下角垃圾桶拿走！`;
+                        } else {
+                            return `借完拿走後，這排剩下 ${10 - B} 個，再加上原本散落在旁邊的 ${A - 10} 個，一共有幾個？請在算式板填入答案！`;
+                        }
+                    }
+                    return '';
+                });
+
+                const speakGuide = () => {
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                        const textToSpeak = `${currentProblem.value.scenarioText}。妙妙提示：${currentStepMessage.value}`;
+                        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                        utterance.lang = 'zh-TW';
+                        utterance.rate = 0.95;
+                        window.speechSynthesis.speak(utterance);
+                    }
+                };
+
+                // --- 拖曳 PointerEvents 指標監聽器與物理位移 ---
+                let activeDragId = null;
+                let dragStartX = 0;
+                let dragStartY = 0;
+                let flowerStartX = 0;
+                let flowerStartY = 0;
+
+                const onPointerDown = (e, flower) => {
+                    if (flower.hidden || flower.locked) return;
+
+                    activeDragId = flower.id;
+                    flower.isDragging = true;
+
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+                    dragStartX = clientX;
+                    dragStartY = clientY;
+                    flowerStartX = flower.x;
+                    flowerStartY = flower.y;
+
+                    Sound.playPop();
+
+                    if (flower.tappedIndex !== null) {
+                        flower.tappedIndex = null;
+                        flowers.value.forEach(f => f.tappedIndex = null);
+                        if (currentStep.value === 3) currentStep.value = 2;
+                    }
+                };
+
+                const onPointerMove = (e) => {
+                    if (!activeDragId) return;
+                    const flower = flowers.value.find(f => f.id === activeDragId);
+                    if (!flower) return;
+
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+                    const dx = clientX - dragStartX;
+                    const dy = clientY - dragStartY;
+
+                    const canvasEl = document.getElementById('sandbox-canvas');
+                    if (canvasEl) {
+                        const rect = canvasEl.getBoundingClientRect();
+                        const pctDx = (dx / rect.width) * 100;
+                        const pctDy = (dy / rect.height) * 100;
+
+                        flower.x = Math.max(2, Math.min(96, flowerStartX + pctDx));
+                        flower.y = Math.max(2, Math.min(96, flowerStartY + pctDy));
+
+                        const type = currentProblem.value.type;
+                        if (type === 2 || (type === 5 && currentStep.value === 2)) {
+                            if (flower.x > 75 && flower.y > 60) {
+                                trashBinHover.value = true;
+                            } else {
+                                trashBinHover.value = false;
+                            }
+                        }
+                    }
+                };
+
+                const onPointerUp = (e) => {
+                    if (!activeDragId) return;
+                    const flower = flowers.value.find(f => f.id === activeDragId);
+                    if (flower) {
+                        flower.isDragging = false;
+                        handleDrop(flower);
+                    }
+                    activeDragId = null;
+                    trashBinHover.value = false;
+                };
+
+                // --- 核心吸附與回收碰撞檢測 (精準解鎖第 4 與第 5 關步驟) ---
+                const handleDrop = (flower) => {
+                    const type = currentProblem.value.type;
+
+                    // 減法回收檢測 (第 2 關與第 5 關步驟 2)
+                    if (type === 2 || (type === 5 && currentStep.value === 2)) {
+                        if (flower.x > 72 && flower.y > 58) {
+                            if (recycledCount.value < currentProblem.value.B) {
+                                flower.hidden = true;
+                                recycledCount.value++;
+                                Sound.playChime();
+                                if (recycledCount.value === currentProblem.value.B) {
+                                    // 減法回收完畢，晉級算式輸入
+                                    if (type === 5) {
+                                        currentStep.value = 3; // 借十法晉級至算式輸入
+                                    } else {
+                                        currentStep.value = 2; // 普通減法晉級
+                                    }
+                                }
+                            } else {
+                                flower.x = flower.initialX;
+                                flower.y = flower.initialY;
+                                Sound.playBoing();
+                            }
+                            return;
+                        }
+                    }
+
+                    // 關卡 0 或是 關卡 1 的十格陣吸附檢測
+                    if ((type === 0 || type === 1) && currentStep.value === 1) {
+                        const slots = getTenFrameSlots(type);
+                        let nearestSlotIndex = -1;
+                        let minDist = 14;
+
+                        slots.forEach((s, idx) => {
+                            const isOccupied = flowers.value.some(f => f.id !== flower.id && f.snappedTo === idx && !f.hidden);
+                            if (!isOccupied) {
+                                const dist = Math.hypot(flower.x - s.x, flower.y - s.y);
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    nearestSlotIndex = idx;
+                                }
+                            }
+                        });
+
+                        if (nearestSlotIndex !== -1) {
+                            flower.x = slots[nearestSlotIndex].x;
+                            flower.y = slots[nearestSlotIndex].y;
+                            flower.snappedTo = nearestSlotIndex;
+                            Sound.playPop();
+
+                            // 全數放置完畢，解鎖接著數階段
+                            const allSnapped = flowers.value.every(f => f.snappedTo !== null);
+                            if (allSnapped) {
+                                currentStep.value = 2;
+                            }
+                        } else {
+                            flower.x = flower.initialX;
+                            flower.y = flower.initialY;
+                            flower.snappedTo = null;
+                        }
+                        return;
+                    }
+
+                    // 關卡 3：比較連線吸附
+                    if (type === 3) {
+                        let snapped = false;
+                        if (flower.color === 'red') {
+                            for (let i = 0; i < currentProblem.value.A; i++) {
+                                const targetSlot = getComparisonSlot(1, i);
+                                const isOccupied = flowers.value.some(f => f.id !== flower.id && f.snappedTo === i && f.color === 'red');
+                                if (!isOccupied && Math.hypot(flower.x - targetSlot.x, flower.y - targetSlot.y) < 14) {
+                                    flower.x = targetSlot.x;
+                                    flower.y = targetSlot.y;
+                                    flower.snappedTo = i;
+                                    snapped = true;
+                                    Sound.playPop();
+                                    break;
+                                }
+                            }
+                        } else {
+                            for (let i = 0; i < currentProblem.value.B; i++) {
+                                const targetSlot = getComparisonSlot(2, i);
+                                const isOccupied = flowers.value.some(f => f.id !== flower.id && f.snappedTo === i && f.color === 'yellow');
+                                if (!isOccupied && Math.hypot(flower.x - targetSlot.x, flower.y - targetSlot.y) < 14) {
+                                    flower.x = targetSlot.x;
+                                    flower.y = targetSlot.y;
+                                    flower.snappedTo = i;
+                                    snapped = true;
+                                    Sound.playPop();
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!snapped) {
+                            flower.x = flower.initialX;
+                            flower.y = flower.initialY;
+                            flower.snappedTo = null;
+                        } else {
+                            const redOk = flowers.value.filter(f => f.color === 'red').every(f => f.snappedTo !== null);
+                            const yellowOk = flowers.value.filter(f => f.color === 'yellow').every(f => f.snappedTo !== null);
+                            if (redOk && yellowOk) {
+                                currentStep.value = 2;
+                            }
+                        }
+                        return;
+                    }
+
+                    // 關卡 4：湊十法吸附 (必須為步驟 2：已回答好朋友問題才開放拖曳)
+                    if (type === 4 && currentStep.value === 2) {
+                        const A = currentProblem.value.A;
+                        const slots = getTenFrameSlots(4);
+                        let snapped = false;
+
+                        for (let idx = A; idx < 10; idx++) {
+                            const s = slots[idx];
+                            const isOccupied = flowers.value.some(f => f.id !== flower.id && f.snappedTo === idx);
+                            if (!isOccupied && Math.hypot(flower.x - s.x, flower.y - s.y) < 14) {
+                                flower.x = s.x;
+                                flower.y = s.y;
+                                flower.snappedTo = idx;
+                                flower.locked = true;
+                                snapped = true;
+                                Sound.playChime();
+                                break;
+                            }
+                        }
+
+                        if (!snapped) {
+                            flower.x = flower.initialX;
+                            flower.y = flower.initialY;
+                        } else {
+                            const currentSnappedInLeft = flowers.value.filter(f => f.snappedTo !== null).length;
+                            if (currentSnappedInLeft === 10) {
+                                isTenGroupMerged.value = true;
+                                Sound.playChime();
+                                setTimeout(() => {
+                                    currentStep.value = 3;
+                                }, 1200);
+                            }
+                        }
+                        return;
+                    }
+
+                    flower.x = flower.initialX;
+                    flower.y = flower.initialY;
+                };
+
+                // --- 借十法：解鎖大禮包 ---
+                const unpackTenGroup = () => {
+                    if (currentProblem.value.type !== 5 || currentStep.value !== 1) return;
+                    Sound.playChime();
+                    currentStep.value = 2;
+
+                    const slots = getTenFrameSlots(5);
+                    const newFlowers = [...flowers.value];
+                    for (let i = 0; i < 10; i++) {
+                        const s = slots[i];
+                        newFlowers.push({
+                            id: `red-borrowed-${i}`,
+                            x: s.x,
+                            y: s.y,
+                            initialX: s.x,
+                            initialY: s.y,
+                            color: 'red',
+                            isDragging: false,
+                            rotate: 0,
+                            snappedTo: i,
+                            tappedIndex: null
+                        });
+                    }
+                    flowers.value = newFlowers;
+                };
+
+                // --- 湊十法：驗證答題並解鎖 ---
+                const checkFriendAnswer = (selectedVal) => {
+                    const correctVal = 10 - currentProblem.value.A;
+                    if (selectedVal === correctVal) {
+                        Sound.playChime();
+                        currentStep.value = 2; // 答對了！順利解鎖拖曳功能
+                    } else {
+                        Sound.playBoing();
+                        triggerShake();
+                    }
+                };
+
+                const tapCountFlower = (flower) => {
+                    const type = currentProblem.value.type;
+                    if ((type !== 0 && type !== 1) || currentStep.value !== 2) return;
+                    if (flower.tappedIndex !== null) return;
+
+                    const currentCount = flowers.value.filter(f => f.tappedIndex !== null).length + 1;
+                    flower.tappedIndex = currentCount;
+                    Sound.playBubble();
+
+                    const totalFlowers = currentProblem.value.A + currentProblem.value.B;
+                    if (currentCount === totalFlowers) {
+                        Sound.playChime();
+                        setTimeout(() => {
+                            currentStep.value = 3;
+                        }, 800);
+                    }
+                };
+
+                const onFlowerClick = (flower) => {
+                    tapCountFlower(flower);
+                };
+
+                const onPointerDownWithTap = (e, flower) => {
+                    onPointerDown(e, flower);
+                    let hasMoved = false;
+                    const moveHandler = () => { hasMoved = true; };
+                    window.addEventListener('pointermove', moveHandler, { once: true });
+                    window.addEventListener('pointerup', () => {
+                        if (!hasMoved) {
+                            onFlowerClick(flower);
+                        }
+                    }, { once: true });
+                };
+
+                // --- 鍵盤輸入與自由選關邏輯 ---
+                const pressKey = (key) => {
+                    Sound.playPop();
+                    if (key === 'clear') {
+                        inputAnswer.value = '';
+                    } else if (key === 'back') {
+                        inputAnswer.value = inputAnswer.value.slice(0, -1);
+                    } else {
+                        if (inputAnswer.value.length < 2) {
+                            inputAnswer.value += key;
+                        }
+                    }
+                };
+
+                const submitAnswer = () => {
+                    const userAns = parseInt(inputAnswer.value);
+                    const realAns = currentProblem.value.ans;
+
+                    if (isNaN(userAns)) {
+                        triggerShake();
+                        return;
+                    }
+
+                    if (userAns === realAns) {
+                        Sound.playChime();
+                        if (currentProblemIndex.value < 5) {
+                            currentProblemIndex.value++;
+                            resetCurrentProblem();
+                        } else {
+                            isCompleted.value = true;
+                        }
+                    } else {
+                        Sound.playBoing();
+                        triggerShake();
+                    }
+                };
+
+                const triggerShake = () => {
+                    const canvas = document.getElementById('sandbox-canvas');
+                    if (canvas) {
+                        canvas.classList.add('shake-anim');
+                        setTimeout(() => {
+                            canvas.classList.remove('shake-anim');
+                        }, 500);
+                    }
+                };
+
+                // 自主選擇挑戰關卡功能
+                const selectLevel = (index) => {
+                    Sound.playPop();
+                    currentProblemIndex.value = index;
+                    isCompleted.value = false;
+                    resetCurrentProblem();
+                };
+
+                const resetCurrentProblem = () => {
+                    inputAnswer.value = '';
+                    currentStep.value = 1;
+
+                    // 若為第 4 關，在此隨機組裝 10 的好朋友答題選項 (防止重複渲染波動)
+                    if (currentProblem.value.type === 4) {
+                        const correctVal = 10 - currentProblem.value.A;
+                        const opts = new Set([correctVal]);
+                        while (opts.size < 3) {
+                            const randVal = Math.floor(Math.random() * 4) + 1; // 1-4
+                            opts.add(randVal);
+                        }
+                        friendOptions.value = Array.from(opts).sort((a, b) => a - b);
+                    }
+
+                    initFlowers();
+                };
+
+                const generateNewSession = () => {
+                    Sound.playChime();
+                    currentProblemIndex.value = 0;
+                    isCompleted.value = false;
+                    generateProblems();
+                    resetCurrentProblem();
+                };
+
+                onMounted(() => {
+                    checkDevice();
+                    window.addEventListener('resize', checkDevice);
+                    generateProblems();
+                    resetCurrentProblem();
+                });
+
+                return {
+                    currentProblemIndex,
+                    problems,
+                    flowers,
+                    inputAnswer,
+                    isCompleted,
+                    currentStep,
+                    isMobile,
+                    recycledCount,
+                    trashBinHover,
+                    isTenGroupMerged,
+                    currentProblem,
+                    shouldShowTenFrame,
+                    tenFrameBoxStyle,
+                    currentStepMessage,
+                    speakGuide,
+                    levelLabels,
+                    selectLevel,
+                    onPointerDown: onPointerDownWithTap,
+                    onPointerMove,
+                    onPointerUp,
+                    getComparisonX,
+                    snappedRedCount,
+                    snappedYellowCount,
+                    pressKey,
+                    submitAnswer,
+                    resetCurrentProblem,
+                    generateNewSession,
+                    unpackTenGroup,
+                    friendOptions,
+                    checkFriendAnswer
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+
+</html>
