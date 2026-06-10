@@ -1047,11 +1047,11 @@
                         }
                     }
                     else if (type === 5) {
-                        // 關卡 5：借十法
+                        // 關卡 5：借十法 (散落花片微調：起點左移至58%，間距縮至8%，確保5個花片也完美呈現不超出右邊邊界)
                         const looseCount = A - 10;
                         for (let i = 0; i < looseCount; i++) {
-                            const rx = 68 + (i * 10);
-                            const ry = 40;
+                            const rx = 58 + (i * 8);
+                            const ry = 45;
                             arr.push({ id: `red-loose-${i}`, x: rx, y: ry, initialX: rx, initialY: ry, color: 'red', isDragging: false, rotate: randRot(), snappedTo: null, tappedIndex: null });
                         }
                     }
