@@ -216,7 +216,7 @@
                 </div>
 
                 <!-- 核心互動工作區 (Canvas Sandbox) -->
-                <div class="bg-white rounded-3xl shadow-lg border-4 border-amber-200 p-4 relative">
+                <div class="bg-white rounded-3xl shadow-lg border-4 border-amber-200 p-4 relative animate-fade-in">
 
                     <!-- 工作區狀態提示浮標 -->
                     <div
@@ -225,10 +225,9 @@
                         <span>花片操作盤 (支援觸控與滑鼠)</span>
                     </div>
 
-                    <!-- 畫布主容器 -->
+                    <!-- 畫布主容器 (加 touch-none 防止手機拖曳時產生畫面滾動) -->
                     <div id="sandbox-canvas"
-                        class="w-full h-[320px] md:h-[420px] bg-sky-50/50 rounded-2xl relative overflow-hidden border-2 border-dashed border-sky-200"
-                        @pointermove="onPointerMove" @pointerup="onPointerUp" @pointerleave="onPointerUp">
+                        class="w-full h-[320px] md:h-[420px] bg-sky-50/50 rounded-2xl relative overflow-hidden border-2 border-dashed border-sky-200 touch-none">
 
                         <!-- A. 十格陣背景 (用於 Stage 0, 1, 2, 4, 5) -->
                         <div v-if="shouldShowTenFrame"
@@ -368,11 +367,12 @@
                             </div>
                         </div>
 
-                        <!-- E. 渲染所有可交互花片元件 -->
+                        <!-- E. 渲染所有可交互花片元件 (依狀態動態設置游標：可拖曳為抓取小手、可點選數數為點選食指、已鎖定為預設指針) -->
                         <div v-for="flower in flowers" :key="flower.id" v-show="!flower.hidden"
-                            class="absolute select-none transition-transform" :class="[
-                   flower.isDragging ? 'z-50 scale-110 pointer-events-none' : 'z-30',
-                   flower.locked ? 'opacity-80' : 'cursor-grab active:cursor-grabbing'
+                            class="absolute select-none transition-transform touch-none" :class="[
+                   flower.isDragging ? 'z-50 scale-110' : 'z-30',
+                   flower.locked ? 'opacity-80' : '',
+                   isFlowerDraggable(flower) ? 'cursor-grab active:cursor-grabbing' : (isFlowerClickable(flower) ? 'cursor-pointer' : 'cursor-default')
                  ]" :style="{
                    left: flower.x + '%',
                    top: flower.y + '%',
@@ -1118,7 +1118,7 @@
                         if (currentStep.value === 1) {
                             return `左邊有 ${A} 個紅花片。大數 ${A} 想要湊滿 10 大關，還需要「幾個黃花片好朋友」呢？請回答中間的小問題來解鎖喔！`;
                         } else if (currentStep.value === 2) {
-                            return `太聰明了！正是需要 ${10 - A} 個好朋友。現在請從右側拖曳 ${10 - A} 個黃色花片，塞進左邊十格陣的空白格子裡湊滿 10。`;
+                            return `太聰明了！正是需要 ${10 - A} 個好朋友。現在請從右側拖曳 ${10 - A} 個黃色花片，塞進左邊十格陣 of 空白格子裡湊滿 10。`;
                         } else if (currentStep.value === 3) {
                             return `集滿囉！十格陣已經成功變成了「一組 10」，而右邊剩下 ${B - (10 - A)} 個。10 加 ${B - (10 - A)} 是多少？`;
                         } else {
@@ -1144,8 +1144,39 @@
                         const utterance = new SpeechSynthesisUtterance(textToSpeak);
                         utterance.lang = 'zh-TW';
                         utterance.rate = 0.95;
-                        window.speechSynthesis.speak(utterance);
                     }
+                };
+
+                // --- 狀態感知：判定花片在當前步驟下是否可被拖曳與點擊數數 ---
+                // 為了不限制學生嘗試，送出正確答案前一律允許學生自由拖曳調整花片位置 (鎖定改為送出後通關才重置)
+                const isFlowerDraggable = (flower) => {
+                    if (flower.hidden || flower.locked) return false;
+
+                    const type = currentProblem.value.type;
+                    const step = currentStep.value;
+
+                    // 關卡 0, 1, 2, 3: 只要尚未成功通關 (isCompleted 為 false)，任何時候都可以自由拖曳！
+                    if (type === 0 || type === 1 || type === 2 || type === 3) {
+                        return true;
+                    }
+                    // 關卡 4: 只有在答完好朋友湊10問題解鎖後 (Step 2以上)，黃色花片才可以自由拖曳
+                    if (type === 4) {
+                        return step >= 2 && flower.color === 'yellow';
+                    }
+                    // 關卡 5: 打開10個大禮包後 (Step 2以上)，紅色花片才可以自由拖曳丟棄
+                    if (type === 5) {
+                        return step >= 2;
+                    }
+
+                    return false;
+                };
+
+                const isFlowerClickable = (flower) => {
+                    if (flower.hidden || flower.locked) return false;
+                    const type = currentProblem.value.type;
+                    const step = currentStep.value;
+                    // 關卡 0, 1 的步驟 2 (點選接著數) 階段才為可點擊計數狀態
+                    return (type === 0 || type === 1) && step === 2;
                 };
 
                 // --- 拖曳 PointerEvents 指標監聽器與物理位移 ---
@@ -1155,72 +1186,128 @@
                 let flowerStartX = 0;
                 let flowerStartY = 0;
 
+                // 新的行動觸控與指針鎖定優化拖曳主邏輯
                 const onPointerDown = (e, flower) => {
                     if (flower.hidden || flower.locked) return;
 
+                    // 避免行動裝置產生橡皮筋或預設畫面滾動干擾
+                    if (e.cancelable) e.preventDefault();
+
                     activeDragId = flower.id;
-                    flower.isDragging = true;
 
-                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                    const draggable = isFlowerDraggable(flower);
+                    if (draggable) {
+                        flower.isDragging = true;
 
-                    dragStartX = clientX;
-                    dragStartY = clientY;
+                        // 智慧 unsnap 機制：如果開始移動原本已經吸附的花片，即時將吸附點釋放並智能將關卡步驟回退
+                        if (flower.snappedTo !== null) {
+                            flower.snappedTo = null;
+                            const type = currentProblem.value.type;
+                            if (type === 0 || type === 1) {
+                                currentStep.value = 1;
+                                flowers.value.forEach(f => f.tappedIndex = null);
+                            } else if (type === 3) {
+                                currentStep.value = 1;
+                            } else if (type === 4) {
+                                isTenGroupMerged.value = false;
+                                currentStep.value = 2;
+                            }
+                        }
+                    }
+
+                    // 使用 e.clientX/Y。PointerEvents 已整合滑鼠與觸控座標，不需額外提取 touches
+                    const startClientX = e.clientX;
+                    const startClientY = e.clientY;
+
+                    dragStartX = startClientX;
+                    dragStartY = startClientY;
                     flowerStartX = flower.x;
                     flowerStartY = flower.y;
 
                     Sound.playPop();
 
-                    if (flower.tappedIndex !== null) {
+                    // 若已被點擊過，且符合點擊階段，先重設接著數狀態
+                    if (isFlowerClickable(flower) && flower.tappedIndex !== null) {
                         flower.tappedIndex = null;
                         flowers.value.forEach(f => f.tappedIndex = null);
                         if (currentStep.value === 3) currentStep.value = 2;
                     }
-                };
 
-                const onPointerMove = (e) => {
-                    if (!activeDragId) return;
-                    const flower = flowers.value.find(f => f.id === activeDragId);
-                    if (!flower) return;
+                    let maxDistance = 0;
 
-                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                    // 動態註冊全局 pointermove (確保手指滑出 canvas 時依然能流暢拖曳)
+                    const onGlobalPointerMove = (moveEvent) => {
+                        if (!activeDragId) return;
 
-                    const dx = clientX - dragStartX;
-                    const dy = clientY - dragStartY;
+                        const currentX = moveEvent.clientX;
+                        const currentY = moveEvent.clientY;
 
-                    const canvasEl = document.getElementById('sandbox-canvas');
-                    if (canvasEl) {
-                        const rect = canvasEl.getBoundingClientRect();
-                        const pctDx = (dx / rect.width) * 100;
-                        const pctDy = (dy / rect.height) * 100;
+                        // 計算移動距離 (用以分辨極輕微手抖與真實拖曳行為)
+                        const dist = Math.hypot(currentX - startClientX, currentY - startClientY);
+                        if (dist > maxDistance) {
+                            maxDistance = dist;
+                        }
 
-                        flower.x = Math.max(2, Math.min(96, flowerStartX + pctDx));
-                        flower.y = Math.max(2, Math.min(96, flowerStartY + pctDy));
+                        // 只有符合可拖曳狀態，才即時更新花片渲染座標與碰撞效果
+                        if (draggable) {
+                            const dx = currentX - dragStartX;
+                            const dy = currentY - dragStartY;
 
-                        const type = currentProblem.value.type;
-                        if (type === 2 || (type === 5 && currentStep.value === 2)) {
-                            if (flower.x > 75 && flower.y > 60) {
-                                trashBinHover.value = true;
-                            } else {
-                                trashBinHover.value = false;
+                            const canvasEl = document.getElementById('sandbox-canvas');
+                            if (canvasEl) {
+                                const rect = canvasEl.getBoundingClientRect();
+                                const pctDx = (dx / rect.width) * 100;
+                                const pctDy = (dy / rect.height) * 100;
+
+                                // 限制移動邊界，不讓花片滑出盤外
+                                flower.x = Math.max(2, Math.min(96, flowerStartX + pctDx));
+                                flower.y = Math.max(2, Math.min(96, flowerStartY + pctDy));
+
+                                // 減法垃圾桶高亮與回收範圍檢測
+                                const type = currentProblem.value.type;
+                                if (type === 2 || (type === 5 && currentStep.value === 2)) {
+                                    if (flower.x > 75 && flower.y > 60) {
+                                        trashBinHover.value = true;
+                                    } else {
+                                        trashBinHover.value = false;
+                                    }
+                                }
                             }
                         }
-                    }
+                    };
+
+                    // 動態註冊全局 pointerup 與 pointercancel 結束拖曳事件
+                    const onGlobalPointerUp = () => {
+                        window.removeEventListener('pointermove', onGlobalPointerMove);
+                        window.removeEventListener('pointerup', onGlobalPointerUp);
+                        window.removeEventListener('pointercancel', onGlobalPointerUp);
+
+                        if (flower) {
+                            flower.isDragging = false;
+
+                            // 閾值設定：若滑動位移小於 8 像素，判定為「點擊數數」而非「拖曳」
+                            if (maxDistance < 8) {
+                                onFlowerClick(flower);
+                                // 回復原位 (避免點擊時產生微小位移偏位)
+                                flower.x = flowerStartX;
+                                flower.y = flowerStartY;
+                            } else {
+                                // 只有在允許拖曳的階段，才呼叫吸附或回收碰撞運算
+                                if (draggable) {
+                                    handleDrop(flower);
+                                }
+                            }
+                        }
+                        activeDragId = null;
+                        trashBinHover.value = false;
+                    };
+
+                    window.addEventListener('pointermove', onGlobalPointerMove);
+                    window.addEventListener('pointerup', onGlobalPointerUp);
+                    window.addEventListener('pointercancel', onGlobalPointerUp);
                 };
 
-                const onPointerUp = (e) => {
-                    if (!activeDragId) return;
-                    const flower = flowers.value.find(f => f.id === activeDragId);
-                    if (flower) {
-                        flower.isDragging = false;
-                        handleDrop(flower);
-                    }
-                    activeDragId = null;
-                    trashBinHover.value = false;
-                };
-
-                // --- 核心吸附與回收碰撞檢測 (精準解鎖第 4 與第 5 關步驟) ---
+                // --- 核心吸附與回收碰撞檢測 ---
                 const handleDrop = (flower) => {
                     const type = currentProblem.value.type;
 
@@ -1249,7 +1336,7 @@
                     }
 
                     // 關卡 0 或是 關卡 1 的十格陣吸附檢測
-                    if ((type === 0 || type === 1) && currentStep.value === 1) {
+                    if ((type === 0 || type === 1)) {
                         const slots = getTenFrameSlots(type);
                         let nearestSlotIndex = -1;
                         let minDist = 14;
@@ -1270,16 +1357,19 @@
                             flower.y = slots[nearestSlotIndex].y;
                             flower.snappedTo = nearestSlotIndex;
                             Sound.playPop();
-
-                            // 全數放置完畢，解鎖接著數階段
-                            const allSnapped = flowers.value.every(f => f.snappedTo !== null);
-                            if (allSnapped) {
-                                currentStep.value = 2;
-                            }
                         } else {
                             flower.x = flower.initialX;
                             flower.y = flower.initialY;
                             flower.snappedTo = null;
+                        }
+
+                        // 判斷是否所有花片都已就位：就位後才進入點數階段
+                        const allSnapped = flowers.value.every(f => f.snappedTo !== null);
+                        if (allSnapped) {
+                            currentStep.value = 2;
+                        } else {
+                            currentStep.value = 1;
+                            flowers.value.forEach(f => f.tappedIndex = null);
                         }
                         return;
                     }
@@ -1319,18 +1409,20 @@
                             flower.x = flower.initialX;
                             flower.y = flower.initialY;
                             flower.snappedTo = null;
+                        }
+
+                        const redOk = flowers.value.filter(f => f.color === 'red').every(f => f.snappedTo !== null);
+                        const yellowOk = flowers.value.filter(f => f.color === 'yellow').every(f => f.snappedTo !== null);
+                        if (redOk && yellowOk) {
+                            currentStep.value = 2;
                         } else {
-                            const redOk = flowers.value.filter(f => f.color === 'red').every(f => f.snappedTo !== null);
-                            const yellowOk = flowers.value.filter(f => f.color === 'yellow').every(f => f.snappedTo !== null);
-                            if (redOk && yellowOk) {
-                                currentStep.value = 2;
-                            }
+                            currentStep.value = 1;
                         }
                         return;
                     }
 
-                    // 關卡 4：湊十法吸附 (必須為步驟 2：已回答好朋友問題才開放拖曳)
-                    if (type === 4 && currentStep.value === 2) {
+                    // 關卡 4：湊十法吸附 (黃色花片放入後，不再給予 locked=true 鎖定，讓孩子隨時可以拉出重新排列)
+                    if (type === 4 && currentStep.value >= 2) {
                         const A = currentProblem.value.A;
                         const slots = getTenFrameSlots(4);
                         let snapped = false;
@@ -1342,7 +1434,6 @@
                                 flower.x = s.x;
                                 flower.y = s.y;
                                 flower.snappedTo = idx;
-                                flower.locked = true;
                                 snapped = true;
                                 Sound.playChime();
                                 break;
@@ -1352,15 +1443,24 @@
                         if (!snapped) {
                             flower.x = flower.initialX;
                             flower.y = flower.initialY;
-                        } else {
-                            const currentSnappedInLeft = flowers.value.filter(f => f.snappedTo !== null).length;
-                            if (currentSnappedInLeft === 10) {
-                                isTenGroupMerged.value = true;
-                                Sound.playChime();
-                                setTimeout(() => {
+                            flower.snappedTo = null;
+                        }
+
+                        // 動態檢測左邊十格陣是否集滿 10 個
+                        const currentSnappedInLeft = flowers.value.filter(f => f.snappedTo !== null).length;
+                        if (currentSnappedInLeft === 10) {
+                            isTenGroupMerged.value = true;
+                            Sound.playChime();
+                            setTimeout(() => {
+                                // 延遲判定，確認 1200ms 後花片依舊被全數放置於陣內才推進步驟
+                                const doubleCheckCount = flowers.value.filter(f => f.snappedTo !== null).length;
+                                if (doubleCheckCount === 10) {
                                     currentStep.value = 3;
-                                }, 1200);
-                            }
+                                }
+                            }, 1200);
+                        } else {
+                            isTenGroupMerged.value = false;
+                            currentStep.value = 2;
                         }
                         return;
                     }
@@ -1427,18 +1527,6 @@
 
                 const onFlowerClick = (flower) => {
                     tapCountFlower(flower);
-                };
-
-                const onPointerDownWithTap = (e, flower) => {
-                    onPointerDown(e, flower);
-                    let hasMoved = false;
-                    const moveHandler = () => { hasMoved = true; };
-                    window.addEventListener('pointermove', moveHandler, { once: true });
-                    window.addEventListener('pointerup', () => {
-                        if (!hasMoved) {
-                            onFlowerClick(flower);
-                        }
-                    }, { once: true });
                 };
 
                 // --- 鍵盤輸入與自由選關邏輯 ---
@@ -1547,9 +1635,7 @@
                     speakGuide,
                     levelLabels,
                     selectLevel,
-                    onPointerDown: onPointerDownWithTap,
-                    onPointerMove,
-                    onPointerUp,
+                    onPointerDown,
                     getComparisonX,
                     snappedRedCount,
                     snappedYellowCount,
@@ -1559,7 +1645,9 @@
                     generateNewSession,
                     unpackTenGroup,
                     friendOptions,
-                    checkFriendAnswer
+                    checkFriendAnswer,
+                    isFlowerDraggable,
+                    isFlowerClickable
                 };
             }
         }).mount('#app');
