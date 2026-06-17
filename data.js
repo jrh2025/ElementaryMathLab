@@ -281,5 +281,14 @@ window.MATH_TOOLS_DATA = [
     "link": "flowers_math.html",
     "icon": "Flower",
     "color": "rose"
+  },
+  {
+    "id": "tool_1781680482313",
+    "title": "小小數據分析師互動自學平台",
+    "grade": "六年級",
+    "description": "專為國小高年級數學科「統計圖表」單元設計的素養導向自學平台。本平台透過「即時狀態驅動（State-Driven）」與「資料動態隨機化（Dynamic Randomization）」技術，將長條圖、直方圖、圓形圖與折線圖的「觀念導覽、手繪實作、讀圖反推、成效評估」完全整合至單一數位空間中，打造出防死記、高樂趣的遊戲化自學環境。\n",
+    "link": "statistics.html",
+    "icon": "ChartColumnStacked",
+    "color": "indigo"
   }
 ];
