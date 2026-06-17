@@ -15,7 +15,7 @@
     <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
     <!-- 更新 Lucide 版本 -->
     <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.15.0/babel.min.js"></script>
 
     <!-- 載入目前的資料 -->
     <script src="data.js"></script>
@@ -37,29 +37,73 @@
 
         // --- Lucide Icon Helper (修復版) ---
         const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
-            // 安全檢查：如果 window.lucide 不存在，避免崩潰
             if (!window.lucide || !window.lucide.icons) {
                 console.warn("Lucide library not loaded.");
                 return <span className="inline-block bg-slate-200 rounded text-xs text-slate-500 flex items-center justify-center" style={{ width: size, height: size }}>?</span>;
             }
 
-            // 嘗試獲取圖示，如果找不到則使用預設圖示 (CircleHelp)
-            const iconData = window.lucide.icons[name] || window.lucide.icons['CircleHelp'];
+            const getIconData = (iconName) => {
+                const icons = window.lucide.icons;
+                if (!iconName) return icons['CircleHelp'] || icons['circleHelp'];
+                if (icons[iconName]) return icons[iconName];
+                const camel = iconName.charAt(0).toLowerCase() + iconName.slice(1);
+                if (icons[camel]) return icons[camel];
+                const kebab = iconName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+                if (icons[kebab]) return icons[kebab];
+                const lower = iconName.toLowerCase();
+                if (icons[lower]) return icons[lower];
+                const foundKey = Object.keys(icons).find(k => k.toLowerCase() === lower || k.toLowerCase().replace(/[^a-z0-9]/g, '') === lower);
+                if (foundKey) return icons[foundKey];
+                return icons['CircleHelp'] || icons['circle-help'] || icons['circleHelp'] || null;
+            };
 
+            const iconData = getIconData(name);
             if (!iconData) return null;
 
-            const [tag, attrs, children] = iconData;
+            const convertAttrs = (attrs) => {
+                if (!attrs) return {};
+                const map = {
+                    'stroke-width': 'strokeWidth',
+                    'stroke-linecap': 'strokeLinecap',
+                    'stroke-linejoin': 'strokeLinejoin',
+                    'fill-rule': 'fillRule',
+                    'clip-rule': 'clipRule',
+                    'class': 'className',
+                    'stroke-dasharray': 'strokeDasharray'
+                };
+                return Object.entries(attrs).reduce((acc, [key, val]) => {
+                    const newKey = map[key] || key;
+                    acc[newKey] = val;
+                    return acc;
+                }, {});
+            };
+
+            let tag, attrs, children;
+            if (Array.isArray(iconData)) {
+                [tag, attrs, children] = iconData;
+            } else {
+                tag = iconData.tag || 'svg';
+                attrs = iconData.attrs || {};
+                children = iconData.children || [];
+            }
 
             const renderChild = (child, index) => {
-                const [childTag, childAttrs, grandChildren] = child;
-                return React.createElement(childTag, { ...childAttrs, key: index },
+                let childTag, childAttrs, grandChildren;
+                if (Array.isArray(child)) {
+                    [childTag, childAttrs, grandChildren] = child;
+                } else {
+                    childTag = child.tag;
+                    childAttrs = child.attrs;
+                    grandChildren = child.children;
+                }
+                return React.createElement(childTag, { ...convertAttrs(childAttrs), key: index },
                     grandChildren ? grandChildren.map(renderChild) : null
                 );
             };
 
             return React.createElement(tag,
                 {
-                    ...attrs,
+                    ...convertAttrs(attrs),
                     width: size,
                     height: size,
                     className: className,
@@ -69,8 +113,6 @@
                 children ? children.map(renderChild) : null
             );
         };
-
-        // 定義此頁面用到的圖示元件 (使用新的 Helper)
         const LayoutDashboard = (p) => <LucideIcon name="LayoutDashboard" {...p} />;
         const Plus = (p) => <LucideIcon name="Plus" {...p} />;
         const Trash2 = (p) => <LucideIcon name="Trash2" {...p} />;
@@ -204,7 +246,7 @@
                                     {tools.map(tool => (
                                         <tr key={tool.id} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-4">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white bg-${tool.color}-500 bg-gray-400`}>
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white bg-${tool.color}-500 `}>
                                                     {/* 動態渲染圖示 */}
                                                     <LucideIcon name={tool.icon} size={20} />
                                                 </div>
@@ -276,7 +318,7 @@
                                                 className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none"
                                             >
                                                 <option>一年級</option><option>二年級</option><option>三年級</option>
-                                                <option>四年級</option><option>五年級</option><option>六年級</option>
+                                                <option>四年級</option><option>五年級</option><option>六年級</option><option>其他</option>
                                             </select>
                                         </div>
                                         <div>

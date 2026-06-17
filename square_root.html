@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>根號魔法書：從幾何、算術到微積分</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .nav-active {
+            @apply text-indigo-600 border-b-4 border-indigo-600;
+        }
+
+        .math-card {
+            @apply bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300;
+        }
+
+        .step-highlight {
+            @apply bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 rounded-r-xl;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 嚴格的等寬字體與字距，確保 ASCII Art 完美對齊 */
+        .long-div-table {
+            font-family: 'Courier New', 'Consolas', monospace;
+            line-height: 1.6;
+            color: #10b981;
+            white-space: pre;
+            letter-spacing: 0.15em;
+            font-size: 1.125rem;
+        }
+
+        /* 針對算草的自訂捲軸 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 9999px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 md:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="text-2xl font-black text-indigo-700 flex items-center gap-2 tracking-tight">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3h18v18H3z" />
+                        <path d="M12 8v8" />
+                        <path d="M8 12h8" />
+                    </svg>
+                    根號魔法書
+                </div>
+                <div class="hidden md:flex space-x-10">
+                    <button onclick="showSection('geometry')" id="nav-geometry"
+                        class="nav-btn py-2 font-bold nav-active transition-colors text-lg">單元一：幾何定義</button>
+                    <button onclick="showSection('arithmetic')" id="nav-arithmetic"
+                        class="nav-btn py-2 font-bold text-slate-400 hover:text-indigo-600 transition-colors text-lg">單元二：直式開方</button>
+                    <button onclick="showSection('taylor')" id="nav-taylor"
+                        class="nav-btn py-2 font-bold text-slate-400 hover:text-indigo-600 transition-colors text-lg">單元三：泰勒展開</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-4 md:p-8">
+
+        <!-- 單元一：幾何定義 -->
+        <section id="sec-geometry" class="fade-in space-y-12">
+            <div class="text-center max-w-3xl mx-auto py-10">
+                <h1 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">根號的幾何本質</h1>
+                <p class="text-slate-500 mt-6 text-xl leading-relaxed">在數學中，「根」就是「根源」，也就是正方形的邊長。</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12 items-stretch">
+                <div class="math-card flex flex-col justify-center">
+                    <h2 class="text-3xl font-black text-indigo-900 mb-6">什麼是根號 \(\sqrt{x}\)？</h2>
+                    <div class="space-y-6 text-slate-600 text-lg leading-relaxed">
+                        <p>想像你有一塊面積為 \(x\) 的正方形地墊。要把這塊地墊鋪好，你需要知道它的邊長是多少。</p>
+                        <div class="bg-indigo-50 p-6 rounded-2xl border-l-8 border-indigo-600">
+                            「面積為 \(x\) 的正方形，其邊長即定義為 \(\sqrt{x}\)。」
+                        </div>
+                        <ul class="space-y-4 mt-4">
+                            <li class="flex items-start gap-3">
+                                <span class="w-2 h-2 bg-indigo-400 rounded-full mt-2.5 flex-shrink-0"></span>
+                                <span>例如：面積為 \(9\)，邊長就是 \(3\) (\(3 \times 3 = 9\))。</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="w-2 h-2 bg-indigo-400 rounded-full mt-2.5 flex-shrink-0"></span>
+                                <span>如果面積是 \(58\)，邊長就會介於 \(7\) (面積 \(49\)) 和 \(8\) (面積 \(64\)) 之間。</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-white p-8 md:p-10 rounded-[3rem] shadow-xl flex flex-col items-center justify-between border border-slate-100">
+                    <!-- 固定高度的繪圖區，避免拉動滑桿時版面跳動 -->
+                    <div class="w-full h-[280px] flex items-center justify-center relative">
+                        <div id="square-viz"
+                            class="bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-3xl shadow-lg transition-all duration-300 relative z-10"
+                            style="width: 207px; height: 207px;">
+                            面積: <span id="area-display" class="ml-2">58</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 w-full max-w-sm relative z-10">
+                        <label
+                            class="block text-sm font-bold text-slate-400 mb-4 text-center uppercase tracking-widest">拉動滑桿改變面積</label>
+                        <input type="range" id="square-slider" min="1" max="100" value="58"
+                            class="w-full h-3 bg-slate-200 rounded-full appearance-none cursor-pointer accent-indigo-600 shadow-inner">
+                        <div class="mt-6 bg-slate-50 p-4 rounded-2xl text-center border border-slate-100">
+                            <span class="text-slate-500 font-bold">邊長 \(\sqrt{x} \approx\) </span>
+                            <span id="side-display" class="text-4xl font-black text-indigo-700 ml-2">7.61</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 單元二：直式開方法 -->
+        <section id="sec-arithmetic" class="hidden fade-in space-y-12">
+            <div class="text-center max-w-3xl mx-auto py-10">
+                <h1 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">算術魔法：直式開方法</h1>
+                <p class="text-slate-500 mt-6 text-xl leading-relaxed">在計算機發明前，數學家如何求出極度精確的平方根？這是一套建立在代數展開式上的精密演算法。</p>
+            </div>
+
+            <!-- 原理介紹 -->
+            <div class="math-card border-t-8 border-indigo-600 bg-white shadow-xl relative overflow-hidden">
+                <div class="absolute -top-24 -right-24 w-64 h-64 bg-indigo-50 rounded-full opacity-50 z-0"></div>
+
+                <div class="relative z-10">
+                    <h3 class="text-3xl font-black mb-6 text-slate-800">🔍 核心原理：代數與算術的完美交響</h3>
+                    <p class="text-lg text-slate-600 mb-8 leading-relaxed">
+                        直式開方法並非死記硬背的規則，而是一場基於<strong>「十進位制」</strong>與<strong>「和的平方公式」</strong>的精確逼近過程。
+                        假設我們已經求出前幾位數字，將其視為 \(a\)，而我們正準備尋找的下一位數字為 \(b\)。在十進位中，當 \(b\) 附加於 \(a\) 之後，整體的數值即擴增為 \((10a +
+                        b)\)。
+                    </p>
+
+                    <div
+                        class="bg-gradient-to-r from-indigo-50 to-blue-50 p-8 rounded-3xl mb-10 border border-indigo-100/50 shadow-inner">
+                        <p class="text-center text-indigo-400 font-bold tracking-widest uppercase text-sm mb-4">基礎代數展開
+                        </p>
+                        <div class="text-center font-mono text-2xl md:text-3xl text-indigo-900">
+                            \((10a+b)^2 = 100a^2 + 20ab + b^2\)
+                            <br>
+                            <span class="text-rose-600 font-black mt-4 block">\(= 100a^2 + (20a + b) \cdot b\)</span>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div
+                            class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                            <div
+                                class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-2xl mb-6 shadow-md shadow-indigo-200">
+                                1</div>
+                            <h4 class="font-bold text-xl text-slate-800 mb-4">為何要「兩位」一組？</h4>
+                            <p class="text-slate-600 text-base leading-relaxed">
+                                對應公式中的 <span
+                                    class="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">\(100a^2\)</span>。在十進位中，根的數值每晉升一個位數，其平方值就會擴大
+                                100 倍。因此被開方數必須每兩位劃分一個區塊。
+                            </p>
+                        </div>
+                        <div
+                            class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                            <div
+                                class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-2xl mb-6 shadow-md shadow-indigo-200">
+                                2</div>
+                            <h4 class="font-bold text-xl text-slate-800 mb-4">餘數的物理意義</h4>
+                            <p class="text-slate-600 text-base leading-relaxed">
+                                降下來的「餘數」正代表著公式後段的缺口 <span
+                                    class="font-mono font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded">\((20a+b)b\)</span>。我們必須找到
+                                \(b\) 來填補它。
+                            </p>
+                        </div>
+                        <div
+                            class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                            <div
+                                class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-2xl mb-6 shadow-md shadow-indigo-200">
+                                3</div>
+                            <h4 class="font-bold text-xl text-slate-800 mb-4">試商除數 \(20a+b\)</h4>
+                            <p class="text-slate-600 text-base leading-relaxed">
+                                將目前已知的根 \(a\) <strong class="text-rose-600">乘以 20</strong>，再加上正準備測試的位數 \(b\)，構成試商除數，再乘以
+                                \(b\) 來極限逼近餘數。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 互動模擬器 -->
+            <div class="grid lg:grid-cols-2 gap-8">
+                <div class="math-card">
+                    <h3 class="text-2xl font-black mb-6 text-slate-800 flex items-center gap-3">
+                        <span class="bg-amber-100 text-amber-600 p-2 rounded-xl"><svg xmlns="http://www.w3.org/2000/svg"
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                                <rect x="9" y="9" width="6" height="6"></rect>
+                                <line x1="9" y1="1" x2="9" y2="4"></line>
+                                <line x1="15" y1="1" x2="15" y2="4"></line>
+                                <line x1="9" y1="20" x2="9" y2="23"></line>
+                                <line x1="15" y1="20" x2="15" y2="23"></line>
+                                <line x1="20" y1="9" x2="23" y2="9"></line>
+                                <line x1="20" y1="14" x2="23" y2="14"></line>
+                                <line x1="1" y1="9" x2="4" y2="9"></line>
+                                <line x1="1" y1="14" x2="4" y2="14"></line>
+                            </svg></span>
+                        互動解析引擎
+                    </h3>
+                    <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                        <input type="number" id="arithInput" value="10"
+                            class="flex-1 p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 text-xl font-bold transition-all"
+                            placeholder="輸入數字，例如 10 或 529">
+                        <button onclick="simulateLongDivision()"
+                            class="bg-indigo-600 text-white px-8 py-5 rounded-2xl hover:bg-indigo-700 transition font-black text-lg shadow-lg shadow-indigo-200 tracking-wide">生成步驟</button>
+                    </div>
+                    <div id="division-steps" class="space-y-5 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+                        <p class="text-slate-400 italic text-center py-10 font-bold">請點擊上方按鈕開始解析計算過程</p>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-slate-900 text-emerald-400 p-8 rounded-[3rem] shadow-2xl relative overflow-x-auto min-h-[500px] custom-scrollbar border-8 border-slate-800">
+                    <div
+                        class="absolute top-0 right-0 m-6 px-4 py-2 bg-slate-800 rounded-xl text-xs text-slate-400 tracking-widest font-black uppercase">
+                        Standard Algorithm</div>
+                    <div id="long-division-canvas" class="long-div-table pt-12 pl-4"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 單元三：泰勒展開 -->
+        <section id="sec-taylor" class="hidden fade-in space-y-12">
+            <div class="text-center max-w-3xl mx-auto py-10">
+                <h1 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">現代魔法：泰勒展開式</h1>
+                <p class="text-slate-500 mt-6 text-xl leading-relaxed">
+                    在現代晶片與機器學習中，電腦如何高速處理複雜函數？秘密在於運用「局部線性化」，以無數段微小的直線去預測並貼合曲線。</p>
+            </div>
+
+            <!-- 核心原理與數學推導 -->
+            <div class="math-card border-t-8 border-rose-500 bg-white shadow-xl mb-12">
+                <h3 class="text-3xl font-black mb-8 text-slate-800">🔬 核心原理：從一階切線到二階曲率</h3>
+                <div class="grid md:grid-cols-2 gap-10 items-stretch">
+                    <div class="bg-slate-50 p-8 rounded-3xl border border-slate-200">
+                        <h4 class="font-bold text-xl text-slate-800 mb-4">為什麼需要二階展開？</h4>
+                        <p class="text-slate-600 leading-relaxed mb-6">
+                            一階泰勒展開利用「斜率」畫出切線（預測趨勢），這在機器學習中稱為梯度下降。但當距離拉遠，直線無法反映曲線的「彎曲」。<strong
+                                class="text-indigo-600">引入二階導數（曲率），就像用拋物線去貼合目標，能大幅修正誤差。</strong>
+                        </p>
+                        <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-100 space-y-3">
+                            <p
+                                class="text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-100 pb-2">
+                                一般函數的二階展開式</p>
+                            <p class="font-mono text-sm md:text-base text-indigo-700">\(f(x) \approx f(a) + f'(a)(x - a)
+                                + \mathbf{\frac{f''(a)}{2}(x - a)^2}\)</p>
+                        </div>
+                        <div class="mt-6 p-5 bg-indigo-50/80 rounded-2xl border border-indigo-100/50">
+                            <h4 class="font-bold text-indigo-900 mb-2 text-sm">🚀 邁向三階、四階與無限階</h4>
+                            <p class="text-sm text-slate-600 mb-2">一階看斜率，二階看曲率，<strong
+                                    class="text-indigo-700">三階則是修正曲率的變化率（非對稱性）</strong>。</p>
+                            <p class="text-sm text-slate-600 mb-2">展開式的通項為：<span
+                                    class="font-mono text-indigo-700 bg-white px-2 py-1 rounded shadow-sm">\(\frac{f^{(n)}(a)}{n!}(x-a)^n\)</span>
+                            </p>
+                            <p class="text-xs text-slate-500 leading-relaxed">隨著階數 \(n\) 增加，分母的階乘 \(n!\)
+                                增長極快，確保了更高階的項只負責極微小的「奈米級微調」。在機器學習中算到二階已是極限，但在理論數學裡，無窮級數能完美還原曲線。</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-rose-50 to-orange-50 p-8 rounded-3xl border border-rose-100">
+                        <h4 class="font-bold text-xl text-rose-900 mb-4">推導：根號函數的精確算式</h4>
+                        <p class="text-rose-700/80 leading-relaxed mb-4 text-sm">
+                            對於 \(f(x) = \sqrt{x}\)，其一階導數為 \(f'(x) = \frac{1}{2}x^{-1/2}\)，二階為 \(f''(x) =
+                            -\frac{1}{4}x^{-3/2}\)，三階為 \(f'''(x) = \frac{3}{8}x^{-5/2}\)。
+                        </p>
+                        <div class="space-y-2 text-sm text-rose-800 mb-6 font-medium">
+                            <p>📍 <strong>基準高度 (0階)：</strong> \(\sqrt{a}\)</p>
+                            <p>📈 <strong>斜率修正 (1階)：</strong> \(\frac{1}{2\sqrt{a}}(x-a)\)</p>
+                            <p>🔄 <strong>彎曲修正 (2階)：</strong> \(-\frac{1}{8a\sqrt{a}}(x-a)^2\)</p>
+                            <p>🌊 <strong>對稱修正 (3階)：</strong> \(\frac{1}{16a^2\sqrt{a}}(x-a)^3\)</p>
+                        </div>
+                        <div class="p-4 bg-white rounded-xl shadow-sm border border-rose-100 text-center">
+                            <p class="font-mono text-base md:text-lg text-rose-600">\(\approx \sqrt{a} +
+                                \frac{x-a}{2\sqrt{a}} - \frac{(x-a)^2}{8a\sqrt{a}} \mathbf{+
+                                \frac{(x-a)^3}{16a^2\sqrt{a}}}\)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 專家心法：記憶口訣 -->
+            <div
+                class="math-card border-t-8 border-fuchsia-500 bg-gradient-to-br from-fuchsia-50 to-purple-50 shadow-xl mb-12 relative overflow-hidden">
+                <div
+                    class="absolute -bottom-20 -right-20 w-64 h-64 bg-fuchsia-300 rounded-full opacity-30 blur-3xl z-0">
+                </div>
+                <div class="relative z-10">
+                    <h3 class="text-3xl font-black mb-6 text-fuchsia-900 flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v4" />
+                            <path d="M12 18v4" />
+                            <path d="M4.93 4.93l2.83 2.83" />
+                            <path d="M16.24 16.24l2.83 2.83" />
+                            <path d="M2 12h4" />
+                            <path d="M18 12h4" />
+                            <path d="M4.93 19.07l2.83-2.83" />
+                            <path d="M16.24 7.76l2.83-2.83" />
+                        </svg>
+                        專家心法：手算泰勒口訣「基、斜、曲、偏」
+                    </h3>
+                    <p class="text-fuchsia-800/80 font-bold text-lg mb-8 leading-relaxed">
+                        在機器學習實務中，我們常需要在腦中快速建構函數的局部近似。記住以下這套口訣，將階乘 (\(n!\)) 的分母變化與物理直覺綁定，您就能隨手寫出任何函數的高階展開式：
+                    </p>
+
+                    <div class="grid md:grid-cols-4 gap-6 mb-10">
+                        <div
+                            class="bg-white p-6 rounded-2xl shadow-sm border border-fuchsia-100 hover:-translate-y-1 transition-transform">
+                            <div class="text-fuchsia-500 font-black text-2xl mb-2">1. 基</div>
+                            <h4 class="font-bold text-slate-800 text-base mb-2">一找基地 (0階)</h4>
+                            <p class="text-sm text-slate-500 mb-4 h-10">確立已知參數位置 (Current State)</p>
+                            <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-2 text-center">
+                                <span class="font-mono text-indigo-700 font-bold text-lg">\(f(a)\)</span>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-white p-6 rounded-2xl shadow-sm border border-fuchsia-100 hover:-translate-y-1 transition-transform">
+                            <div class="text-fuchsia-500 font-black text-2xl mb-2">2. 斜</div>
+                            <h4 class="font-bold text-slate-800 text-base mb-2">斜率乘距 (1階)</h4>
+                            <p class="text-sm text-slate-500 mb-4 h-10">預測直線趨勢 (Gradient Descent)</p>
+                            <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-2 text-center">
+                                <span class="font-mono text-indigo-700 font-bold text-lg">\(+ f'(a) dx\)</span>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-white p-6 rounded-2xl shadow-sm border border-fuchsia-100 hover:-translate-y-1 transition-transform">
+                            <div class="text-fuchsia-500 font-black text-2xl mb-2">3. 曲</div>
+                            <h4 class="font-bold text-slate-800 text-base mb-2">除二修曲率 (2階)</h4>
+                            <p class="text-sm text-slate-500 mb-4 h-10">拋物線彎曲修正 (Hessian Matrix)</p>
+                            <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-2 text-center">
+                                <span class="font-mono text-indigo-700 font-bold text-lg">\(+ \frac{f''(a)}{2!}
+                                    dx^2\)</span>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-white p-6 rounded-2xl shadow-sm border border-fuchsia-100 hover:-translate-y-1 transition-transform">
+                            <div class="text-fuchsia-500 font-black text-2xl mb-2">4. 偏</div>
+                            <h4 class="font-bold text-slate-800 text-base mb-2">除六調偏移 (3階)</h4>
+                            <p class="text-sm text-slate-500 mb-4 h-10">非對稱性變化率微調 (3! = 6)</p>
+                            <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-2 text-center">
+                                <span class="font-mono text-indigo-700 font-bold text-lg">\(+ \frac{f'''(a)}{3!}
+                                    dx^3\)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-fuchsia-900 text-white p-8 rounded-3xl text-center shadow-lg border border-fuchsia-700">
+                        <p class="text-2xl md:text-3xl font-black tracking-[0.2em] leading-loose">
+                            「基本高度先站穩，斜率乘距畫切線。<br class="hidden md:block">
+                            曲率除二拋物線，偏移除六更精確。」
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 泰勒實驗室 -->
+            <div class="grid lg:grid-cols-3 gap-8">
+                <div class="space-y-6 flex flex-col">
+                    <div
+                        class="math-card bg-slate-900 text-white border-none shadow-2xl relative overflow-hidden flex-shrink-0">
+                        <h3 class="font-black text-xl mb-6 text-indigo-300 tracking-wide">設定預測實驗</h3>
+                        <label class="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">目標值 \(x\)
+                            (你想開根號的數)</label>
+                        <input type="number" id="taylorX" value="58" min="0.1" step="0.1" oninput="updateTaylorLab()"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-6 text-2xl font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-white shadow-inner">
+
+                        <label
+                            class="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest flex items-center justify-between">
+                            <span>智能發射基地 \(a\)</span>
+                            <span
+                                class="text-emerald-500 text-[10px] bg-emerald-500/10 px-2 py-1 rounded font-bold">自動鎖定最優解</span>
+                        </label>
+                        <div
+                            class="w-full bg-slate-800/80 border border-slate-700 rounded-2xl p-4 text-xl font-bold flex justify-between items-center transition-all">
+                            <span id="taylorA_display" class="text-emerald-400 text-3xl font-mono">64</span>
+                            <span id="taylorA_root"
+                                class="text-sm text-slate-400 font-mono bg-slate-800 px-3 py-1 rounded-lg">(8²)</span>
+                        </div>
+
+                        <div
+                            class="mt-8 bg-indigo-600/20 text-indigo-300 font-black text-sm py-4 px-4 rounded-2xl text-center border border-indigo-500/30 flex items-center justify-center gap-3">
+                            <span class="relative flex h-3 w-3">
+                                <span
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                            </span>
+                            數值變更即時運算
+                        </div>
+                    </div>
+
+                    <!-- 動態計算過程 -->
+                    <div class="math-card bg-indigo-50 border-indigo-100 flex-grow">
+                        <h4 class="font-black mb-4 text-indigo-900 text-lg flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            運算過程解析
+                        </h4>
+                        <div id="taylor-steps" class="space-y-4 text-slate-700">
+                            <!-- JS 動態生成運算步驟 -->
+                        </div>
+                    </div>
+
+                    <div class="math-card border-t-4 border-emerald-400 bg-white flex-shrink-0">
+                        <h4 class="font-black mb-4 text-slate-800 text-sm uppercase tracking-widest">精度驗證與比較</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-baseline border-b border-slate-100 pb-2">
+                                <span class="text-slate-500 font-bold text-sm">真實值 \(\sqrt{x}\):</span>
+                                <span id="true-val" class="font-mono font-black text-slate-800 text-lg">--</span>
+                            </div>
+                            <div class="flex justify-between items-baseline border-b border-slate-100 pb-2">
+                                <span class="text-slate-500 font-bold text-sm">一階預測 (切線):</span>
+                                <span id="t1-val" class="font-mono font-black text-indigo-500 text-base">--</span>
+                            </div>
+                            <div class="flex justify-between items-baseline border-b border-slate-100 pb-2">
+                                <span class="text-slate-500 font-bold text-sm">二階預測 (拋物線):</span>
+                                <span id="t2-val" class="font-mono font-black text-rose-500 text-base">--</span>
+                            </div>
+                            <div class="flex justify-between items-baseline">
+                                <span class="text-slate-500 font-bold text-sm">三階預測 (三次曲線):</span>
+                                <span id="t3-val" class="font-mono font-black text-amber-500 text-lg">--</span>
+                            </div>
+                            <div
+                                class="p-3 bg-emerald-50 rounded-xl flex flex-col gap-1 mt-2 border border-emerald-100">
+                                <div class="flex justify-between items-center">
+                                    <span
+                                        class="text-emerald-700/50 text-[10px] font-black uppercase tracking-wider">一階誤差:</span>
+                                    <span id="t1-err"
+                                        class="font-mono font-bold text-emerald-700/50 text-[10px]">--</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span
+                                        class="text-emerald-700/80 text-xs font-black uppercase tracking-wider">二階誤差:</span>
+                                    <span id="t2-err" class="font-mono font-bold text-emerald-700/80 text-xs">--</span>
+                                </div>
+                                <div class="flex justify-between items-center mt-1 pt-1 border-t border-emerald-200/50">
+                                    <span
+                                        class="text-emerald-700 text-xs font-black uppercase tracking-wider">三階誤差:</span>
+                                    <span id="t3-err" class="font-mono font-black text-emerald-600">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 視覺圖表 -->
+                <div
+                    class="lg:col-span-2 bg-white rounded-[3rem] p-6 md:p-8 shadow-sm border border-slate-100 h-full min-h-[600px] relative flex flex-col">
+                    <h3 class="absolute top-8 left-10 font-black text-slate-800 text-xl z-10">預測視覺化 (Geometric View)
+                    </h3>
+                    <div class="flex-grow mt-12 relative w-full">
+                        <canvas id="taylorChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-500 py-12 text-center mt-12 border-t-8 border-indigo-600">
+        <p class="font-bold tracking-widest text-sm uppercase mb-2">Mathematics is the poetry of logical ideas.</p>
+        <p class="text-xs">© 2026 根號魔法書專案 | 機器學習與數學教育之美</p>
+    </footer>
+
+    <script>
+        function showSection(id) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`sec-${id}`).classList.remove('hidden');
+
+            // 修正導覽列加深效果
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('nav-active', 'text-indigo-600');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`nav-${id}`);
+            activeBtn.classList.remove('text-slate-400');
+            activeBtn.classList.add('nav-active', 'text-indigo-600');
+
+            if (id === 'taylor') setTimeout(initTaylorChart, 100);
+            if (window.MathJax) MathJax.typesetPromise();
+            window.scrollTo(0, 0);
+        }
+
+        document.getElementById('square-slider').oninput = function () {
+            const val = parseFloat(this.value);
+            const size = 120 + (val * 1.5);
+            document.getElementById('square-viz').style.width = size + 'px';
+            document.getElementById('square-viz').style.height = size + 'px';
+            document.getElementById('area-display').innerText = val;
+            document.getElementById('side-display').innerText = Math.sqrt(val).toFixed(2);
+        };
+
+        // --- 直式開方：絕對網格對齊演算法 ---
+        function simulateLongDivision() {
+            const nInput = document.getElementById('arithInput').value;
+            const n = parseFloat(nInput);
+            if (isNaN(n) || n < 0) return;
+
+            const stepDiv = document.getElementById('division-steps');
+            const canvas = document.getElementById('long-division-canvas');
+            stepDiv.innerHTML = "";
+            canvas.innerHTML = "";
+
+            let sN = n.toString();
+            if (!sN.includes('.')) sN += ".00";
+            else {
+                let parts = sN.split('.');
+                if (parts[1].length % 2 !== 0) parts[1] += "0";
+                sN = parts[0] + "." + parts[1];
+            }
+
+            let [intPart, decPart] = sN.split('.');
+            if (intPart.length % 2 !== 0) intPart = "0" + intPart;
+            let intPairs = intPart.match(/.{2}/g) || [];
+            let decPairs = decPart.match(/.{2}/g) || [];
+            let groups = [...intPairs, ...decPairs.slice(0, 3)];
+
+            let totalDigits = groups.join("").length;
+            let decIndex = intPairs.length * 2;
+
+            function alignToGrid(valStr, currEnd) {
+                let str = valStr.toString();
+                let arr = new Array(totalDigits).fill(" ");
+                let start = currEnd - str.length;
+                for (let j = 0; j < str.length; j++) {
+                    if (start + j >= 0 && start + j < totalDigits) arr[start + j] = str[j];
+                }
+                return arr;
+            }
+
+            function renderRow(arr, isTop = false) {
+                let res = "";
+                for (let j = 0; j < arr.length; j++) {
+                    let isDash = arr[j] === "-";
+                    let prevDash = j > 0 && arr[j - 1] === "-";
+                    let filler = (isDash && prevDash) ? "-" : " ";
+
+                    if (j === decIndex && j > 0) {
+                        res += isTop ? " . " : filler.repeat(3);
+                    } else if (j > 0 && j % 2 === 0) {
+                        res += filler;
+                    }
+                    res += arr[j];
+                }
+                return res.trimEnd();
+            }
+
+            const LEFT_W = 12;
+            let rem = 0, prevRem = 0, visualRoot = 0;
+            let rootArr = new Array(totalDigits).fill(" ");
+            let lines = [];
+
+            for (let i = 0; i < groups.length; i++) {
+                let g = groups[i];
+                let remStr = (i > 0) ? ((prevRem === 0) ? g : (prevRem.toString() + g)) : parseInt(g, 10).toString();
+                rem = parseInt(remStr, 10);
+
+                let a = visualRoot, b = 0;
+                for (let t = 9; t >= 0; t--) { if ((20 * a + t) * t <= rem) { b = t; break; } }
+                let div = 20 * a + b, sub = div * b, currEnd = (i + 1) * 2;
+
+                if (i > 0) lines.push({ type: 'rem', left: "".padStart(LEFT_W) + "   ", rightArr: alignToGrid(remStr, currEnd) });
+                let leftStr = i === 0 ? "".padStart(LEFT_W) + "   " : div.toString().padStart(LEFT_W) + " | ";
+                lines.push({ type: 'sub', left: leftStr, rightArr: alignToGrid(sub.toString(), currEnd) });
+
+                let dashLen = sub.toString().length;
+                if (i > 0) dashLen = Math.max(dashLen, remStr.length);
+                lines.push({ type: 'line', left: "".padStart(LEFT_W) + "   ", rightArr: alignToGrid("-".repeat(dashLen), currEnd) });
+
+                prevRem = rem - sub;
+                visualRoot = visualRoot * 10 + b;
+                rootArr[currEnd - 1] = b.toString();
+
+                stepDiv.innerHTML += `
+                    <div class="step-highlight group">
+                        <div class="text-xs font-black text-amber-600 mb-2 uppercase tracking-wider">Phase ${i + 1}：處理分組 [${g}]</div>
+                        <p class="text-base font-bold text-slate-800 mb-1">目標缺口：${remStr}</p>
+                        <div class="bg-white p-3 rounded-xl border border-amber-200 mt-2">
+                            <p class="text-sm text-slate-600 mb-1">代數展開：<span class="font-mono bg-slate-50 px-1 text-xs">20a + b</span></p>
+                            <p class="text-base font-bold text-indigo-700">試商：(20 × ${a} + <span class="text-rose-600">${b}</span>) × <span class="text-rose-600">${b}</span> = ${sub}</p>
+                        </div>
+                    </div>`;
+            }
+
+            lines.push({ type: 'rem', left: "".padStart(LEFT_W) + "   ", rightArr: alignToGrid(prevRem.toString(), groups.length * 2) });
+
+            let htmlLines = [];
+            let padL = "".padStart(LEFT_W).replace(/ /g, '&nbsp;');
+            let radArr = groups.join("").split("");
+
+            // 移除造成不對齊的 text-2xl 與 tracking-widest，確保其繼承等寬字體設定
+            htmlLines.push(`<div class="text-white font-bold mb-1">${padL}&nbsp;&nbsp;&nbsp;${renderRow(rootArr, true).replace(/ /g, '&nbsp;')}</div>`);
+            htmlLines.push(`<div class="text-slate-600">${padL}&nbsp;&nbsp;&nbsp;${"-".repeat(renderRow(radArr, true).length)}</div>`);
+            htmlLines.push(`<div class="text-emerald-300 font-bold mb-2">${padL}&nbsp;√&nbsp;${renderRow(radArr, true).replace(/ /g, '&nbsp;')}</div>`);
+
+            for (let l of lines) {
+                let colorClass = l.type === 'sub' ? 'text-emerald-400 font-bold' : (l.type === 'line' ? 'text-slate-600' : 'text-emerald-600/80');
+                let combined = l.left + renderRow(l.rightArr, false);
+                htmlLines.push(`<div class="${colorClass}">${combined.replace(/ /g, '&nbsp;')}</div>`);
+            }
+            canvas.innerHTML = htmlLines.join('');
+        }
+
+        // --- 單元三：泰勒展開邏輯 ---
+        let taylorChart = null;
+        function initTaylorChart() {
+            if (taylorChart) return;
+            const ctx = document.getElementById('taylorChart').getContext('2d');
+            taylorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        { label: '真實曲線 y = √x', borderColor: '#6366f1', borderWidth: 5, data: [], fill: false, pointRadius: 0, tension: 0.15, order: 4 },
+                        { label: '一階預測 (直線)', borderColor: '#94a3b8', borderWidth: 2, borderDash: [4, 4], data: [], fill: false, pointRadius: 0, order: 3 },
+                        { label: '二階預測 (拋物線)', borderColor: '#f43f5e', borderWidth: 3, borderDash: [8, 6], data: [], fill: false, pointRadius: 0, order: 2 },
+                        { label: '三階預測 (三次曲線)', borderColor: '#f59e0b', borderWidth: 3, borderDash: [2, 4], data: [], fill: false, pointRadius: 0, order: 1 },
+                        { label: '觀察點位', backgroundColor: ['#6366f1', '#10b981'], data: [], pointRadius: 10, pointBorderWidth: 4, pointBorderColor: '#fff', showLine: false, order: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { type: 'linear', grid: { color: '#f8fafc', drawBorder: false } },
+                        y: { grid: { color: '#f8fafc', drawBorder: false } }
+                    },
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 14, weight: 'bold' } } } }
+                }
+            });
+            updateTaylorLab();
+        }
+
+        function updateTaylorLab() {
+            const xRaw = parseFloat(document.getElementById('taylorX').value);
+            if (isNaN(xRaw) || xRaw <= 0) return;
+            const x = xRaw;
+
+            // 智慧尋找最佳發射基地 a (最接近的完全平方數)
+            const rootBase = Math.max(1, Math.round(Math.sqrt(x)));
+            const a = rootBase * rootBase;
+
+            // 同步更新介面顯示的基地點資訊
+            document.getElementById('taylorA_display').innerText = a;
+            document.getElementById('taylorA_root').innerText = `(${rootBase}²)`;
+
+            // 數學計算
+            const distance = x - a;
+
+            // 0階 (基準)
+            const sqrtA = rootBase;
+
+            // 1階
+            const f1_prime = 1 / (2 * sqrtA);
+            const term1 = f1_prime * distance;
+            const firstOrder = sqrtA + term1;
+
+            // 2階
+            const f2_prime = -1 / (4 * Math.pow(a, 1.5));
+            const term2 = (f2_prime / 2) * Math.pow(distance, 2);
+            const secondOrder = firstOrder + term2;
+
+            // 3階
+            const f3_prime = 3 / (8 * Math.pow(a, 2.5));
+            const term3 = (f3_prime / 6) * Math.pow(distance, 3);
+            const thirdOrder = secondOrder + term3;
+
+            const real = Math.sqrt(x);
+
+            // 為手算過程準備分母數值
+            const denom1 = 2 * sqrtA;
+            const denom2 = 8 * a * sqrtA;
+            const denom3 = 16 * a * a * sqrtA;
+
+            // 更新動態計算過程 (Step-by-Step 包含手算推導與口訣)
+            const stepDiv = document.getElementById('taylor-steps');
+            stepDiv.innerHTML = `
+                <div class="p-3 bg-slate-50 rounded-xl shadow-sm border border-slate-200 mb-2">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+                        課前準備：預測距離 (dx)
+                    </p>
+                    <div class="text-center font-mono text-sm text-slate-700">
+                        \\( dx = (x - a) = ${x} - ${a} = \\mathbf{${distance}} \\)
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white rounded-xl shadow-sm border border-fuchsia-100">
+                    <p class="text-xs font-bold text-fuchsia-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span class="bg-fuchsia-100 text-fuchsia-700 px-2 py-1 rounded">1. 基</span> 一找基地 (0階)
+                    </p>
+                    <div class="bg-fuchsia-50/50 p-3 rounded-lg border border-fuchsia-100/50 text-center font-mono text-fuchsia-900">
+                        \\( f(${a}) = \\sqrt{${a}} = \\mathbf{${sqrtA}} \\)
+                    </div>
+                </div>
+                
+                <div class="p-4 bg-white rounded-xl shadow-sm border border-indigo-100">
+                    <p class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded">2. 斜</span> 斜率乘距 (1階切線)
+                    </p>
+                    <div class="bg-indigo-50/50 p-3 rounded-lg border border-indigo-100 overflow-x-auto">
+                        \\(
+                        \\begin{aligned}
+                        f'(${a})dx &= \\frac{1}{2\\sqrt{${a}}} \\times (${distance}) \\\\
+                        &= \\frac{1}{${denom1}} \\times (${distance}) \\\\
+                        &= ${f1_prime.toFixed(6)} \\times (${distance}) \\\\
+                        &= \\mathbf{${term1.toFixed(6)}}
+                        \\end{aligned}
+                        \\)
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white rounded-xl shadow-sm border border-rose-100">
+                    <p class="text-xs font-bold text-rose-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span class="bg-rose-100 text-rose-700 px-2 py-1 rounded">3. 曲</span> 除二修曲率 (2階拋物線)
+                    </p>
+                    <div class="bg-rose-50/50 p-3 rounded-lg border border-rose-100/50 overflow-x-auto">
+                        \\(
+                        \\begin{aligned}
+                        \\frac{f''(${a})}{2!}dx^2 &= -\\frac{1}{8(${a})\\sqrt{${a}}} \\times (${distance})^2 \\\\
+                        &= -\\frac{1}{${denom2}} \\times ${Math.pow(distance, 2)} \\\\
+                        &= ${(-1 / denom2).toFixed(7)} \\times ${Math.pow(distance, 2)} \\\\
+                        &= \\mathbf{${term2.toFixed(6)}}
+                        \\end{aligned}
+                        \\)
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white rounded-xl shadow-sm border border-amber-100">
+                    <p class="text-xs font-bold text-amber-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span class="bg-amber-100 text-amber-700 px-2 py-1 rounded">4. 偏</span> 除六調偏移 (3階非對稱)
+                    </p>
+                    <div class="bg-amber-50/50 p-3 rounded-lg border border-amber-100/50 overflow-x-auto">
+                        \\(
+                        \\begin{aligned}
+                        \\frac{f'''(${a})}{3!}dx^3 &= \\frac{1}{16(${a}^2)\\sqrt{${a}}} \\times (${distance})^3 \\\\
+                        &= \\frac{1}{${denom3}} \\times ${Math.pow(distance, 3)} \\\\
+                        &= ${(1 / denom3).toFixed(9)} \\times ${Math.pow(distance, 3)} \\\\
+                        &= \\mathbf{${term3.toFixed(8)}}
+                        \\end{aligned}
+                        \\)
+                    </div>
+                </div>
+
+                <div class="p-5 bg-indigo-600 rounded-xl shadow-lg text-white">
+                    <p class="text-xs font-bold text-indigo-200 uppercase tracking-widest mb-3 border-b border-indigo-400/50 pb-2">Step 5: 組合口訣與預測結果</p>
+                    <div class="flex flex-col gap-3">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1">
+                            <span class="text-xs text-indigo-100">一階預測 (≈ 基 + 斜)</span>
+                            <span class="font-mono text-sm self-end sm:self-auto">${firstOrder.toFixed(6)}</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1">
+                            <span class="text-sm text-indigo-100">二階預測 (≈ 一階 + 曲)</span>
+                            <span class="font-mono text-base text-rose-200 self-end sm:self-auto">${secondOrder.toFixed(6)}</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center bg-indigo-800/50 p-3 rounded-lg mt-1 gap-2">
+                            <span class="text-base font-bold text-white">三階預測 (≈ 二階 + 偏)</span>
+                            <span class="font-mono text-xl font-bold text-amber-300 self-end sm:self-auto">${thirdOrder.toFixed(8)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            if (window.MathJax) MathJax.typesetPromise([stepDiv]);
+
+            // 更新精度報告
+            document.getElementById('true-val').innerText = real.toFixed(8);
+            document.getElementById('t1-val').innerText = firstOrder.toFixed(6);
+            document.getElementById('t2-val').innerText = secondOrder.toFixed(6);
+            document.getElementById('t3-val').innerText = thirdOrder.toFixed(8);
+            document.getElementById('t1-err').innerText = (Math.abs(real - firstOrder)).toFixed(6);
+            document.getElementById('t2-err').innerText = (Math.abs(real - secondOrder)).toFixed(8);
+            document.getElementById('t3-err').innerText = (Math.abs(real - thirdOrder)).toFixed(10);
+
+            // 更新圖表
+            const xMin = Math.max(1, Math.min(x, a) - 20), xMax = Math.max(x, a) + 20, step = (xMax - xMin) / 60;
+            const curve = [], t1 = [], t2 = [], t3 = [];
+            for (let i = xMin; i <= xMax; i += step) {
+                const dx = i - a;
+                curve.push({ x: i, y: Math.sqrt(i) });
+                t1.push({ x: i, y: sqrtA + f1_prime * dx });
+                t2.push({ x: i, y: sqrtA + f1_prime * dx + (f2_prime / 2) * Math.pow(dx, 2) });
+                t3.push({ x: i, y: sqrtA + f1_prime * dx + (f2_prime / 2) * Math.pow(dx, 2) + (f3_prime / 6) * Math.pow(dx, 3) });
+            }
+            taylorChart.data.datasets[0].data = curve;
+            taylorChart.data.datasets[1].data = t1;
+            taylorChart.data.datasets[2].data = t2;
+            taylorChart.data.datasets[3].data = t3;
+            taylorChart.data.datasets[4].data = [{ x: a, y: sqrtA }, { x: x, y: real }];
+            taylorChart.update();
+        }
+
+        window.onload = () => {
+            showSection('geometry');
+            simulateLongDivision();
+        };
+    </script>
+</body>
+
+</html>

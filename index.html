@@ -16,9 +16,10 @@
     <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
     <!-- 更新 Lucide 版本 -->
     <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 指定穩定的 Babel Standalone 版本 -->
+    <script src="https://unpkg.com/@babel/standalone@7.15.0/babel.min.js"></script>
 
-    <!-- 載入資料檔 -->
+    <!-- 載入外部資料檔 -->
     <script src="data.js"></script>
 
     <style>
@@ -59,31 +60,47 @@
 <body>
     <div id="root"></div>
 
+    <!-- 加上 data-type="module" 屬性以解決 "Cannot use import statement outside a module" 的錯誤 -->
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
         const { createRoot } = ReactDOM;
 
-        // --- Lucide Icon Helper (修復版 + React Props 修正) ---
+        // --- 容錯與強健性更高的 Lucide Icon Helper ---
         const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
             if (!window.lucide || !window.lucide.icons) {
-                console.warn("Lucide library not loaded or icons missing.");
-                return <span className="inline-block bg-slate-100 rounded" style={{ width: size, height: size }}></span>;
+                console.warn("Lucide library not loaded.");
+                return <span className="inline-block bg-slate-200 rounded text-xs text-slate-500 flex items-center justify-center" style={{ width: size, height: size }}>?</span>;
             }
-            const iconData = window.lucide.icons[name] || window.lucide.icons['CircleHelp'];
+
+            const getIconData = (iconName) => {
+                const icons = window.lucide.icons;
+                if (!iconName) return icons['CircleHelp'] || icons['circleHelp'];
+                if (icons[iconName]) return icons[iconName];
+                const camel = iconName.charAt(0).toLowerCase() + iconName.slice(1);
+                if (icons[camel]) return icons[camel];
+                const kebab = iconName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+                if (icons[kebab]) return icons[kebab];
+                const lower = iconName.toLowerCase();
+                if (icons[lower]) return icons[lower];
+                const foundKey = Object.keys(icons).find(k => k.toLowerCase() === lower || k.toLowerCase().replace(/[^a-z0-9]/g, '') === lower);
+                if (foundKey) return icons[foundKey];
+                return icons['CircleHelp'] || icons['circle-help'] || icons['circleHelp'] || null;
+            };
+
+            const iconData = getIconData(name);
             if (!iconData) return null;
 
-            // React 屬性名稱轉換 helper: 將 SVG 的 kebab-case 轉為 camelCase
             const convertAttrs = (attrs) => {
-                if (!attrs) return attrs;
+                if (!attrs) return {};
                 const map = {
                     'stroke-width': 'strokeWidth',
                     'stroke-linecap': 'strokeLinecap',
                     'stroke-linejoin': 'strokeLinejoin',
                     'fill-rule': 'fillRule',
                     'clip-rule': 'clipRule',
-                    'class': 'className'
+                    'class': 'className',
+                    'stroke-dasharray': 'strokeDasharray'
                 };
-
                 return Object.entries(attrs).reduce((acc, [key, val]) => {
                     const newKey = map[key] || key;
                     acc[newKey] = val;
@@ -91,10 +108,24 @@
                 }, {});
             };
 
-            const [tag, attrs, children] = iconData;
+            let tag, attrs, children;
+            if (Array.isArray(iconData)) {
+                [tag, attrs, children] = iconData;
+            } else {
+                tag = iconData.tag || 'svg';
+                attrs = iconData.attrs || {};
+                children = iconData.children || [];
+            }
 
             const renderChild = (child, index) => {
-                const [childTag, childAttrs, grandChildren] = child;
+                let childTag, childAttrs, grandChildren;
+                if (Array.isArray(child)) {
+                    [childTag, childAttrs, grandChildren] = child;
+                } else {
+                    childTag = child.tag;
+                    childAttrs = child.attrs;
+                    grandChildren = child.children;
+                }
                 return React.createElement(childTag, { ...convertAttrs(childAttrs), key: index },
                     grandChildren ? grandChildren.map(renderChild) : null
                 );
@@ -106,14 +137,12 @@
                     width: size,
                     height: size,
                     className: className,
-                    strokeWidth: 2, // 預設值，可能會被 props 覆蓋
+                    strokeWidth: 2,
                     ...props
                 },
                 children ? children.map(renderChild) : null
             );
         };
-
-        // 定義頁面使用的靜態圖示
         const LayoutGrid = (p) => <LucideIcon name="LayoutGrid" {...p} />;
         const List = (p) => <LucideIcon name="List" {...p} />;
         const Search = (p) => <LucideIcon name="Search" {...p} />;
@@ -123,7 +152,7 @@
         const SearchX = (p) => <LucideIcon name="SearchX" {...p} />;
         const ExternalLink = (p) => <LucideIcon name="ExternalLink" {...p} />;
 
-        // Color Helper
+        // 配色設置
         const getColorConfig = (color) => {
             const configs = {
                 blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', hover: 'hover:border-blue-400', iconBg: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
@@ -136,74 +165,6 @@
             return configs[color] || configs.blue;
         };
 
-        // --- 新增: 獨立的卡片元件 (處理展開/收合邏輯) ---
-        const ToolCard = ({ tool }) => {
-            const [isExpanded, setIsExpanded] = useState(false);
-            const style = getColorConfig(tool.color);
-
-            // 判斷文字是否夠長需要顯示 "more" (這裡設定閾值為 55 字，可依需求調整)
-            const shouldTruncate = tool.description.length > 55;
-
-            const handleCardClick = () => {
-                window.open(tool.link, '_blank');
-            };
-
-            const toggleExpand = (e) => {
-                // 阻止事件冒泡，避免觸發卡片的跳轉
-                e.preventDefault();
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
-            };
-
-            return (
-                <div
-                    onClick={handleCardClick}
-                    className={`card-hover block rounded-3xl p-6 border-2 relative overflow-hidden group cursor-pointer ${style.bg} ${style.border} ${style.hover}`}
-                >
-                    {/* 背景裝飾 */}
-                    <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 pointer-events-none text-current">
-                        <LucideIcon name={tool.icon} size={160} />
-                    </div>
-
-                    <div className="relative z-10 flex flex-col h-full">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${style.iconBg}`}>
-                                <LucideIcon name={tool.icon} size={28} />
-                            </div>
-                            <span className={`text-xs font-black px-3 py-1.5 rounded-full bg-white/80 backdrop-blur border border-white/50 shadow-sm ${style.text}`}>
-                                {tool.grade}
-                            </span>
-                        </div>
-
-                        <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-700 transition-colors line-clamp-1">
-                            {tool.title}
-                        </h3>
-
-                        {/* 描述區域：使用 mb-4 讓下方按鈕有空間，flex-grow 讓內容撐開 */}
-                        <div className="mb-6 flex-grow">
-                            <p className={`text-slate-600 text-sm leading-relaxed font-medium transition-all ${isExpanded ? '' : 'line-clamp-3'}`}>
-                                {tool.description}
-                            </p>
-
-                            {shouldTruncate && (
-                                <button
-                                    onClick={toggleExpand}
-                                    className={`text-xs font-bold mt-1 hover:underline focus:outline-none z-20 relative ${style.text}`}
-                                >
-                                    {isExpanded ? "收起內容" : "...more"}
-                                </button>
-                            )}
-                        </div>
-
-                        <div className={`flex items-center text-sm font-bold mt-auto group-hover:translate-x-2 transition-transform ${style.text}`}>
-                            開始練習 <ArrowRight size={16} className="ml-2" />
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-
         // 年級排序權重表
         const GRADE_WEIGHTS = {
             '一年級': 1, '二年級': 2, '三年級': 3,
@@ -211,12 +172,14 @@
         };
 
         function App() {
-            const [tools, setTools] = useState([]);
+            // 從 window.MATH_TOOLS_DATA 讀取資料來源，若尚未載入則預設為空陣列
+            const [tools, setTools] = useState(window.MATH_TOOLS_DATA || []);
             const [searchTerm, setSearchTerm] = useState('');
             const [sortBy, setSortBy] = useState('default');
             const [viewMode, setViewMode] = useState('grid');
 
             useEffect(() => {
+                // 確保外部 data.js 加載完成時，能正確將資料綁定至 React 狀態中
                 if (window.MATH_TOOLS_DATA) {
                     setTools(window.MATH_TOOLS_DATA);
                 }
@@ -259,17 +222,16 @@
                                 <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg text-white shadow-md">
                                     <LayoutGrid size={22} />
                                 </div>
-                                <h1 className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-500 hidden md:block">
+                                <h1 className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-500">
                                     國小數學互動教學實驗室
                                 </h1>
-                                <h1 className="text-xl font-black text-blue-700 md:hidden">數學實驗室</h1>
                             </div>
 
                             {/* 桌面版統計資訊 */}
                             <div className="hidden md:flex items-center gap-4 text-sm text-slate-500 font-medium">
                                 <div className="flex items-center gap-2">
                                     <Database size={16} />
-                                    <span>共 {tools.length} 個單元</span>
+                                    <span>共 {tools.length} 個實驗單元</span>
                                 </div>
                             </div>
                         </div>
@@ -277,7 +239,6 @@
 
                     {/* Main Content */}
                     <main className="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full">
-
                         {/* 控制列 */}
                         <div className="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                             {/* 搜尋框 */}
@@ -349,12 +310,47 @@
                             </div>
                         )}
 
-                        {/* 卡片視圖 (Grid View) - 改用 ToolCard 元件 */}
+                        {/* 卡片視圖 (Grid View) */}
                         {viewMode === 'grid' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredTools.map((tool) => (
-                                    <ToolCard key={tool.id} tool={tool} />
-                                ))}
+                                {filteredTools.map((tool) => {
+                                    const style = getColorConfig(tool.color);
+                                    return (
+                                        <a
+                                            key={tool.id}
+                                            href={tool.link}
+                                            className={`card-hover block rounded-3xl p-6 border-2 relative overflow-hidden group ${style.bg} ${style.border} ${style.hover}`}
+                                        >
+                                            {/* 背景裝飾 */}
+                                            <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 pointer-events-none text-current">
+                                                <LucideIcon name={tool.icon} size={160} />
+                                            </div>
+
+                                            <div className="relative z-10 flex flex-col h-full">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${style.iconBg}`}>
+                                                        <LucideIcon name={tool.icon} size={28} />
+                                                    </div>
+                                                    <span className={`text-xs font-black px-3 py-1.5 rounded-full bg-white/80 backdrop-blur border border-white/50 shadow-sm ${style.text}`}>
+                                                        {tool.grade}
+                                                    </span>
+                                                </div>
+
+                                                <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-700 transition-colors line-clamp-1">
+                                                    {tool.title}
+                                                </h3>
+
+                                                <p className="text-slate-600 text-sm leading-relaxed font-medium mb-6 line-clamp-3">
+                                                    {tool.description}
+                                                </p>
+
+                                                <div className={`flex items-center text-sm font-bold mt-auto group-hover:translate-x-2 transition-transform ${style.text}`}>
+                                                    開啟練習 <ArrowRight size={16} className="ml-2" />
+                                                </div>
+                                            </div>
+                                        </a>
+                                    );
+                                })}
                             </div>
                         )}
 
@@ -363,14 +359,11 @@
                             <div className="flex flex-col gap-3">
                                 {filteredTools.map((tool) => {
                                     const style = getColorConfig(tool.color);
-
                                     return (
                                         <a
                                             key={tool.id}
                                             href={tool.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="group flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all"
+                                            className="group flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"
                                         >
                                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 ${style.iconBg}`}>
                                                 <LucideIcon name={tool.icon} size={24} />
@@ -398,14 +391,13 @@
                                 })}
                             </div>
                         )}
-
                     </main>
 
                     <footer className="text-center py-8 text-slate-400 text-sm font-medium border-t border-slate-200 mt-auto bg-white">
                         <div className="flex justify-center gap-4 mb-2">
                             <span>© 2025 國小數學互動教學實驗室</span>
                         </div>
-                        <p className="text-xs text-slate-300">Designed for Education</p>
+                        <p className="text-xs text-slate-300 font-bold">Designed for Education</p>
                     </footer>
                 </div>
             );

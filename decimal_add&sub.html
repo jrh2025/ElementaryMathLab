@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小數加減小學堂 | 國小數學互動教學實驗室</title>
+    <title>小數加減法互動學習平台</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM -->
@@ -97,22 +97,6 @@
             animation: slideRightArc 0.6s ease-out forwards;
         }
 
-        @keyframes bounce-slow {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .animate-bounce-slow {
-            animation: bounce-slow 2s infinite;
-        }
-
         .strike-through {
             position: relative;
             display: inline-block;
@@ -189,15 +173,14 @@
         const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>;
         const TrendingUp = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size || "24"} height={size || "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>;
         const Delete = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z" /><line x1="18" y1="9" x2="12" y2="15" /><line x1="12" y1="9" x2="18" y2="15" /></svg>;
-        const InfoIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
 
         // --- Core Configurations & Generators ---
         const LEVELS_ADD = [
             { level: 1, label: '入門', desc: '一位小數加法 (無進位)', dec: 1, mix: false, carry: false, threshold: 3 },
             { level: 2, label: '初級', desc: '二位小數加法 (無進位)', dec: 2, mix: false, carry: false, threshold: 3 },
             { level: 3, label: '進階', desc: '二位小數加法 (有進位)', dec: 2, mix: false, carry: true, threshold: 3 },
-            { level: 4, label: '中級', desc: '位數不同加法 ', dec: 2, mix: true, carry: false, threshold: 3 },
-            { level: 5, label: '挑戰', desc: '位數不同加法 (有進位)', dec: 2, mix: true, carry: true, threshold: 5 },
+            { level: 4, label: '中級', desc: '位數不同加法 (需補零)', dec: 2, mix: true, carry: false, threshold: 3 },
+            { level: 5, label: '挑戰', desc: '位數不同加法 (進位+補零)', dec: 2, mix: true, carry: true, threshold: 5 },
             { level: 6, label: '大師', desc: '三位小數加法 (連續進位)', dec: 3, mix: true, carry: true, threshold: 5 },
         ];
 
@@ -205,14 +188,14 @@
             { level: 1, label: '入門', desc: '一位小數減法 (無借位)', dec: 1, mix: false, borrow: false, threshold: 3 },
             { level: 2, label: '初級', desc: '二位小數減法 (無借位)', dec: 2, mix: false, borrow: false, threshold: 3 },
             { level: 3, label: '進階', desc: '二位小數減法 (有借位)', dec: 2, mix: false, borrow: true, threshold: 3 },
-            { level: 4, label: '中級', desc: '位數不同減法 ', dec: 2, mix: true, borrow: false, threshold: 3 },
-            { level: 5, label: '挑戰', desc: '位數不同減法 (有借位)', dec: 2, mix: true, borrow: true, threshold: 5 },
+            { level: 4, label: '中級', desc: '位數不同減法 (需補零)', dec: 2, mix: true, borrow: false, threshold: 3 },
+            { level: 5, label: '挑戰', desc: '位數不同減法 (借位+補零)', dec: 2, mix: true, borrow: true, threshold: 5 },
             { level: 6, label: '大師', desc: '三位小數減法 (連續借位)', dec: 3, mix: true, borrow: true, threshold: 5 },
         ];
 
         const NUM_GRID_COLS = 8;
         const COL_LABELS = ['百位', '十位', '個位', '小數點', '十分位', '百分位', '千分位', '萬分位'];
-        const FIXED_DECIMAL_COL = 3;
+        const FIXED_DECIMAL_COL = 3; // 固定小數點所在欄位 (Index 3)
 
         const getDisplayString = (numInt, dec, paddedIndices) => {
             let str = numInt.toString();
@@ -383,6 +366,7 @@
                 setCrossed(Array(NUM_GRID_COLS).fill(false));
 
                 setPhase('align');
+                // 預設游標停在個位數的位置，方便使用者從整數部分開始輸入
                 setAlignCursor({ r: 0, c: FIXED_DECIMAL_COL - 1 });
                 setHasError(false);
                 setFeedback({ type: 'info', msg: '請對照上方的「定位標示」，將數字正確填入格子中！(可使用方向鍵移動)' });
@@ -401,6 +385,7 @@
                 grid[alignCursor.c] = char.toString();
                 setGrid(grid);
 
+                // Move cursor right if possible
                 if (alignCursor.c < NUM_GRID_COLS - 1) {
                     setAlignCursor({ r: alignCursor.r, c: alignCursor.c + 1 });
                 }
@@ -439,6 +424,9 @@
                     triggerShake(); return;
                 }
 
+                // 對齊邏輯驗證：獨立檢查上下兩列
+                // 1. 如果有小數點，強制對齊 FIXED_DECIMAL_COL
+                // 2. 如果沒有小數點(整數)，強制最後一碼對齊 FIXED_DECIMAL_COL - 1 (個位)
                 const isTopAligned = problem.topStr.includes('.')
                     ? gridTop[FIXED_DECIMAL_COL] === '.'
                     : topLastIdx === FIXED_DECIMAL_COL - 1;
@@ -454,7 +442,9 @@
 
                 setPhase('calc');
 
+                // Find starting column (right-most index of either row)
                 let startC = Math.max(topLastIdx, botLastIdx);
+                // 如果最右邊剛好是小數點，往左移一位開始算
                 if (gridTop[startC] === '.' || gridBot[startC] === '.') {
                     startC--;
                 }
@@ -469,34 +459,11 @@
             };
 
             // --- Calculation Engine Setup ---
-
-            // 取得下一個需要被刪除的 0（同時包含末位0與前導0的掃描）
-            const getNextUncrossedZero = (currentRes, currentCrossed) => {
-                // 1. 檢查小數末位的 0 (從右向左掃描)
-                const dotIdx = currentRes.indexOf('.');
-                if (dotIdx !== -1) {
-                    for (let i = NUM_GRID_COLS - 1; i > dotIdx; i--) {
-                        if (currentRes[i] === '0') {
-                            if (!currentCrossed[i]) return i;
-                        } else if (currentRes[i] !== '') {
-                            break;
-                        }
-                    }
-                }
-                // 2. 檢查整數高位的前導 0 (從左向右掃描，不包含個位數 index = FIXED_DECIMAL_COL - 1)
-                for (let i = 0; i <= FIXED_DECIMAL_COL - 2; i++) {
-                    if (currentRes[i] === '0') {
-                        if (!currentCrossed[i]) return i;
-                    } else if (currentRes[i] !== '') {
-                        break;
-                    }
-                }
-                return -1;
-            };
-
-            const moveToNextCalcColumn = (currentCol, updatedCarries = carries, updatedRes = gridRes) => {
+            // 透過 updatedCarries 傳入最新的進位狀態，避免 React state 非同步造成提前結束 Bug
+            const moveToNextCalcColumn = (currentCol, isDeleteCross = false, updatedCarries = carries) => {
                 let nextCol = currentCol - 1;
 
+                // 小數點欄位處理邏輯
                 if (nextCol === FIXED_DECIMAL_COL) {
                     if (gridTop[nextCol] === '.' || gridBot[nextCol] === '.') {
                         setCalcCol(FIXED_DECIMAL_COL);
@@ -504,12 +471,15 @@
                         setFeedback({ type: 'info', msg: '遇到小數點了！請點擊黃色的「.」放下來！' });
                         return;
                     } else {
+                        // 若雙方都沒有小數點（純整數計算），直接靜默跳過小數點欄位，繼續往左運算
                         nextCol--;
                     }
                 }
 
+                // 確認是否還有後續未完成的位數 (解決 leading zero bug)
                 let hasTasksLeft = false;
 
+                // 往左掃描，若還有題目數字、或是最新的進位標記、借位標記，就代表任務尚未結束
                 for (let i = 0; i <= nextCol; i++) {
                     if ((gridTop[i] && gridTop[i] !== '.') || (gridBot[i] && gridBot[i] !== '.')) {
                         hasTasksLeft = true;
@@ -519,16 +489,23 @@
                 }
 
                 if (!hasTasksLeft) {
-                    const targetCrossIndex = getNextUncrossedZero(updatedRes, crossed);
-
-                    if (targetCrossIndex !== -1) {
-                        setCalcAction('cross');
-                        setCalcCol(targetCrossIndex);
-                        setFeedback({ type: 'info', msg: '計算完成！請把沒有意義的 0 點擊刪除！' });
-                        return;
+                    // Check for trailing zeros to cross out
+                    const dotIdx = gridRes.indexOf('.');
+                    let hasTrailingZeros = false;
+                    if (dotIdx !== -1) {
+                        for (let i = NUM_GRID_COLS - 1; i > dotIdx; i--) {
+                            if (gridRes[i] === '0' && !crossed[i]) {
+                                hasTrailingZeros = true;
+                                setCalcAction('cross');
+                                setCalcCol(i);
+                                setFeedback({ type: 'info', msg: '計算完成！最後的小數點末位 0 沒有意義，請點擊把它刪除！' });
+                                return;
+                            } else if (gridRes[i] && gridRes[i] !== '0') {
+                                break;
+                            }
+                        }
                     }
-
-                    finishProblem();
+                    if (!isDeleteCross) finishProblem();
                 } else {
                     setCalcCol(nextCol);
                     if (mode === 'add') {
@@ -566,13 +543,14 @@
                             setCalcAction('carry');
                             setFeedback({ type: 'success', msg: `答對了！寫 ${expectedDigit} 進 1，點擊上方黃色的圈圈填入進位！` });
                         } else {
-                            moveToNextCalcColumn(calcCol, carries, newRes);
+                            moveToNextCalcColumn(calcCol);
                         }
                     } else {
                         setFeedback({ type: 'error', msg: '加錯囉！再算一次看看？' }); triggerShake(); setHasError(true); setStreak(0);
                     }
                 } else if (calcAction === 'carry') {
                     if (num === 1) {
+                        // 修正：進位目標欄位應正確跳過小數點
                         let targetCarryCol = calcCol - 1;
                         if (targetCarryCol === FIXED_DECIMAL_COL) targetCarryCol--;
 
@@ -580,7 +558,8 @@
                         newCarries[targetCarryCol] = '1';
                         setCarries(newCarries);
 
-                        moveToNextCalcColumn(calcCol, newCarries, gridRes);
+                        // 將最新狀態的 newCarries 傳入，避免 state 時間差導致錯誤結案
+                        moveToNextCalcColumn(calcCol, false, newCarries);
                     } else {
                         setFeedback({ type: 'error', msg: '進位通常是 1 喔！' }); triggerShake(); setHasError(true); setStreak(0);
                     }
@@ -624,6 +603,7 @@
                     const newBorrowed = [...borrowed];
                     const newReceived = [...received];
 
+                    // 連續借位邏輯：連鎖傳遞 10 給中間的 0
                     newBorrowed[clickCol] = true;
 
                     let curr = clickCol + 1;
@@ -634,7 +614,7 @@
                         }
                         newReceived[curr] = true;
                         if (curr < calcCol) {
-                            newBorrowed[curr] = true;
+                            newBorrowed[curr] = true; // 中間的 0 接收了10又借出，等同於被借位 (變成9)
                         }
                         curr++;
                     }
@@ -675,7 +655,7 @@
                     const newRes = [...gridRes];
                     newRes[calcCol] = num.toString();
                     setGridRes(newRes);
-                    moveToNextCalcColumn(calcCol, carries, newRes);
+                    moveToNextCalcColumn(calcCol);
                 } else {
                     setFeedback({ type: 'error', msg: '減錯囉！再算一次看看？' }); triggerShake(); setHasError(true); setStreak(0);
                 }
@@ -696,7 +676,7 @@
                     const newRes = [...gridRes];
                     newRes[calcCol] = '.';
                     setGridRes(newRes);
-                    moveToNextCalcColumn(calcCol, carries, newRes);
+                    moveToNextCalcColumn(calcCol);
                 } else if (calcAction === 'cross') {
                     setFeedback({ type: 'error', msg: '現在請用滑鼠點擊答案區，把不需要的 0 刪除喔！' }); triggerShake();
                 } else {
@@ -707,26 +687,35 @@
             const handleCrossOut = (idx) => {
                 if (phase !== 'calc' || calcAction !== 'cross') return;
 
-                const targetCrossIndex = getNextUncrossedZero(gridRes, crossed);
+                const dotIdx = gridRes.indexOf('.');
+                if (idx > dotIdx && gridRes[idx] === '0') {
+                    let canCross = true;
+                    for (let i = NUM_GRID_COLS - 1; i > idx; i--) {
+                        if (gridRes[i] === '0' && !crossed[i]) { canCross = false; break; }
+                    }
 
-                if (idx === targetCrossIndex) {
-                    const newCrossed = [...crossed];
-                    newCrossed[idx] = true;
-                    setCrossed(newCrossed);
+                    if (canCross) {
+                        const newCrossed = [...crossed];
+                        newCrossed[idx] = true;
+                        setCrossed(newCrossed);
 
-                    const furtherTarget = getNextUncrossedZero(gridRes, newCrossed);
+                        let needMore = false;
+                        for (let i = idx - 1; i > dotIdx; i--) {
+                            if (gridRes[i] === '0') { needMore = true; setCalcCol(i); break; }
+                            else { break; }
+                        }
 
-                    if (furtherTarget !== -1) {
-                        setCalcCol(furtherTarget);
-                        setFeedback({ type: 'info', msg: '還有多餘的 0 喔，請繼續點擊刪除！' });
+                        if (!needMore) {
+                            setFeedback({ type: 'success', msg: '太棒了！這才是最簡潔的答案。' });
+                            setTimeout(() => finishProblem(), 800);
+                        } else {
+                            setFeedback({ type: 'info', msg: '還有多餘的 0 喔，請繼續點擊刪除！' });
+                        }
                     } else {
-                        setCalcCol(-1);
-                        setFeedback({ type: 'success', msg: '太棒了！這才是最簡潔的答案。' });
-                        setTimeout(() => finishProblem(), 800);
+                        setFeedback({ type: 'error', msg: '請從最右邊的 0 開始刪除喔！' }); triggerShake();
                     }
                 } else {
-                    setFeedback({ type: 'error', msg: '請點擊發光提示的 0 進行刪除喔！' });
-                    triggerShake();
+                    setFeedback({ type: 'error', msg: '只有小數末位的 0 才可以刪除喔！' }); triggerShake();
                 }
             };
 
@@ -748,6 +737,7 @@
                 }
             };
 
+            // 新增鍵盤方向鍵及Delete支援
             useEffect(() => {
                 const handleKey = (e) => {
                     if (phase === 'align') {
@@ -781,6 +771,7 @@
 
             if (!problem) return null;
 
+            // Render Layout Generators
             const renderGridRow = (rowType, gridData) => {
                 return Array.from({ length: NUM_GRID_COLS }).map((_, c) => {
                     const char = gridData[c];
@@ -806,6 +797,7 @@
 
                         if (mode === 'sub' && rowType === 'top') {
                             const showStrike = borrowed[c];
+                            const isActiveInBorrow = showStrike || received[c];
                             if (showStrike) {
                                 textClass = "text-slate-300 strike-through active";
                             }
@@ -850,49 +842,33 @@
 
                     const containerWidth = "w-10 md:w-14";
 
+                    // 加法進位提示UI的顯示位置正確跨越小數點
                     let expectedCarryUICol = calcCol - 1;
                     if (expectedCarryUICol === FIXED_DECIMAL_COL) expectedCarryUICol--;
 
                     return (
                         <div key={`${rowType}-${c}`} className={`relative flex flex-col items-center justify-end h-14 md:h-16 ${containerWidth}`}>
 
-                            {/* 減法借位動態效果UI (分離退位標記) */}
+                            {/* 減法借位動態效果UI */}
                             {mode === 'sub' && rowType === 'top' && (phase === 'calc' || phase === 'done') && (
                                 <div className="absolute -top-10 flex justify-center w-full pointer-events-none z-20">
-                                    {(() => {
-                                        const hasRec = received[c];
-                                        const isLent = borrowed[c];
-                                        if (!hasRec && !isLent) return null;
-
-                                        const origStr = gridTop[c];
-                                        const origVal = parseInt(origStr) || 0;
-                                        const isZero = origStr === '0' || origStr === '';
-
-                                        if (hasRec && isLent) {
-                                            if (isZero) {
-                                                return <div className="text-xl font-bold text-rose-500 bg-white rounded-full px-2 border border-rose-100 animate-pop-in shadow-sm">9</div>;
-                                            } else {
-                                                return (
-                                                    <div className="flex items-center gap-0.5 translate-x-1">
-                                                        <div className="text-[11px] md:text-xs bg-slate-50 rounded-full w-5 h-5 flex items-center justify-center border border-slate-300 text-slate-500 font-bold shadow-sm z-10 mb-0.5">
-                                                            {origVal - 1}
-                                                        </div>
-                                                        <div className="text-lg md:text-xl font-bold text-rose-500 bg-white rounded-full px-1 border border-rose-100 animate-pop-in shadow-sm z-20">
-                                                            10
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }
-                                        } else if (hasRec && !isLent) {
-                                            return <div className="text-xl font-bold text-rose-500 bg-white rounded-full px-1 border border-rose-100 animate-pop-in shadow-sm">10</div>;
-                                        } else if (!hasRec && isLent) {
-                                            return <div className="text-xl font-bold text-rose-500 bg-white rounded-full px-2 border border-rose-100 animate-pop-in shadow-sm">{origVal - 1}</div>;
-                                        }
-                                    })()}
+                                    {received[c] && !borrowed[c] && (
+                                        <div className="text-xl font-bold text-rose-500 bg-white rounded-full border border-rose-100 px-1 shadow-sm animate-pop-in">
+                                            10
+                                        </div>
+                                    )}
+                                    {received[c] && borrowed[c] && (
+                                        <div className="text-xl font-bold text-rose-500 bg-white rounded-full border border-rose-100 px-2 shadow-sm animate-pop-in">
+                                            9
+                                        </div>
+                                    )}
+                                    {borrowed[c] && !received[c] && gridTop[c] && (
+                                        <div className="text-xl font-bold text-rose-500 bg-white rounded-full border border-rose-100 px-2 shadow-sm animate-pop-in">
+                                            {(parseInt(gridTop[c]) || 0) - 1}
+                                        </div>
+                                    )}
                                 </div>
                             )}
-
-                            {/* 減法借位畫線動畫 */}
                             {mode === 'sub' && rowType === 'top' && borrowed[c] && (
                                 <svg className="absolute top-[-15px] left-0 w-[220%] h-14 pointer-events-none z-10 overflow-visible">
                                     <defs><marker id={`arr-${c}`} markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#f59e0b" /></marker></defs>
@@ -1010,21 +986,12 @@
             const [levelSub, setLevelSub] = useState(1);
             const [score, setScore] = useState(0);
 
-            const [isCompletedAdd, setIsCompletedAdd] = useState(false);
-            const [isCompletedSub, setIsCompletedSub] = useState(false);
-
             const activeLevels = mode === 'add' ? LEVELS_ADD : LEVELS_SUB;
             const currentLevel = mode === 'add' ? levelAdd : levelSub;
             const setLevel = mode === 'add' ? setLevelAdd : setLevelSub;
-            const isCompleted = mode === 'add' ? isCompletedAdd : isCompletedSub;
-            const setIsCompleted = mode === 'add' ? setIsCompletedAdd : setIsCompletedSub;
 
             const handleLevelUp = () => {
-                if (currentLevel < 6) {
-                    setLevel(currentLevel + 1);
-                } else {
-                    setIsCompleted(true);
-                }
+                if (currentLevel < 6) setLevel(currentLevel + 1);
             };
 
             return (
@@ -1033,7 +1000,7 @@
                         <div className="mb-6 flex justify-between items-center lg:block">
                             <div>
                                 <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tight">
-                                    小數加減小學堂
+                                    小數加減法學堂
                                 </h1>
                                 <p className="text-sm text-slate-500 mt-1">自主排版・直式計算</p>
                             </div>
@@ -1053,36 +1020,20 @@
 
                         <div className="flex lg:flex-col gap-2 flex-nowrap overflow-x-auto lg:overflow-y-auto mb-4 pb-2 lg:pb-0 scrollbar-hide flex-1">
                             {activeLevels.map((l) => (
-                                <button key={l.level} onClick={() => { setLevel(l.level); setIsCompleted(false); }}
-                                    className={`text-left px-4 py-3 rounded-xl transition-all border relative overflow-hidden shrink-0 min-w-[140px] lg:min-w-0 ${currentLevel === l.level && !isCompleted ? (mode === 'add' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-rose-50 border-rose-400 ring-1 ring-rose-400') : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
-                                    <div className={`font-bold relative z-10 ${currentLevel === l.level && !isCompleted ? (mode === 'add' ? 'text-indigo-800' : 'text-rose-800') : 'text-slate-700'}`}>
+                                <button key={l.level} onClick={() => setLevel(l.level)}
+                                    className={`text-left px-4 py-3 rounded-xl transition-all border relative overflow-hidden shrink-0 min-w-[140px] lg:min-w-0 ${currentLevel === l.level ? (mode === 'add' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-rose-50 border-rose-400 ring-1 ring-rose-400') : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                    <div className={`font-bold relative z-10 ${currentLevel === l.level ? (mode === 'add' ? 'text-indigo-800' : 'text-rose-800') : 'text-slate-700'}`}>
                                         Level {l.level}: {l.label}
                                     </div>
-                                    <div className={`text-xs mt-1 relative z-10 ${currentLevel === l.level && !isCompleted ? (mode === 'add' ? 'text-indigo-600' : 'text-rose-600') : 'text-slate-500'} hidden lg:block`}>
+                                    <div className={`text-xs mt-1 relative z-10 ${currentLevel === l.level ? (mode === 'add' ? 'text-indigo-600' : 'text-rose-600') : 'text-slate-500'} hidden lg:block`}>
                                         {l.desc}
                                     </div>
-                                    {currentLevel === l.level && !isCompleted && <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-10"><TrendingUp size="40" /></div>}
+                                    {currentLevel === l.level && <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-10"><TrendingUp size="40" /></div>}
                                 </button>
                             ))}
                         </div>
 
-                        {/* 新增：左側下方簡易使用與過關說明 */}
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-4 lg:mt-auto mb-4 shrink-0 text-slate-600 text-xs leading-relaxed hidden lg:block">
-                            <div className="font-bold flex items-center gap-1.5 text-slate-700 mb-2 text-sm">
-                                <InfoIcon className="w-4 h-4 text-blue-500" /> 使用與過關說明
-                            </div>
-                            <ul className="list-disc pl-4 space-y-1.5 mb-3">
-                                <li><span className="font-medium text-slate-700">對齊排版：</span>將橫式題目填入下方，務必精準對齊小數點或個位數。</li>
-                                <li><span className="font-medium text-slate-700">直式計算：</span>由右至左計算，可點擊上方數字進行進/借位操作。</li>
-                                <li><span className="font-medium text-slate-700">化簡答案：</span>計算完成後，需手動點擊刪除無意義的前後綴 <span className="font-mono text-red-500">0</span>。</li>
-                            </ul>
-                            <div className="bg-blue-50/70 p-2.5 rounded-lg border border-blue-100 mt-2">
-                                <span className="font-bold text-blue-700 block mb-0.5">🏆 晉級條件</span>
-                                每個關卡連續答對 3~5 題即可自動晉級，通過 Level 6 即可全破通關！
-                            </div>
-                        </div>
-
-                        <div className="hidden lg:flex bg-yellow-50 p-4 rounded-xl border border-yellow-200 items-center justify-between shrink-0">
+                        <div className="hidden lg:flex bg-yellow-50 p-4 rounded-xl border border-yellow-200 items-center justify-between shrink-0 mt-auto">
                             <div className="flex items-center gap-2 text-yellow-700 font-bold">
                                 <Trophy className="w-5 h-5" /> 總積分
                             </div>
@@ -1091,25 +1042,7 @@
                     </div>
 
                     <div className="flex-1 flex flex-col items-center justify-start lg:justify-center p-4 py-6 bg-slate-50 relative overflow-y-auto">
-                        {isCompleted ? (
-                            <div className="flex flex-col items-center justify-center p-8 md:p-12 bg-white rounded-3xl shadow-xl border-2 border-yellow-300 text-center animate-pop-in max-w-lg w-full mt-10 lg:mt-0">
-                                <Trophy className="w-32 h-32 text-yellow-500 mb-6 animate-bounce-slow" />
-                                <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4 tracking-tight">🎉 恭喜通關！</h2>
-                                <p className="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed">
-                                    你已經完成了<span className={`font-bold mx-1 ${mode === 'add' ? 'text-indigo-600' : 'text-rose-600'}`}>{mode === 'add' ? '小數加法' : '小數減法'}</span>的所有挑戰關卡！<br /><span className="text-sm mt-2 block">這證明你對小數點對齊與直式計算已經非常熟練！</span>
-                                </p>
-                                <div className="flex flex-col sm:flex-row gap-4 w-full">
-                                    <button onClick={() => { setIsCompleted(false); setLevel(1); }} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-lg font-bold rounded-2xl transition-all shadow-sm active:scale-95">
-                                        再次挑戰
-                                    </button>
-                                    <button onClick={() => { setMode(mode === 'add' ? 'sub' : 'add'); setIsCompletedAdd(false); setIsCompletedSub(false); }} className={`flex-1 py-4 text-white text-lg font-bold rounded-2xl transition-all shadow-md active:scale-95 ${mode === 'add' ? 'bg-rose-500 hover:bg-rose-600' : 'bg-indigo-500 hover:bg-indigo-600'}`}>
-                                        {mode === 'add' ? '前往減法 ➡️' : '前往加法 ➡️'}
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <MathGame key={`${mode}-${currentLevel}`} mode={mode} level={currentLevel} onLevelUp={handleLevelUp} onScore={s => setScore(prev => prev + s)} />
-                        )}
+                        <MathGame key={`${mode}-${currentLevel}`} mode={mode} level={currentLevel} onLevelUp={handleLevelUp} onScore={s => setScore(prev => prev + s)} />
                     </div>
                 </div>
             );

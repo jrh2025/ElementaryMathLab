@@ -16,11 +16,11 @@
     <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
     <!-- 更新 Lucide 版本 -->
     <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.15.0/babel.min.js"></script>
 
 
     <!-- Babel 編譯器 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.15.0/babel.min.js"></script>
 
     <style>
         body {
@@ -57,14 +57,42 @@
                 return <span className="inline-block bg-slate-200 rounded" style={{ width: size, height: size }}></span>;
             }
 
-            const iconData = window.lucide.icons[name];
+            const getIconData = (iconName) => {
+                const icons = window.lucide.icons;
+                if (!iconName) return icons['CircleHelp'] || icons['circleHelp'];
+                if (icons[iconName]) return icons[iconName];
+                const camel = iconName.charAt(0).toLowerCase() + iconName.slice(1);
+                if (icons[camel]) return icons[camel];
+                const kebab = iconName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+                if (icons[kebab]) return icons[kebab];
+                const lower = iconName.toLowerCase();
+                if (icons[lower]) return icons[lower];
+                const foundKey = Object.keys(icons).find(k => k.toLowerCase() === lower || k.toLowerCase().replace(/[^a-z0-9]/g, '') === lower);
+                if (foundKey) return icons[foundKey];
+                return icons['CircleHelp'] || icons['circle-help'] || icons['circleHelp'] || null;
+            };
+            const iconData = getIconData(name);
             // 如果找不到圖示，回傳 null 或佔位符
             if (!iconData) return null;
 
-            const [tag, attrs, children] = iconData;
+            let tag, attrs, children;
+            if (Array.isArray(iconData)) {
+                [tag, attrs, children] = iconData;
+            } else {
+                tag = iconData.tag || 'svg';
+                attrs = iconData.attrs || {};
+                children = iconData.children || [];
+            }
 
             const renderChild = (child, index) => {
-                const [childTag, childAttrs, grandChildren] = child;
+                let childTag, childAttrs, grandChildren;
+            if (Array.isArray(child)) {
+                [childTag, childAttrs, grandChildren] = child;
+            } else {
+                childTag = child.tag;
+                childAttrs = child.attrs;
+                grandChildren = child.children;
+            }
                 return React.createElement(childTag, { ...childAttrs, key: index },
                     grandChildren ? grandChildren.map(renderChild) : null
                 );

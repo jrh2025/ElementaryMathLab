@@ -215,6 +215,7 @@
 
                         let t, b;
 
+                        // Force Carry Logic for Specific Columns
                         if (config.forceCarry && base > 0) {
                             const minSum = base;
                             const maxSum = base + max - 1;
@@ -234,6 +235,7 @@
                         bottom[i] = b;
                     }
 
+                    // Calculate Result
                     for (let i = numUnits - 1; i >= 0; i--) {
                         let sum = top[i] + bottom[i] + carry;
                         const base = config.bases[i];
@@ -252,6 +254,7 @@
                     // Subtraction Logic
                     config.type = 'sub';
 
+                    // 1. Generate Top Numbers
                     for (let i = 0; i < numUnits; i++) {
                         top[i] = Math.floor(Math.random() * (config.maxVals[i] + 1));
                         if (i === 0 && top[i] < 2) top[i] = Math.floor(Math.random() * 5) + 3;
@@ -261,6 +264,7 @@
                         top[1] = 0;
                     }
 
+                    // 2. Generate Bottom Numbers
                     for (let i = 0; i < numUnits; i++) {
                         let b;
 
@@ -279,6 +283,7 @@
                         bottom[i] = b;
                     }
 
+                    // 3. Validation & Result Calculation
                     let currentBorrow = 0;
                     for (let i = numUnits - 1; i >= 0; i--) {
                         let t = top[i];
@@ -317,6 +322,7 @@
                 }
             }
 
+            // Fallback
             if (!isValid) {
                 return { top: config.type === 'add' ? [0, 30] : [1, 10], bottom: config.type === 'add' ? [0, 30] : [0, 5], expected: config.type === 'add' ? [1, 0] : [1, 5] };
             }
@@ -345,23 +351,47 @@
             const [score, setScore] = useState(0);
             const [streak, setStreak] = useState(0);
             const [showCertificate, setShowCertificate] = useState(false);
-            const [floatAnims, setFloatAnims] = useState([]);
+            const [floatAnims, setFloatAnims] = useState([]); // Array of animations
             const [arrowAnim, setArrowAnim] = useState(null);
 
             const nextButtonRef = useRef(null);
 
-            // -- Generic Drag State --
+            // -- Generic Drag State (Handles multiple items: bubble-{i}, error-{i}) --
             const [elementOffsets, setElementOffsets] = useState({}); // { [key: string]: {x, y} }
-            const [activeDragId, setActiveDragId] = useState(null);
-            const dragInfoRef = useRef(null);
+            const [activeDragId, setActiveDragId] = useState(null); // Track active drag ID for z-index
+            const dragInfoRef = useRef(null); // Use ref for drag state to avoid closure issues
 
-            // -- Updated Drag Handlers (Using useCallback instead of complex ref wrapper) --
-            const handleGlobalMove = useCallback((e) => {
+            // Store event handler refs AND wrapper refs to maintain stable references
+            const handleMoveRef = useRef(null);
+            const handleEndRef = useRef(null);
+            const handleMoveWrapperRef = useRef(null);
+            const handleEndWrapperRef = useRef(null);
+
+            // Initialize wrapper functions ONCE (they never change)
+            if (!handleMoveWrapperRef.current) {
+                handleMoveWrapperRef.current = (e) => {
+                    if (handleMoveRef.current) {
+                        handleMoveRef.current(e);
+                    }
+                };
+            }
+
+            if (!handleEndWrapperRef.current) {
+                handleEndWrapperRef.current = () => {
+                    if (handleEndRef.current) {
+                        handleEndRef.current();
+                    }
+                };
+            }
+
+            // Update handlers on every render (but wrappers stay the same)
+            handleMoveRef.current = (e) => {
                 if (!dragInfoRef.current) return;
                 e.preventDefault();
 
                 const { id, startX, startY, initX, initY } = dragInfoRef.current;
 
+                // Get coordinates from either mouse or touch event
                 let clientX, clientY;
                 if (e.type.startsWith('touch')) {
                     if (e.touches && e.touches.length > 0) {
@@ -380,6 +410,7 @@
                 const deltaX = clientX - startX;
                 const deltaY = clientY - startY;
 
+                // Limit drag range to +/- 100px
                 const newX = Math.max(-100, Math.min(100, initX + deltaX));
                 const newY = Math.max(-100, Math.min(100, initY + deltaY));
 
@@ -387,59 +418,72 @@
                     ...prev,
                     [id]: { x: newX, y: newY }
                 }));
-            }, []);
+            };
 
-            const handleGlobalEnd = useCallback(() => {
+            handleEndRef.current = () => {
+                if (!dragInfoRef.current) return;
+
                 dragInfoRef.current = null;
                 setActiveDragId(null);
 
-                document.removeEventListener('mousemove', handleGlobalMove);
-                document.removeEventListener('mouseup', handleGlobalEnd);
-                document.removeEventListener('touchmove', handleGlobalMove);
-                document.removeEventListener('touchend', handleGlobalEnd);
-                document.removeEventListener('touchcancel', handleGlobalEnd);
-            }, [handleGlobalMove]);
+                // Remove all possible event listeners using stable wrapper refs
+                document.removeEventListener('mousemove', handleMoveWrapperRef.current);
+                document.removeEventListener('mouseup', handleEndWrapperRef.current);
+                document.removeEventListener('touchmove', handleMoveWrapperRef.current);
+                document.removeEventListener('touchend', handleEndWrapperRef.current);
+                document.removeEventListener('touchcancel', handleEndWrapperRef.current);
+            };
 
-            const startDrag = (e, id) => {
-                // Prevent default behavior to stop text selection etc.
-                if (e.type === 'mousedown') e.preventDefault();
+            // Start drag for mouse events
+            const handleMouseDownDrag = (e, id) => {
+                e.preventDefault();
                 e.stopPropagation();
 
-                let clientX, clientY;
-                if (e.type.startsWith('touch')) {
-                    if (e.touches && e.touches.length > 0) {
-                        clientX = e.touches[0].clientX;
-                        clientY = e.touches[0].clientY;
-                    } else return;
-                } else {
-                    clientX = e.clientX;
-                    clientY = e.clientY;
-                }
+                const clientX = e.clientX;
+                const clientY = e.clientY;
 
                 const current = elementOffsets[id] || { x: 0, y: 0 };
                 dragInfoRef.current = { id, startX: clientX, startY: clientY, initX: current.x, initY: current.y };
                 setActiveDragId(id);
 
-                if (e.type.startsWith('touch')) {
-                    document.addEventListener('touchmove', handleGlobalMove, { passive: false });
-                    document.addEventListener('touchend', handleGlobalEnd);
-                    document.addEventListener('touchcancel', handleGlobalEnd);
-                } else {
-                    document.addEventListener('mousemove', handleGlobalMove);
-                    document.addEventListener('mouseup', handleGlobalEnd);
-                }
+                // Use stable wrapper refs
+                document.addEventListener('mousemove', handleMoveWrapperRef.current);
+                document.addEventListener('mouseup', handleEndWrapperRef.current);
+            };
+
+            // Start drag for touch events
+            const handleTouchStartDrag = (e, id) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!e.touches || e.touches.length === 0) return;
+
+                const clientX = e.touches[0].clientX;
+                const clientY = e.touches[0].clientY;
+
+                const current = elementOffsets[id] || { x: 0, y: 0 };
+                dragInfoRef.current = { id, startX: clientX, startY: clientY, initX: current.x, initY: current.y };
+                setActiveDragId(id);
+
+                // Use stable wrapper refs
+                document.addEventListener('touchmove', handleMoveWrapperRef.current, { passive: false });
+                document.addEventListener('touchend', handleEndWrapperRef.current);
+                document.addEventListener('touchcancel', handleEndWrapperRef.current);
             };
 
             // Cleanup on unmount
             useEffect(() => {
                 return () => {
-                    document.removeEventListener('mousemove', handleGlobalMove);
-                    document.removeEventListener('mouseup', handleGlobalEnd);
-                    document.removeEventListener('touchmove', handleGlobalMove);
-                    document.removeEventListener('touchend', handleGlobalEnd);
-                    document.removeEventListener('touchcancel', handleGlobalEnd);
+                    if (handleMoveWrapperRef.current && handleEndWrapperRef.current) {
+                        document.removeEventListener('mousemove', handleMoveWrapperRef.current);
+                        document.removeEventListener('mouseup', handleEndWrapperRef.current);
+                        document.removeEventListener('touchmove', handleMoveWrapperRef.current);
+                        document.removeEventListener('touchend', handleEndWrapperRef.current);
+                        document.removeEventListener('touchcancel', handleEndWrapperRef.current);
+                    }
                 };
-            }, [handleGlobalMove, handleGlobalEnd]);
+            }, []);
+
 
             const getEffectiveValue = (idx, currentTop, currentBorrowState) => {
                 let val = currentTop[idx];
@@ -868,6 +912,7 @@
                                                         <div key={i} className="flex">
                                                             <div className="flex flex-col items-center relative col-width">
                                                                 {/* Header */}
+                                                                {/* Adjusted MB to 24 (96px) to match bubble clearance */}
                                                                 <div className="flex flex-col items-center mb-24 h-10 justify-end">
                                                                     {base > 0 && i > 0 && (
                                                                         <div className="text-xs font-bold text-emerald-600 bg-emerald-100 rounded-full px-3 py-1 mb-1 whitespace-nowrap shadow-sm">滿{base}進1</div>
@@ -889,21 +934,19 @@
                                                                         {/* Borrowed From Value - Lifted Higher */}
                                                                         {isLender && <div className="absolute -top-16 text-red-500 font-bold text-3xl animate-pop-in z-30 pointer-events-none">{effectiveVal}</div>}
 
-                                                                        {/* Borrow Bubble - FIX: Nested Structure to separate Drag Transform vs Animation Transform */}
+                                                                        {/* Borrow Bubble - Lifted Higher - Draggable - Added touch-none */}
                                                                         {isBorrower && (
                                                                             <div
-                                                                                onTouchStart={(e) => startDrag(e, bubbleId)}
-                                                                                onMouseDown={(e) => startDrag(e, bubbleId)}
-                                                                                className={`absolute -top-20 cursor-move pointer-events-auto touch-none ${activeDragId === bubbleId ? 'z-50' : 'z-30'}`}
+                                                                                onTouchStart={(e) => handleTouchStartDrag(e, bubbleId)}
+                                                                                onMouseDown={(e) => handleMouseDownDrag(e, bubbleId)}
+                                                                                className={`absolute -top-20 bg-emerald-100 text-emerald-600 text-sm font-bold px-3 py-1 rounded-full border border-emerald-200 animate-pop-in flex flex-col items-center shadow-sm whitespace-nowrap cursor-move pointer-events-auto hover:ring-2 hover:ring-emerald-300 hover:scale-105 transition-transform touch-none ${activeDragId === bubbleId ? 'z-50' : 'z-30'}`}
                                                                                 style={{
                                                                                     transform: `translate(${bubbleOffset.x}px, ${bubbleOffset.y}px)`,
                                                                                     touchAction: 'none'
                                                                                 }}
                                                                             >
-                                                                                <div className="bg-emerald-100 text-emerald-600 text-sm font-bold px-3 py-1 rounded-full border border-emerald-200 animate-pop-in flex flex-col items-center shadow-sm whitespace-nowrap hover:ring-2 hover:ring-emerald-300 hover:scale-105 transition-transform">
-                                                                                    <span>+{base}</span>
-                                                                                    <div className="w-px h-3 bg-emerald-300"></div>
-                                                                                </div>
+                                                                                <span>+{base}</span>
+                                                                                <div className="w-px h-3 bg-emerald-300"></div>
                                                                             </div>
                                                                         )}
 
@@ -943,23 +986,19 @@
                                                                                 <HandPointer size={16} /> 進位 (減{waitingForCarry.base})
                                                                             </button>
                                                                         )}
-
-                                                                        {/* Error Message Bubble - FIX: Nested Structure */}
                                                                         {hasError && (
                                                                             <div
-                                                                                onTouchStart={(e) => startDrag(e, errorId)}
-                                                                                onMouseDown={(e) => startDrag(e, errorId)}
-                                                                                className={`absolute -top-24 left-1/2 cursor-move pointer-events-auto touch-none ${activeDragId === errorId ? 'z-50' : 'z-30'}`}
+                                                                                onTouchStart={(e) => handleTouchStartDrag(e, errorId)}
+                                                                                onMouseDown={(e) => handleMouseDownDrag(e, errorId)}
+                                                                                className={`absolute -top-24 left-1/2 -translate-x-1/2 animate-pop-in w-40 cursor-move pointer-events-auto touch-none ${activeDragId === errorId ? 'z-50' : 'z-30'}`}
                                                                                 style={{
                                                                                     transform: `translate(calc(-50% + ${errorOffset.x}px), ${errorOffset.y}px)`,
                                                                                     touchAction: 'none'
                                                                                 }}
                                                                             >
-                                                                                <div className="animate-pop-in w-40">
-                                                                                    <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-bold px-3 py-2 rounded-lg shadow-lg text-center relative hover:ring-2 hover:ring-red-200 transition-shadow">
-                                                                                        {isBorrowingMode && problem.top[i] === 0 ? "這裡是0，先跟左邊借！" : (isBorrowingMode ? "不夠減！請向左邊借位" : "算錯囉，再試一次！")}
-                                                                                        <div className="bubble-arrow"></div>
-                                                                                    </div>
+                                                                                <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-bold px-3 py-2 rounded-lg shadow-lg text-center relative hover:ring-2 hover:ring-red-200 transition-shadow">
+                                                                                    {isBorrowingMode && problem.top[i] === 0 ? "這裡是0，先跟左邊借！" : (isBorrowingMode ? "不夠減！請向左邊借位" : "算錯囉，再試一次！")}
+                                                                                    <div className="bubble-arrow"></div>
                                                                                 </div>
                                                                             </div>
                                                                         )}
@@ -978,6 +1017,7 @@
                                                             const colW = 100, gapW = 24, opW = 32, halfCol = 50;
                                                             const startX = opW + (arrowAnim.from * (colW + gapW)) + halfCol;
                                                             const endX = opW + (arrowAnim.to * (colW + gapW)) + halfCol;
+                                                            // Adjusted arrow coordinates to fit the new margin (around 120px down from container top)
                                                             const startY = 120, endY = 120, controlY = 60;
                                                             return <path d={`M ${startX} ${startY} Q ${(startX + endX) / 2} ${controlY} ${endX} ${endY}`} fill="none" stroke="#10b981" strokeWidth="4" markerEnd="url(#arrowhead)" className="animate-draw-arrow" />;
                                                         })()}

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>平台介紹與使用指南 | 國小數學互動教學實驗室</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.15.0/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap"
         rel="stylesheet">
     <style>
@@ -93,8 +93,8 @@
                                         key={section.id}
                                         onClick={() => setActiveTab(section.id)}
                                         className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group ${activeTab === section.id
-                                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 font-bold translate-x-1'
-                                                : 'hover:bg-slate-800 hover:text-white hover:translate-x-1'
+                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 font-bold translate-x-1'
+                                            : 'hover:bg-slate-800 hover:text-white hover:translate-x-1'
                                             }`}
                                     >
                                         <section.icon size={20} className={activeTab === section.id ? 'text-blue-200' : 'text-slate-500 group-hover:text-slate-300'} />

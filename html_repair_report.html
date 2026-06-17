@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 批次智慧修復報告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-6 md:p-12">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <span class="text-xs font-bold bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full uppercase tracking-wider">智慧型診斷引擎 v1.5</span>
+                <h1 class="text-3xl font-black text-slate-900 mt-2">批次網頁相容性修復報告</h1>
+                <p class="text-slate-500 text-sm mt-1">目標目錄: <span class="font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs">C:/Users/USER/國小數學互動教學20260617</span></p>
+            </div>
+            <div class="text-right md:border-l md:pl-6 border-slate-200">
+                <p class="text-xs text-slate-400 font-bold uppercase">產生時間</p>
+                <p class="text-lg font-black text-slate-700 mt-0.5">2026-06-17 12:39:35</p>
+            </div>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                <p class="text-xs font-bold text-slate-400 uppercase">掃描檔案總數</p>
+                <p class="text-3xl font-black text-slate-800 mt-1">42</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                <p class="text-xs font-bold text-emerald-500 uppercase">成功修復與覆蓋</p>
+                <p class="text-3xl font-black text-emerald-600 mt-1">31</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                <p class="text-xs font-bold text-slate-400 uppercase">規格無誤檔案</p>
+                <p class="text-3xl font-black text-slate-600 mt-1">11</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                <p class="text-xs font-bold text-rose-500 uppercase">失敗檔案總數</p>
+                <p class="text-3xl font-black text-rose-600 mt-1">0</p>
+            </div>
+        </div>
+
+        <!-- Details Log List -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h2 class="text-lg font-black text-slate-800">詳細修復日誌清單</h2>
+                <span class="text-xs font-bold text-slate-500">備份存檔目錄: .html_repair_backups/ (點選路徑直接開啟檢視)</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100/50 border-b border-slate-200">
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">檔案相對路徑 (點選直接檢視)</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">處理狀態</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">修復細節</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">自動備份檔名</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./19multiplication.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">19multiplication.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_19multiplication.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./3digit_multiplication.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">3digit_multiplication.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_3digit_multiplication.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./9nine.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">9nine.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_9nine.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./admin.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">admin.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校, Lucide 屬性與多防護重構</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_admin.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./age_difference.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">age_difference.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_age_difference.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./chicken_rabbit.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">chicken_rabbit.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_chicken_rabbit.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./cylinder_surface_area.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">cylinder_surface_area.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_cylinder_surface_area.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./decimal_add&sub.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">decimal_add&sub.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_decimal_add&sub.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./decimal_addition_subtraction.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">decimal_addition_subtraction.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_decimal_addition_subtraction.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./decimal_division.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">decimal_division.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_decimal_division.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./decimal_multiplication.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">decimal_multiplication.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_decimal_multiplication.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./Direct_addition.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">Direct_addition.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_Direct_addition.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./Direct_division2.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">Direct_division2.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_Direct_division2.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./Direct_subtraction.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">Direct_subtraction.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_Direct_subtraction.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./division_3g.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">division_3g.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_division_3g.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./division_4g.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">division_4g.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123934_division_4g.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./drag_test.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">drag_test.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./Drawing_the_height_of_parallelogram.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">Drawing_the_height_of_parallelogram.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_Drawing_the_height_of_parallelogram.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./Drawing_the_height_of_triangle.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">Drawing_the_height_of_triangle.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./Equivalence_axiom.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">Equivalence_axiom.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_Equivalence_axiom.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./estimates_4grad.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">estimates_4grad.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./flowers_math.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">flowers_math.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./flower_math_02.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">flower_math_02.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./html_repair_report.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">html_repair_report.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./icon_browser.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">icon_browser.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_icon_browser.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./index.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">index.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校, Lucide 屬性與多防護重構</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_index.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./interest_rate.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">interest_rate.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_interest_rate.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./invisible_ruler.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">invisible_ruler.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_invisible_ruler.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./Lab_Guide.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">Lab_Guide.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_Lab_Guide.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./pi.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">pi.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_pi.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./planting_tree.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">planting_tree.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_planting_tree.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./protractor.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">protractor.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_protractor.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./pyramid.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">pyramid.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./sector_area.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">sector_area.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_sector_area.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./speed_learning_lab.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">speed_learning_lab.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./square_root.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">square_root.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./statistics.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">statistics.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./TimeMathApp_Fixed.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">TimeMathApp_Fixed.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_TimeMathApp_Fixed.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./time_adjustment_old.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">time_adjustment_old.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_time_adjustment_old.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./trapezoid.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">trapezoid.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-600">規格吻合</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">正常，無需修復</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">N/A</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./unit_conversion.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">unit_conversion.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_unit_conversion.html.bak</td>
+            </tr>
+            
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 text-sm"><a href="./unlike_denominators.html" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold break-all">unlike_denominators.html</a></td>
+                <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap"><span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">已修復</span></td>
+                <td class="px-6 py-4 text-sm font-medium text-slate-600">Babel 相容編譯調校</td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400 break-all">20260617_123935_unlike_denominators.html.bak</td>
+            </tr>
+            
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center py-12 text-slate-400 text-xs">
+            <p>© 2026 HTML Batch Repair Tool • Designed for Web Development Safety</p>
+        </footer>
+    </div>
+</body>
+</html>
