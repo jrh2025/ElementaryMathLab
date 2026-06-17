@@ -1,0 +1,3161 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小小數據分析師互動自學平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter & Noto Sans Font -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+
+        /* 針對深色終端計算紙自訂捲軸 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col text-base">
+
+    <!-- 頁首區段 -->
+    <header class="bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-800 text-white shadow-md select-none">
+        <div
+            class="max-w-7xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
+                    <svg class="w-10 h-10 text-yellow-300 animate-pulse" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">小小數據分析師</h1>
+                    <p class="text-sm sm:text-base text-indigo-100 font-medium">四大統計圖表繪製、讀圖與素養自學平台</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <span class="bg-yellow-400 text-slate-900 text-sm font-bold px-4 py-2 rounded-full shadow-sm">
+                    ✨ 國小高年級必學
+                </span>
+                <!-- 桌上型計算紙收合開關 -->
+                <button onclick="toggleDesktopCalculator()"
+                    class="hidden lg:flex bg-white/20 hover:bg-white/30 border border-white/30 text-white px-4 py-2 rounded-xl text-sm font-bold items-center gap-2 transition-all">
+                    🧮 <span id="desktop-toggle-text">收合計算紙</span>
+                </button>
+                <button id="toggle-mobile-calc-btn"
+                    class="lg:hidden bg-slate-900/40 hover:bg-slate-900/60 border border-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all">
+                    🧮 計算紙
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要容器 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-6">
+
+        <!-- 左側：自學導航面板 -->
+        <div id="left-learning-container"
+            class="w-full lg:w-2/3 xl:w-3/4 flex flex-col space-y-6 transition-all duration-300">
+
+            <!-- 任務進度導覽 (分頁頁籤) -->
+            <nav class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap gap-2 select-none">
+                <button onclick="switchTab('task0')" id="tab-task0"
+                    class="flex-1 min-w-[140px] px-4 py-4 rounded-xl text-base font-bold transition-all flex items-center justify-center gap-2 bg-blue-50 text-blue-700 ring-2 ring-blue-600/10">
+                    📖 觀念導覽
+                </button>
+                <button onclick="switchTab('task1')" id="tab-task1"
+                    class="flex-1 min-w-[140px] px-4 py-4 rounded-xl text-base font-bold transition-all flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50">
+                    🔍 圖表偵探
+                </button>
+                <button onclick="switchTab('task2')" id="tab-task2"
+                    class="flex-1 min-w-[140px] px-4 py-4 rounded-xl text-base font-bold transition-all flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50">
+                    🍰 點心圓形圖
+                </button>
+                <button onclick="switchTab('task3')" id="tab-task3"
+                    class="flex-1 min-w-[140px] px-4 py-4 rounded-xl text-base font-bold transition-all flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50">
+                    📈 魔王折線圖
+                </button>
+                <button onclick="switchTab('task4')" id="tab-task4"
+                    class="flex-1 min-w-[140px] px-4 py-4 rounded-xl text-base font-bold transition-all flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50">
+                    🏆 大挑戰
+                </button>
+            </nav>
+
+            <!-- ============================== 任務零：觀念導覽 ============================== -->
+            <div id="panel-task0"
+                class="tab-panel bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 space-y-8">
+                <div class="border-b border-slate-100 pb-5">
+                    <span class="text-sm font-bold text-indigo-600 tracking-wider uppercase">自學起點：統計圖表核心觀念</span>
+                    <h2 class="text-3xl font-bold text-slate-900 mt-1">📊 四大圖表大解密 💡</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 長條圖 -->
+                    <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-3xl">🍌</span>
+                            <h3 class="text-xl font-bold text-blue-900">長條圖 (Bar Chart)</h3>
+                        </div>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            <strong>名詞定義：</strong>用長條（柱體）的「高度」來呈現與比較不同獨立項目數量的圖表。<br>
+                            <strong>使用時機：</strong>項目彼此<strong>獨立、不連續</strong>時（例如：班級最愛的水果、不同國家的金牌數）。<br>
+                            <strong>作圖技巧：</strong>柱子與柱子之間必須<strong>留空隙（有縫）</strong>。因為項目獨立，左右調換順序不影響解讀。
+                        </p>
+                    </div>
+
+                    <!-- 直方圖 -->
+                    <div class="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-3xl">📏</span>
+                            <h3 class="text-xl font-bold text-emerald-900">直方圖 (Histogram)</h3>
+                        </div>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            <strong>名詞定義：</strong>將連續數據劃分成不同區間（組距），用柱體高度代表各區間內人數或頻率的圖表。<br>
+                            <strong>使用時機：</strong>數據具有<strong>連續性、有範圍區間</strong>時（例如：全班的身高分佈、段考分數組距）。<br>
+                            <strong>作圖技巧：</strong>柱子與柱子之間必須<strong>緊貼相連（無縫）</strong>。順序絕對不可對調，必須依數值由小到大排列。
+                        </p>
+                    </div>
+
+                    <!-- 圓形圖 -->
+                    <div class="bg-amber-50/50 p-6 rounded-2xl border border-amber-100 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-3xl">🍰</span>
+                            <h3 class="text-xl font-bold text-amber-900">圓形圖 (Pie Chart)</h3>
+                        </div>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            <strong>名詞定義：</strong>將圓形劃分成不同扇形，用以呈現各項目在整體中所佔「百分比（比例）」關係的圖表。<br>
+                            <strong>使用時機：</strong>需要一眼看出各項目的<strong>「佔比、組成結構」</strong>時（例如：零用錢分配比例、投票得票率）。<br>
+                            <strong>作圖與計算方式：</strong>通常自 12 點鐘方向順時針繪製。<br>
+                            <span
+                                class="block mt-2 font-mono text-xs bg-white/80 p-2 rounded-lg text-amber-950 font-bold border border-amber-100">
+                                📝 百分率(%) = (各項數量 ÷ 總數量) × 100%<br>
+                                📐 圓心角(度) = 360° × (百分率 ÷ 100)
+                            </span>
+                        </p>
+                    </div>
+
+                    <!-- 折線圖 -->
+                    <div class="bg-rose-50/50 p-6 rounded-2xl border border-rose-100 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-3xl">📈</span>
+                            <h3 class="text-xl font-bold text-rose-900">折線圖 (Line Chart)</h3>
+                        </div>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            <strong>名詞定義：</strong>用線段連接各個資料點，來呈現數據隨時間或特定順序連續消長起伏的圖表。<br>
+                            <strong>使用時機：</strong>需要觀察數據隨時間推移的<strong>「前後連續變化與趨勢」</strong>時（例如：氣溫起伏、每月營業額波動）。<br>
+                            <strong>作圖與省略符號(~)技巧：</strong>描點後依序連線。若數據普遍極大且差距極小，可於 Y 軸底部加上省略號（波浪線），放大主要起伏段落。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 互動圖表大配對遊戲 -->
+                <div class="bg-indigo-50/30 p-6 rounded-2xl border border-indigo-100 space-y-5">
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold text-indigo-900 flex items-center justify-center gap-2">🎮 圖表情境對對碰
+                            (連連看小遊戲)</h3>
+                        <p class="text-sm text-slate-500 mt-1">請閱讀下列生活情境，點擊按鈕配對出「最適合」的統計圖表，現學現賣！</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded">情境 1</span>
+                            <p class="font-bold text-slate-700 text-sm">統計小明一年級到六年級的「身高身高成長起伏」紀錄：</p>
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <button onclick="matchT0Game(1, 'bar')"
+                                    class="t0-g1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">長條圖</button>
+                                <button onclick="matchT0Game(1, 'hist')"
+                                    class="t0-g1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">直方圖</button>
+                                <button onclick="matchT0Game(1, 'pie')"
+                                    class="t0-g1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">圓形圖</button>
+                                <button onclick="matchT0Game(1, 'line')"
+                                    class="t0-g1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">折線圖</button>
+                            </div>
+                            <p id="t0-g1-feedback" class="text-xs font-bold mt-2 h-4"></p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded">情境 2</span>
+                            <p class="font-bold text-slate-700 text-sm">想要呈現班會選舉幹部時，各候選人「得票數佔總票數的比例」分佈：</p>
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <button onclick="matchT0Game(2, 'bar')"
+                                    class="t0-g2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">長條圖</button>
+                                <button onclick="matchT0Game(2, 'hist')"
+                                    class="t0-g2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">直方圖</button>
+                                <button onclick="matchT0Game(2, 'pie')"
+                                    class="t0-g2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">圓形圖</button>
+                                <button onclick="matchT0Game(2, 'line')"
+                                    class="t0-g2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">折線圖</button>
+                            </div>
+                            <p id="t0-g2-feedback" class="text-xs font-bold mt-2 h-4"></p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded">情境 3</span>
+                            <p class="font-bold text-slate-700 text-sm">統計全校五個班級裡，「最愛吃草莓口味的人數」比較：</p>
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <button onclick="matchT0Game(3, 'bar')"
+                                    class="t0-g3 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">長條圖</button>
+                                <button onclick="matchT0Game(3, 'hist')"
+                                    class="t0-g3 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">直方圖</button>
+                                <button onclick="matchT0Game(3, 'pie')"
+                                    class="t0-g3 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">圓形圖</button>
+                                <button onclick="matchT0Game(3, 'line')"
+                                    class="t0-g3 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">折線圖</button>
+                            </div>
+                            <p id="t0-g3-feedback" class="text-xs font-bold mt-2 h-4"></p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded">情境 4</span>
+                            <p class="font-bold text-slate-700 text-sm">記錄五年一班全班同學「身高區間人數分佈」（如 130~140cm 有 5 人、140~150cm
+                                有 15 人）：</p>
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <button onclick="matchT0Game(4, 'bar')"
+                                    class="t0-g4 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">長條圖</button>
+                                <button onclick="matchT0Game(4, 'hist')"
+                                    class="t0-g4 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">直方圖</button>
+                                <button onclick="matchT0Game(4, 'pie')"
+                                    class="t0-g4 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">圓形圖</button>
+                                <button onclick="matchT0Game(4, 'line')"
+                                    class="t0-g4 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg transition-all">折線圖</button>
+                            </div>
+                            <p id="t0-g4-feedback" class="text-xs font-bold mt-2 h-4"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+                    <div></div>
+                    <button onclick="switchTab('task1')"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-indigo-600/10">
+                        第一關：圖表偵探 (長條圖) ➔
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================== 任務一：長條圖與直方圖 ============================== -->
+            <div id="panel-task1"
+                class="tab-panel bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 space-y-8 hidden">
+                <div class="border-b border-slate-100 pb-5">
+                    <span class="text-sm font-bold text-indigo-600 tracking-wider uppercase">長條圖與直方圖</span>
+                    <h2 class="text-3xl font-bold text-slate-900 mt-1">長條圖與直方圖的世紀對決</h2>
+                </div>
+
+                <!-- 觀念大解密 -->
+                <div class="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 space-y-4">
+                    <h3 class="text-lg font-bold text-indigo-900 flex items-center gap-2">💡 觀念大解密</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                            <h4 class="font-bold text-blue-800 flex items-center gap-1.5 mb-2 text-lg">
+                                <span class="w-3.5 h-3.5 rounded-full bg-blue-600"></span>長條圖 (Bar Chart)
+                            </h4>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                用於比較<strong>獨立、不連續的項目</strong>。例如：全班最愛水果種類、各班的人數。項目與項目可以互換順序，不影響閱讀。
+                            </p>
+                            <span
+                                class="inline-block mt-3 text-xs font-bold bg-blue-100 text-blue-800 px-3 py-1.5 rounded-lg">
+                                🔔 核心口訣：項目獨立、柱子有縫
+                            </span>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                            <h4 class="font-bold text-emerald-800 flex items-center gap-1.5 mb-2 text-lg">
+                                <span class="w-3.5 h-3.5 rounded-full bg-emerald-600"></span>直方圖 (Histogram)
+                            </h4>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                用於呈現<strong>連續性的數量區間</strong>分佈。例如：全班的身高、體重、數學成績。柱子絕對不能調換順序，必須依大小排列。
+                            </p>
+                            <span
+                                class="inline-block mt-3 text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg">
+                                🔔 核心口訣：數字連續、柱子相連
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1. 數據編輯與動態渲染 -->
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">📊 實作一：自訂數據與動態對照</h3>
+                            <p class="text-sm text-slate-500">你可以修改表格中的項目名稱與數量，並點選切換開關，看柱子會如何動態變化！</p>
+                        </div>
+                        <div class="bg-slate-100 p-1.5 rounded-2xl flex gap-1 self-stretch sm:self-auto shadow-inner">
+                            <button onclick="setTask1Mode('bar')" id="btn-t1-bar"
+                                class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm bg-white text-slate-800">
+                                🍌 類別資料：最愛水果 (長條圖)
+                            </button>
+                            <button onclick="setTask1Mode('histogram')" id="btn-t1-hist"
+                                class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-800">
+                                📏 連續資料：班級身高 (直方圖)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 數據編輯網格 -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- 左側：編輯欄位列表 -->
+                        <div class="bg-white p-4 border border-slate-150 rounded-2xl space-y-3 shadow-sm">
+                            <h4 class="font-bold text-slate-700 text-sm border-b border-slate-100 pb-2">✍️ 數據修改區（限制 0 -
+                                30 人）</h4>
+                            <div id="t1-data-inputs" class="space-y-3">
+                                <!-- 動態載入 -->
+                            </div>
+                        </div>
+
+                        <!-- 右側：即時 SVG 渲染 -->
+                        <div
+                            class="md:col-span-2 border border-slate-100 rounded-2xl p-5 bg-white shadow-sm flex flex-col items-center">
+                            <div id="task1-chart-container" class="w-full max-w-[500px]">
+                                <!-- 動態注入 SVG -->
+                            </div>
+                            <div id="task1-interact-controls" class="w-full mt-4 bg-slate-50 p-4 rounded-xl text-sm">
+                                <!-- 順序調整控制按鈕 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 手動繪圖模擬大挑戰 -->
+                <div class="bg-blue-50/40 p-5 rounded-2xl border border-blue-100/60 space-y-5">
+                    <div>
+                        <h3 class="text-xl font-bold text-blue-900 flex items-center gap-2">🎨 實作二：手動繪圖模擬大挑戰</h3>
+                        <p class="text-sm text-slate-600">請拉動各項目下方的拉桿，手動將圖表的柱子調整到「符合任務目標數值」，來練習親自畫圖吧！點擊「換一題」按鈕更換隨機難題。
+                        </p>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl border border-blue-100 space-y-4">
+                        <div
+                            class="text-sm text-blue-950 font-bold bg-blue-100/50 p-3 rounded-lg flex flex-wrap justify-between items-center gap-2">
+                            <span id="t1-draw-target-txt">🎯 任務目標：[草莓] 需為 15 人、[葡萄] 需為 25 人、[芒果] 需為 10 人</span>
+                            <div class="flex gap-2">
+                                <button onclick="randomizeTask1Drawing()"
+                                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-1.5 rounded-lg border border-slate-200 transition-all">
+                                    🔄 換一題
+                                </button>
+                                <button onclick="checkTask1DrawingAnswer()"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition-all">
+                                    驗證手繪結果
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 學生互動 SVG -->
+                        <div class="flex flex-col lg:flex-row items-center gap-6">
+                            <div id="t1-drawing-svg-area" class="w-full max-w-[340px]">
+                                <!-- 繪圖區域 -->
+                            </div>
+                            <!-- 互動控制拉桿 -->
+                            <div class="w-full flex-grow space-y-4">
+                                <div class="space-y-1">
+                                    <label class="block text-sm font-bold text-slate-700 flex justify-between">
+                                        <span>🍓 草莓數量 (目前：<span id="t1-draw-val-lbl-0">5</span>人)</span>
+                                    </label>
+                                    <input type="range" min="0" max="30" value="5" id="t1-draw-slider-0"
+                                        oninput="onTask1DrawingChange(0, this.value)"
+                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-sm font-bold text-slate-700 flex justify-between">
+                                        <span>🍇 葡萄數量 (目前：<span id="t1-draw-val-lbl-1">5</span>人)</span>
+                                    </label>
+                                    <input type="range" min="0" max="30" value="5" id="t1-draw-slider-1"
+                                        oninput="onTask1DrawingChange(1, this.value)"
+                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-sm font-bold text-slate-700 flex justify-between">
+                                        <span>🥭 芒果數量 (目前：<span id="t1-draw-val-lbl-2">5</span>人)</span>
+                                    </label>
+                                    <input type="range" min="0" max="30" value="5" id="t1-draw-slider-2"
+                                        oninput="onTask1DrawingChange(2, this.value)"
+                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 看圖整理表格練習 (隨機數值) -->
+                <div class="bg-emerald-50/40 p-5 rounded-2xl border border-emerald-100 space-y-5">
+                    <div>
+                        <h3 class="text-xl font-bold text-emerald-900 flex items-center gap-2">📋 實作三：看圖整理表格訓練</h3>
+                        <p class="text-sm text-slate-600">請看下面這張水果喜好圖表，仔細讀取每一根柱子代表的數值（人），並手動將其整理成下方的次數表格！<br><span
+                                class="font-bold text-indigo-700">💡
+                                提示：如果看不清楚，可以直接點擊圖表，開啟「高精細放大鏡」輔助閱讀喔！點選「換一題」挑戰隨機數字！</span></p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div onclick="openZoomModal('task1')"
+                            class="cursor-pointer group relative border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 rounded-2xl p-4 bg-white flex justify-center">
+                            <div id="t1-read-svg-area" class="w-full max-w-[280px]">
+                                <!-- 動態水果隨機圖 -->
+                            </div>
+                            <div
+                                class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl opacity-90 group-hover:bg-indigo-700 transition-colors shadow flex items-center gap-1">
+                                🔍 點擊放大
+                            </div>
+                        </div>
+                        <!-- 填空輸入 -->
+                        <div class="bg-white p-5 rounded-xl border border-emerald-100 space-y-4">
+                            <h4 class="font-bold text-emerald-800 text-sm">請將圖中的數量，填入表格中：</h4>
+                            <div class="space-y-3 font-semibold">
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span class="text-slate-700">🍉 西瓜喜好人數</span>
+                                    <input type="number" id="t1-ans-0"
+                                        class="w-20 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                        placeholder="?">
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span class="text-slate-700">🍑 蜜桃喜好人數</span>
+                                    <input type="number" id="t1-ans-1"
+                                        class="w-20 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                        placeholder="?">
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span class="text-slate-700">🍍 鳳梨喜好人數</span>
+                                    <input type="number" id="t1-ans-2"
+                                        class="w-20 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                        placeholder="?">
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 flex-wrap gap-2">
+                                <span id="t1-read-feedback" class="text-sm font-bold"></span>
+                                <div class="flex gap-2">
+                                    <button onclick="randomizeTask1Read()"
+                                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2 rounded-xl border border-slate-200 transition-all"
+                                        title="重新產生隨機水果喜好數量">
+                                        🔄 換一題
+                                    </button>
+                                    <button onclick="checkTask1ReadAnswer()"
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2 rounded-xl transition-all">
+                                        提交檢查
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 隨堂答 -->
+                <div class="border-t border-slate-100 pt-6">
+                    <h3 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">🕵️‍♂️ 隨堂辨析隨口答</h3>
+                    <div id="t1-quiz" class="space-y-3">
+                        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-150">
+                            <p class="text-base font-bold text-slate-700">問題：直方圖的柱子可以像長條圖一樣，隨便把高的排前面、矮的排後面嗎？</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                                <button onclick="answerT1Quiz(true)"
+                                    class="quiz-btn px-4 py-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-left transition-all text-sm font-medium">
+                                    🟢 可以，這樣看起來更整齊好看。
+                                </button>
+                                <button onclick="answerT1Quiz(false)"
+                                    class="quiz-btn px-4 py-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-left transition-all text-sm font-medium">
+                                    🔴 不行！直方圖橫軸是連續數字區間，必須依大小排列。
+                                </button>
+                            </div>
+                            <div id="t1-quiz-feedback" class="mt-4 text-sm hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-4">
+                    <button onclick="switchTab('task0')"
+                        class="text-slate-600 hover:bg-slate-100 text-base font-bold px-6 py-3 rounded-xl transition-all">
+                        ⇠ 回觀念首頁
+                    </button>
+                    <button onclick="switchTab('task2')"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-indigo-600/10">
+                        下一關：點心預購 (圓形圖) ➔
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================== 任務二：點心圓形圖 ============================== -->
+            <div id="panel-task2"
+                class="tab-panel bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 space-y-8 hidden">
+                <div class="border-b border-slate-100 pb-5">
+                    <span class="text-sm font-bold text-indigo-600 tracking-wider uppercase">圓形圖的計算與畫法</span>
+                    <h2 class="text-3xl font-bold text-slate-900 mt-1">點心預購意願調查 🍰</h2>
+                </div>
+
+                <p class="text-base text-slate-600 leading-relaxed">
+                    班會抽樣調查了全校 <strong>100 名學生</strong> 最想買的點心。我們需要先將各項票數轉換成<strong>百分率 (%)</strong> 與<strong>圓心角
+                        (度)</strong>，並畫出圓形圖。
+                </p>
+
+                <!-- 1. 互動編輯表格 -->
+                <div class="space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800">📊 實作一：自訂數據與圓心角自動調節</h3>
+                    <div class="overflow-x-auto border border-slate-100 rounded-2xl shadow-sm">
+                        <table class="w-full text-base text-left text-slate-500">
+                            <thead class="text-sm text-slate-700 bg-slate-50 border-b border-slate-150">
+                                <tr>
+                                    <th class="px-5 py-4">點心種類</th>
+                                    <th class="px-5 py-4 text-center">票數 (人) (調整看看)</th>
+                                    <th class="px-5 py-4 text-center">百分率 (%)</th>
+                                    <th class="px-5 py-4 text-center">圓心角 (度)</th>
+                                    <th class="px-5 py-4 text-center">數位代入 (計算助手)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pie-table-body">
+                                <!-- 動態資料列 -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="font-bold text-slate-950 bg-slate-50/70 border-t border-slate-200">
+                                    <td class="px-5 py-4">總計</td>
+                                    <td id="pie-total-votes" class="px-5 py-4 text-center">100</td>
+                                    <td id="pie-total-pct" class="px-5 py-4 text-center">100%</td>
+                                    <td id="pie-total-angle" class="px-5 py-4 text-center">360°</td>
+                                    <td class="px-5 py-4"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- 誤差微調訊息提示區 -->
+                    <div id="pie-adjustment-alert"
+                        class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-5 text-sm text-amber-900 space-y-2">
+                        <!-- 動態載入 -->
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <!-- 核心公式 -->
+                        <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 space-y-4">
+                            <h4 class="font-bold text-indigo-900 text-base flex items-center gap-2">📐 核心計算公式</h4>
+                            <div class="space-y-4 text-sm leading-relaxed text-slate-700">
+                                <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
+                                    <p class="font-bold text-indigo-700 mb-1">1. 百分率 (%)：</p>
+                                    <p class="font-mono text-slate-600 mb-2">百分率 = (該項數量 ÷ 總數量) × 100%</p>
+                                    <button onclick="assistFormula('40 / 100 * 100')"
+                                        class="text-blue-600 hover:underline flex items-center gap-1 font-bold">
+                                        📝 帶入計算紙計算：(以鬆餅為例 40/100*100)
+                                    </button>
+                                </div>
+                                <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
+                                    <p class="font-bold text-indigo-700 mb-1">2. 圓心角 (度)：</p>
+                                    <p class="font-mono text-slate-600 mb-2">圓心角 = 360° × (百分率 ÷ 100)</p>
+                                    <button onclick="assistFormula('360 * 40 / 100')"
+                                        class="text-blue-600 hover:underline flex items-center gap-1 font-bold">
+                                        📝 帶入計算紙計算：(以鬆餅為例 360*40/100)
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-indigo-100">
+                                <p class="text-xs text-slate-500 mb-2">💡 想要看「四捨五入加起來變成99%或101%」的情況嗎？點擊載入實驗：</p>
+                                <button onclick="loadAdjustmentPreset()"
+                                    class="bg-slate-800 hover:bg-slate-900 text-white text-sm px-4 py-2.5 rounded-xl font-bold transition-all inline-flex items-center gap-1">
+                                    🧪 載入微調實驗資料
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 圓形圖渲染 -->
+                        <div
+                            class="flex flex-col items-center justify-center p-5 border border-slate-100 rounded-3xl bg-slate-50 shadow-inner">
+                            <h4 class="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">點心預購圓形圖 (即時渲染)
+                            </h4>
+                            <div id="pie-chart-container" class="w-full max-w-[240px]">
+                                <!-- SVG 圖表 -->
+                            </div>
+                            <div id="pie-legend" class="mt-4 flex flex-wrap justify-center gap-3 text-sm">
+                                <!-- 圖例 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 手動切圓餅圖 -->
+                <div class="bg-blue-50/40 p-5 rounded-2xl border border-blue-100/60 space-y-5">
+                    <div>
+                        <h3 class="text-xl font-bold text-blue-900 flex items-center gap-2">🎨 實作二：手動劃分圓形圖挑戰</h3>
+                        <p class="text-sm text-slate-600">利用微調控制鈕手動調整四個扇形各自佔整體的百分比，看誰能完美分配完這份點心拼盤 (總和必須為
+                            100%)！請根據下方的挑戰目標進行繪製，不預先顯示正確線條。</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-blue-100 space-y-4">
+                        <div
+                            class="text-sm text-blue-950 font-bold bg-blue-100/50 p-3 rounded-lg flex flex-wrap justify-between items-center gap-2">
+                            <span id="t2-draw-target-txt">🎯 任務目標：鬆餅 40%、手工餅乾 30%、果凍 20%、茶凍 10%</span>
+                            <div class="flex gap-2">
+                                <button onclick="randomizeTask2Drawing()"
+                                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-1.5 rounded-lg border border-slate-200 transition-all">
+                                    🔄 換一題
+                                </button>
+                                <button onclick="checkTask2DrawingAnswer()"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition-all">
+                                    驗證手繪結果
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                            <div class="flex flex-col items-center">
+                                <div id="t2-drawing-svg-area" class="w-full max-w-[240px]">
+                                    <!-- 手繪圓形圖 -->
+                                </div>
+                                <div class="mt-2 text-sm font-mono font-bold">
+                                    目前總和：<span id="t2-draw-sum" class="text-red-600">0</span>%
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                                    <span class="font-bold text-blue-600">鬆餅比例</span>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="adjustT2DrawPct(0, -5)"
+                                            class="bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold hover:bg-slate-100">-</button>
+                                        <span class="font-mono font-bold w-12 text-center" id="t2-draw-lbl-0">25%</span>
+                                        <button onclick="adjustT2DrawPct(0, 5)"
+                                            class="bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold hover:bg-slate-100">+</button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                                    <span class="font-bold text-emerald-600">手工餅乾</span>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="adjustT2DrawPct(1, -5)"
+                                            class="bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold hover:bg-slate-100">-</button>
+                                        <span class="font-mono font-bold w-12 text-center" id="t2-draw-lbl-1">25%</span>
+                                        <button onclick="adjustT2DrawPct(1, 5)"
+                                            class="bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold hover:bg-slate-100">+</button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                                    <span class="font-bold text-amber-500">果凍比例</span>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="adjustT2DrawPct(2, -5)"
+                                            class="bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold hover:bg-slate-100">-</button>
+                                        <span class="font-mono font-bold w-12 text-center" id="t2-draw-lbl-2">25%</span>
+                                        <button onclick="adjustT2DrawPct(2, 5)"
+                                            class="bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold hover:bg-slate-100">+</button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                                    <span class="font-bold text-purple-600">茶凍比例</span>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="adjustT2DrawPct(3, -5)"
+                                            class="bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold hover:bg-slate-100">-</button>
+                                        <span class="font-mono font-bold w-12 text-center" id="t2-draw-lbl-3">25%</span>
+                                        <button onclick="adjustT2DrawPct(3, 5)"
+                                            class="bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold hover:bg-slate-100">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 反推票數填表 (隨機數值) -->
+                <div class="bg-emerald-50/40 p-5 rounded-2xl border border-emerald-100 space-y-5">
+                    <div>
+                        <h3 class="text-xl font-bold text-emerald-900 flex items-center gap-2">📋 實作三：看百分率反推票數表格</h3>
+                        <p class="text-sm text-slate-600">
+                            【反推情境大考驗】：若我們<strong>總共抽樣調查了學生</strong>，而調查結果的百分率圖示如下，請利用計算紙，反推出這四項各自<strong>代表多少「實際票數
+                                (人)」</strong>，填寫在次數表內！<br><span class="font-bold text-indigo-700">💡
+                                提示：如果角度或比例看不清，點擊圓餅圖即可打開「高精度角度對齊讀圖器」！點選「換一題」挑戰隨機數字！</span></p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div onclick="openZoomModal('task2')"
+                            class="cursor-pointer group relative border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 rounded-2xl p-4 bg-white flex flex-col items-center">
+                            <span id="t2-read-total-lbl"
+                                class="text-sm bg-indigo-100 text-indigo-800 font-bold px-3 py-1 rounded-full mb-3 select-none">
+                                樣本總人數：200人
+                            </span>
+                            <div id="t2-read-svg-area" class="w-full max-w-[200px]">
+                                <!-- 動態圓形比例圖 -->
+                            </div>
+                            <div
+                                class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl opacity-90 group-hover:bg-indigo-700 transition-colors shadow flex items-center gap-1">
+                                🔍 點擊放大
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-emerald-100 space-y-4">
+                            <h4 class="font-bold text-emerald-800 text-sm">提示：實際人數 = 總人數 × (百分率 ÷ 100)</h4>
+                            <div class="space-y-3 font-semibold">
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span id="t2-read-lbl-0" class="text-slate-700">🥞 鬆餅人數 (50%)</span>
+                                    <input type="number" id="t2-ans-0"
+                                        class="w-20 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                        placeholder="?">
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span id="t2-read-lbl-1" class="text-slate-700">🍪 餅乾人數 (30%)</span>
+                                    <input type="number" id="t2-ans-1"
+                                        class="w-20 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                        placeholder="?">
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span id="t2-read-lbl-2" class="text-slate-700">🍮 果凍人數 (15%)</span>
+                                    <input type="number" id="t2-ans-2"
+                                        class="w-20 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                        placeholder="?">
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span id="t2-read-lbl-3" class="text-slate-700">🍵 茶凍人數 (5%)</span>
+                                    <input type="number" id="t2-ans-3"
+                                        class="w-20 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                        placeholder="?">
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 flex-wrap gap-2">
+                                <span id="t2-read-feedback" class="text-sm font-bold"></span>
+                                <div class="flex gap-2">
+                                    <button onclick="randomizeTask2Read()"
+                                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2 rounded-xl border border-slate-200 transition-all"
+                                        title="重新產生隨機圓形分割與總人數">
+                                        🔄 換一題
+                                    </button>
+                                    <button onclick="checkTask2ReadAnswer()"
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2 rounded-xl transition-all">
+                                        提交檢查
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-4">
+                    <button onclick="switchTab('task1')"
+                        class="text-slate-600 hover:bg-slate-100 text-base font-bold px-6 py-3 rounded-xl transition-all">
+                        ⇠ 上一關
+                    </button>
+                    <button onclick="switchTab('task3')"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-indigo-600/10">
+                        下一關：省略符號 (折線圖) ➔
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================== 任務三：省略折線圖 ============================== -->
+            <div id="panel-task3"
+                class="tab-panel bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 space-y-8 hidden">
+                <div class="border-b border-slate-100 pb-5">
+                    <span class="text-sm font-bold text-indigo-600 tracking-wider uppercase">折線圖讀圖與應用</span>
+                    <h2 class="text-3xl font-bold text-slate-900 mt-1">魔王挑戰！正式營運營業額 折線圖 📈</h2>
+                </div>
+
+                <div
+                    class="bg-slate-50 p-5 rounded-2xl border border-slate-150 text-base text-slate-600 space-y-3 leading-relaxed">
+                    <p>
+                        <strong>【情境說明】</strong> 園遊會試賣期間，股長每天都要記錄營業額。因為每一天的營業額都是幾千元，起伏差距很小，如果 Y 軸從 0
+                        開始一格一格畫，圖表的高低變化會變得扁平，看不出趨勢！
+                    </p>
+                    <p class="font-bold text-indigo-700">
+                        🔑 省略符號（波浪線 ~）作用：可以剪掉數值很低且沒有數據的空白段落，將重點刻度放大展示！
+                    </p>
+                </div>
+
+                <!-- 1. 動態編輯折線圖 -->
+                <div class="space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800">📊 實作一：自訂數據與有無波浪線動態對比</h3>
+                    <div class="bg-white border border-slate-150 p-5 rounded-2xl shadow-sm space-y-4">
+                        <h4 class="font-bold text-slate-700 text-sm">✍️ 請在下方自訂週一至週五的營業額（數值設定於 5000 ~ 7000 元之間）：</h4>
+                        <div class="grid grid-cols-5 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5 text-center">週一</label>
+                                <input type="number" id="line-val-1" value="5200" oninput="updateLineCharts()"
+                                    class="w-full text-sm font-bold p-2.5 border border-slate-200 rounded-xl text-center bg-slate-50/50 focus:bg-white focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5 text-center">週二</label>
+                                <input type="number" id="line-val-2" value="5800" oninput="updateLineCharts()"
+                                    class="w-full text-sm font-bold p-2.5 border border-slate-200 rounded-xl text-center bg-slate-50/50 focus:bg-white focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5 text-center">週三</label>
+                                <input type="number" id="line-val-3" value="5300" oninput="updateLineCharts()"
+                                    class="w-full text-sm font-bold p-2.5 border border-slate-200 rounded-xl text-center bg-slate-50/50 focus:bg-white focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5 text-center">週四</label>
+                                <input type="number" id="line-val-4" value="6400" oninput="updateLineCharts()"
+                                    class="w-full text-sm font-bold p-2.5 border border-slate-200 rounded-xl text-center bg-slate-50/50 focus:bg-white focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5 text-center">週五</label>
+                                <input type="number" id="line-val-5" value="6900" oninput="updateLineCharts()"
+                                    class="w-full text-sm font-bold p-2.5 border border-slate-200 rounded-xl text-center bg-slate-50/50 focus:bg-white focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 雙圖對比 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div
+                            class="border border-slate-100 rounded-2xl p-4 bg-white shadow-sm flex flex-col items-center">
+                            <span class="text-xs bg-red-100 text-red-800 font-bold px-3 py-1.5 rounded-full mb-3">
+                                ❌ 無省略符號 (刻度從 0 開始畫)
+                            </span>
+                            <div id="line-chart-no-wave" class="w-full max-w-[360px]">
+                                <!-- 動態渲染 -->
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2 text-center">
+                                因為 Y 軸高度被下方不需要的大幅空間壓縮，波折看起來十分扁平，看不出趨勢！
+                            </p>
+                        </div>
+                        <div
+                            class="border border-slate-100 rounded-2xl p-4 bg-white shadow-sm flex flex-col items-center">
+                            <span
+                                class="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-full mb-3">
+                                ✅ 加上省略符號 (波浪線 ~ 放大細部)
+                            </span>
+                            <div id="line-chart-wave" class="w-full max-w-[360px]">
+                                <!-- 動態渲染 -->
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2 text-center">
+                                裁切掉底下 0 到 5,000 的大片空白後，每日高低波折變得非常清楚！
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 手動繪製折線圖 -->
+                <div class="bg-blue-50/40 p-5 rounded-2xl border border-blue-100/60 space-y-5">
+                    <div>
+                        <h3 class="text-xl font-bold text-blue-900 flex items-center gap-2">🎨 實作二：動手描點與拉線連連看</h3>
+                        <p class="text-sm text-slate-600">
+                            請調整下方每一天的拉桿，手動調整折線圖上每個描點的高度，讓這五天的營業額完美契合指定的挑戰任務目標！點擊「換一題」隨機更換數值。</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-blue-100 space-y-4">
+                        <div
+                            class="text-sm text-blue-950 font-bold bg-blue-100/50 p-3 rounded-lg flex flex-wrap justify-between items-center gap-2">
+                            <span id="t3-draw-target-txt">🎯 目標：[週一]5500元、[週二]6500元、[週三]5000元、[週四]6000元、[週五]7000元</span>
+                            <div class="flex gap-2">
+                                <button onclick="randomizeTask3Drawing()"
+                                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-1.5 rounded-lg border border-slate-200 transition-all">
+                                    🔄 換一題
+                                </button>
+                                <button onclick="checkTask3DrawingAnswer()"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition-all">
+                                    驗證手拉折線圖
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                            <div class="flex justify-center">
+                                <div id="t3-drawing-svg-area" class="w-full max-w-[320px]">
+                                    <!-- 手繪折線圖 -->
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="space-y-1">
+                                    <label class="text-sm font-bold text-slate-700 flex justify-between">
+                                        <span>📅 週一營業額：<span id="t3-draw-lbl-0" class="text-blue-600">5000</span>
+                                            元</span>
+                                    </label>
+                                    <input type="range" min="5000" max="7000" step="100" value="5000"
+                                        id="t3-draw-slider-0" oninput="onTask3DrawingChange(0, this.value)"
+                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-sm font-bold text-slate-700 flex justify-between">
+                                        <span>📅 週二營業額：<span id="t3-draw-lbl-1" class="text-blue-600">5000</span>
+                                            元</span>
+                                    </label>
+                                    <input type="range" min="5000" max="7000" step="100" value="5000"
+                                        id="t3-draw-slider-1" oninput="onTask3DrawingChange(1, this.value)"
+                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-sm font-bold text-slate-700 flex justify-between">
+                                        <span>📅 週三營業額：<span id="t3-draw-lbl-2" class="text-blue-600">5000</span>
+                                            元</span>
+                                    </label>
+                                    <input type="range" min="5000" max="7000" step="100" value="5000"
+                                        id="t3-draw-slider-2" oninput="onTask3DrawingChange(2, this.value)"
+                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-sm font-bold text-slate-700 flex justify-between">
+                                        <span>📅 週四營業額：<span id="t3-draw-lbl-3" class="text-blue-600">5000</span>
+                                            元</span>
+                                    </label>
+                                    <input type="range" min="5000" max="7000" step="100" value="5000"
+                                        id="t3-draw-slider-3" oninput="onTask3DrawingChange(3, this.value)"
+                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-sm font-bold text-slate-700 flex justify-between">
+                                        <span>📅 週五營業額：<span id="t3-draw-lbl-4" class="text-blue-600">5000</span>
+                                            元</span>
+                                    </label>
+                                    <input type="range" min="5000" max="7000" step="100" value="5000"
+                                        id="t3-draw-slider-4" oninput="onTask3DrawingChange(4, this.value)"
+                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 看波浪折線圖填寫營業表 (隨機數值) -->
+                <div class="bg-emerald-50/40 p-5 rounded-2xl border border-emerald-100 space-y-5">
+                    <div>
+                        <h3 class="text-xl font-bold text-emerald-900 flex items-center gap-2">📋 實作三：看波浪折線圖填寫營業表</h3>
+                        <p class="text-sm text-slate-600">
+                            請仔細看下方這張包含「省略符號（波浪線）」的每日試賣折線圖，讀出週一至週三的確切金額刻度，並填入下方對應表格中！<br><span
+                                class="font-bold text-indigo-700">💡
+                                提示：點擊折線圖即可展開「高精密100元單位對齊軌跡讀圖器」！點選「換一題」挑戰隨機數字！</span></p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div onclick="openZoomModal('task3')"
+                            class="cursor-pointer group relative border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 rounded-2xl p-4 bg-white flex justify-center">
+                            <div id="t3-read-svg-area" class="w-full max-w-[280px]">
+                                <!-- 動態折線圖 -->
+                            </div>
+                            <div
+                                class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl opacity-90 group-hover:bg-indigo-700 transition-colors shadow flex items-center gap-1">
+                                🔍 點擊放大
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-emerald-100 space-y-4">
+                            <h4 class="font-bold text-emerald-800 text-sm">請細讀刻度後填寫：</h4>
+                            <div class="space-y-3 font-mono">
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span class="font-semibold text-slate-700">📅 週一營業額</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <input type="number" id="t3-ans-0"
+                                            class="w-24 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                            placeholder="?">元
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span class="font-semibold text-slate-700">📅 週二營業額</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <input type="number" id="t3-ans-1"
+                                            class="w-24 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                            placeholder="?">元
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span class="font-semibold text-slate-700">📅 週三營業額</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <input type="number" id="t3-ans-2"
+                                            class="w-24 p-1.5 text-center font-bold border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                            placeholder="?">元
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 flex-wrap gap-2">
+                                <span id="t3-read-feedback" class="text-sm font-bold"></span>
+                                <div class="flex gap-2">
+                                    <button onclick="randomizeTask3Read()"
+                                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2 rounded-xl border border-slate-200 transition-all"
+                                        title="重新產生隨機折線圖營業額數據">
+                                        🔄 換一題
+                                    </button>
+                                    <button onclick="checkTask3ReadAnswer()"
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2 rounded-xl transition-all">
+                                        提交檢查
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 思維分析 -->
+                <div class="border-t border-slate-150 pt-6 space-y-4">
+                    <h3 class="font-bold text-slate-800 text-xl flex items-center gap-2">💡 營業額思維大對決</h3>
+
+                    <div class="space-y-3">
+                        <div class="border border-slate-200 rounded-2xl p-5 space-y-2">
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-md">
+                                讀圖陷阱 A
+                            </span>
+                            <p class="text-base font-bold text-slate-700 mt-2">
+                                小明指著有波浪線的折線圖說：「哇！星期二的點高度是星期三的好幾倍高，所以星期二賺的錢一定是星期三的好幾倍！」你覺得他的說法對嗎？
+                            </p>
+                            <button onclick="toggleAnswer('ans-a')"
+                                class="text-indigo-600 hover:text-indigo-800 text-sm font-bold flex items-center gap-1">
+                                🔑 點選觀看詳細分析與解析 <span>▼</span>
+                            </button>
+                            <div id="ans-a"
+                                class="hidden bg-slate-50 p-4 rounded-xl text-sm text-slate-600 leading-relaxed border-l-4 border-indigo-500">
+                                <span class="font-bold text-red-600 text-base">【不對！】</span>
+                                這是高年級最容易掉入的直覺陷阱。因為折線圖使用了<strong>省略符號 (波浪線)</strong>，Y
+                                軸下方數值被裁切了。實際上星期二只比星期三多出幾百元，連兩倍都不到喔！看圖表一定要注意刻度，不能只憑直覺！
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-4">
+                    <button onclick="switchTab('task2')"
+                        class="text-slate-600 hover:bg-slate-100 text-base font-bold px-6 py-3 rounded-xl transition-all">
+                        ⇠ 上一關
+                    </button>
+                    <button onclick="switchTab('task4')"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-indigo-600/10">
+                        下一關：自學大考驗 ➔
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================== 任務四：自學大考驗 ============================== -->
+            <div id="panel-task4"
+                class="tab-panel bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 space-y-8 hidden">
+                <div class="border-b border-slate-100 pb-5">
+                    <span class="text-sm font-bold text-indigo-600 tracking-wider uppercase">自學成效總評估</span>
+                    <h2 class="text-3xl font-bold text-slate-900 mt-1">🏆 統計圖表大師養成大挑戰</h2>
+                </div>
+
+                <div
+                    class="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-2xl border border-emerald-100 text-emerald-950 flex items-center gap-4 animate-pulse">
+                    <div class="bg-white p-3 rounded-xl text-3xl shadow-sm">👑</div>
+                    <div>
+                        <h4 class="font-bold text-lg">數據解讀成就解鎖</h4>
+                        <p class="text-sm text-slate-600 mt-1">系統將從十題專業素養題庫中，隨機抽選 5 題（包含情境隨機數值）。全對後獲頒「小小數據大師榮譽證書」！</p>
+                    </div>
+                </div>
+
+                <!-- 挑戰考卷 -->
+                <div id="assessment-container" class="space-y-6">
+                    <!-- 動態載入題目 -->
+                </div>
+
+                <div
+                    class="flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-slate-100 pt-6">
+                    <button onclick="switchTab('task3')"
+                        class="text-slate-600 hover:bg-slate-100 text-base font-bold px-6 py-3 rounded-xl transition-all w-full sm:w-auto">
+                        ⇠ 上一關
+                    </button>
+                    <button onclick="submitAssessment()"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-base font-bold px-8 py-3.5 rounded-xl transition-all shadow-md shadow-emerald-600/10 w-full sm:w-auto">
+                        📊 送出答案，獲得成就證書！
+                    </button>
+                </div>
+
+                <!-- 自訂成績證書 -->
+                <div id="assessment-result-box"
+                    class="hidden bg-indigo-50 border border-indigo-200 rounded-3xl p-6 text-center space-y-4">
+                    <div class="text-5xl">🎓</div>
+                    <h3 class="text-2xl font-bold text-indigo-900">成績揭曉！</h3>
+                    <p id="assessment-score-txt" class="text-xl font-bold text-indigo-800"></p>
+                    <p id="assessment-comment" class="text-sm text-slate-600 max-w-xl mx-auto leading-relaxed"></p>
+                    <div class="flex justify-center">
+                        <button onclick="resetAssessment()"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-all shadow">
+                            🔄 再挑戰一次（重新載入隨機題）
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 右側：CLI 計算紙側邊欄 -->
+        <aside id="sticky-calculator-panel"
+            class="w-full lg:w-1/3 xl:w-1/4 bg-slate-900 text-slate-100 rounded-3xl shadow-xl border border-slate-800 h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)] sticky top-[80px] lg:top-[100px] flex flex-col overflow-hidden z-30 transition-all duration-300">
+            <div
+                class="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center shrink-0 select-none">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3.5 h-3.5 rounded-full bg-red-500"></div>
+                    <div class="w-3.5 h-3.5 rounded-full bg-yellow-500"></div>
+                    <div class="w-3.5 h-3.5 rounded-full bg-green-500"></div>
+                    <span class="text-sm font-bold text-slate-400 font-mono pl-2">數位計算紙 CLI_CALC</span>
+                </div>
+                <button id="close-mobile-calc-btn"
+                    class="lg:hidden text-slate-400 hover:text-white text-base font-bold p-1">
+                    ✕
+                </button>
+            </div>
+
+            <!-- 終端歷史紀錄 -->
+            <div id="terminal-history"
+                class="flex-grow p-4 overflow-y-auto space-y-3 font-mono text-xs custom-scrollbar">
+                <div class="text-slate-500 italic text-sm select-none leading-relaxed">
+                    歡迎使用數位計算紙！在此可輸入算式並按 Enter。
+                    支援「×/x/X」及「÷/X/x」乘除法轉換。輸入如「360 * 40%」將自動算出角度。
+                </div>
+                <div id="history-rows" class="space-y-2">
+                    <!-- 動態載入歷史算式 -->
+                </div>
+            </div>
+
+            <!-- 快捷輔助鍵 -->
+            <div
+                class="px-3 py-2.5 bg-slate-950 border-t border-slate-800 flex gap-1 justify-between shrink-0 overflow-x-auto select-none">
+                <button onclick="insertCalcText('×')"
+                    class="bg-slate-800 hover:bg-slate-700 text-sm font-bold px-3 py-2 rounded-lg transition-colors text-blue-400">×</button>
+                <button onclick="insertCalcText('%')"
+                    class="bg-slate-800 hover:bg-slate-700 text-sm font-bold px-3 py-2 rounded-lg transition-colors text-blue-400">%</button>
+                <button onclick="insertCalcText('^')"
+                    class="bg-slate-800 hover:bg-slate-700 text-sm font-bold px-3 py-2 rounded-lg transition-colors text-blue-400">^</button>
+                <button onclick="insertCalcText('π')"
+                    class="bg-slate-800 hover:bg-slate-700 text-sm font-bold px-3 py-2 rounded-lg transition-colors text-blue-400">π</button>
+                <button onclick="insertCalcText('sqrt(')"
+                    class="bg-slate-800 hover:bg-slate-700 text-sm font-bold px-3 py-2 rounded-lg transition-colors text-blue-400">sqrt</button>
+                <button onclick="insertCalcText('/')"
+                    class="bg-slate-800 hover:bg-slate-700 text-sm font-bold px-3 py-2 rounded-lg transition-colors text-blue-400">÷</button>
+            </div>
+
+            <!-- 指令輸入欄 -->
+            <div class="p-3 bg-slate-950 border-t border-slate-800 flex gap-2 items-center shrink-0">
+                <span class="text-emerald-500 font-bold font-mono text-sm select-none">&gt;</span>
+                <input type="text" id="calc-cli-input" onkeydown="handleCalcKeydown(event)" placeholder="輸入算式..."
+                    class="bg-transparent text-sm font-mono focus:outline-none flex-grow text-white placeholder-slate-600">
+                <button onclick="submitCalculation()"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm px-4 py-2 rounded-xl transition-all shadow shadow-indigo-600/30">
+                    計算
+                </button>
+            </div>
+
+            <div
+                class="px-3 py-2.5 bg-slate-950/80 border-t border-slate-900 flex justify-between items-center text-xs text-slate-500 shrink-0 select-none">
+                <span>自動防原廠二進位精度誤差</span>
+                <button onclick="clearCalcHistory()" class="text-red-400 hover:text-red-300 font-bold underline">
+                    清除歷史紀錄
+                </button>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- 浮動 Toast -->
+    <div id="custom-toast"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800/90 text-white text-sm font-bold px-5 py-3 rounded-xl shadow-lg backdrop-blur-md border border-white/10 hidden transform transition-all duration-300 translate-y-2 opacity-0">
+        提示訊息
+    </div>
+
+    <!-- 放大鏡視窗 -->
+    <div id="zoom-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden z-50 flex items-center justify-center p-4 select-none animate-fade-in"
+        onclick="closeZoomModal()">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-4 border border-slate-100 transform scale-95 opacity-0 transition-all duration-300"
+            onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="zoom-modal-title" class="text-xl sm:text-2xl font-bold text-indigo-900 flex items-center gap-2">
+                    🔎 高精度對齊刻度讀圖器
+                </h3>
+                <button onclick="closeZoomModal()"
+                    class="text-slate-400 hover:text-red-500 font-bold p-1 text-2xl transition-colors">✕</button>
+            </div>
+            <div
+                class="text-xs sm:text-sm text-indigo-950 bg-indigo-50 p-4 rounded-2xl flex items-start gap-2 border border-indigo-100/50">
+                <span class="text-lg">💡</span>
+                <p class="leading-relaxed">
+                    為你自動投影出<strong>紅色高亮虛線軌跡</strong>！你可以輕鬆沿著虛線，橫向對照左方的 Y 軸刻度，精確判讀出最完美的真實數值！
+                </p>
+            </div>
+            <div id="zoom-modal-svg-container"
+                class="flex justify-center items-center bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-inner">
+                <!-- 放大版 SVG -->
+            </div>
+            <div class="flex justify-end pt-2">
+                <button onclick="closeZoomModal()"
+                    class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all shadow">
+                    關閉放大鏡
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁尾 -->
+    <footer
+        class="bg-slate-100 border-t border-slate-200 py-6 mt-8 shrink-0 text-center text-xs sm:text-sm text-slate-500 select-none">
+        <p>© 國小數學互動實驗室</p>
+        <p class="mt-1 text-slate-400">結合數位量角器、直方長條動態切換、浮點誤差校正器、手動繪圖儀、表格填空練習、高精密放大輔助線</p>
+    </footer>
+
+    <!-- 自學平台 JavaScript 互動邏輯 -->
+    <script>
+        // 狀態管理物件
+        const AppState = {
+            currentTab: 'task0', // 預設開啟任務0：觀念導覽
+            isDesktopCalcCollapsed: false,
+            task1: {
+                mode: 'bar', // 'bar' 或 'histogram'
+                barData: [
+                    { name: '🍎 蘋果', count: 18 },
+                    { name: '🍌 香蕉', count: 12 },
+                    { name: '🍉 西瓜', count: 25 },
+                    { name: '🍊 橘子', count: 10 }
+                ],
+                histData: [
+                    { range: '130~140公分', count: 5 },
+                    { range: '140~150公分', count: 15 },
+                    { range: '150~160公分', count: 12 },
+                    { range: '160~170公分', count: 6 }
+                ],
+                // 學生手動繪圖狀態
+                drawData: [5, 5, 5],
+                drawTarget: [15, 25, 10], // 手繪目標
+                // 看圖填表之隨機正確答案
+                readTarget: [22, 14, 8],
+            },
+            task2: {
+                items: [
+                    { name: '鬆餅', votes: 40 },
+                    { name: '手工餅乾', votes: 30 },
+                    { name: '果凍', votes: 20 },
+                    { name: '茶凍', votes: 10 }
+                ],
+                // 切蛋糕手動劃分百分比
+                drawPct: [0, 0, 0, 0], // 初始值設定為0%，由學生自行操作
+                drawTarget: [40, 30, 20, 10], // 手繪比例目標
+                readTarget: [100, 60, 30, 10],
+                readPercentages: [50, 30, 15, 5],
+                readTotal: 200
+            },
+            task3: {
+                lineData: [5200, 5800, 5300, 6400, 6900],
+                drawTarget: [5500, 6500, 5000, 6000, 7000],
+                drawData: [5000, 5000, 5000, 5000, 5000],
+                readTarget: [5200, 6000, 5600]
+            },
+            assessment: {
+                currentQuestions: []
+            },
+            calculatorHistory: []
+        };
+
+        // 任務四：十題精選隨機素養題庫
+        const QuestionBank = [
+            // 第一題
+            () => {
+                return {
+                    question: "在繪製統計圖表時，直方圖 (Histogram) 與長條圖 (Bar Chart) 在「外觀柱體相鄰」與「橫軸特性」上最關鍵的差異是什麼？",
+                    options: [
+                        { text: "長條圖代表男生人數，直方圖代表女生人數，只與調查性別有關。", correct: false },
+                        { text: "長條圖「類別獨立不連續，柱體間需留縫隙」；直方圖「數值連續有組距，柱體必須相連無縫隙」。", correct: true },
+                        { text: "直方圖的柱子高度通常可以像長條圖一樣隨便對調順序排列，不會影響其代表的數學意義。", correct: false }
+                    ]
+                };
+            },
+            // 第二題
+            () => {
+                const excess = Math.random() > 0.5;
+                const totalPct = excess ? 101 : 99;
+                const errorType = excess ? "多出 1%" : "缺少 1%";
+                return {
+                    question: `在計算圓形圖的百分率時，若因為四捨五入而產生誤差，使得各項目加總後的百分率變為 ${totalPct}%（誤差 ${errorType}），依高年級數學規範，此微小誤差應該調整在哪裡最適當？`,
+                    options: [
+                        { text: "調整在所佔比例最大（原票數最多）的項目中，對整體圖表的視覺和角度影響最微小。", correct: true },
+                        { text: "隨意塞給任何一個看起來順眼的項目，只要最後加起來等於 100% 即可。", correct: false },
+                        { text: "微調在比例最少、最不起眼的邊緣項目上，才不會被別人注意到。", correct: false }
+                    ]
+                };
+            },
+            // 第三題
+            () => {
+                return {
+                    question: "在繪製營業額、氣溫等起伏變化的折線圖時，使用「波浪線 (省略符號 ~)」的最核心作用是什麼？",
+                    options: [
+                        { text: "代表在該段數值區間內發生了嚴重的數據遺失或系統計算錯誤。", correct: false },
+                        { text: "當數值普遍很大且差距微小時，用以省略數值很低的空白段，放大主要數據的上下波動，讓高低趨勢更容易讀取。", correct: true },
+                        { text: "純粹是美術排版上的邊框花紋裝飾，在統計學與實務中並無任何真實意義。", correct: false }
+                    ]
+                };
+            },
+            // 第四題
+            () => {
+                return {
+                    question: "在統計學上，圓形圖（扇形圖）最適合用來呈現哪一種數據特徵與關係？",
+                    options: [
+                        { text: "呈現氣象站過去十幾天內，每日最高溫與最低溫前後連續變化的劇烈消長趨勢。", correct: false },
+                        { text: "呈現各個不連續的獨立分類項目，在全體總量中所佔的「百分比（比例）」分配關係。", correct: true },
+                        { text: "用以考驗小小數據分析師操作量角器畫出精準角度以及使用圓規畫圓的能力。", correct: false }
+                    ]
+                };
+            },
+            // 第五題
+            () => {
+                const percentages = [10, 15, 20, 25, 30, 40, 50];
+                const pct = percentages[Math.floor(Math.random() * percentages.length)];
+                const angle = Math.round(360 * pct / 100);
+                const wrong1 = angle + 10 + Math.floor(Math.random() * 5) * 2;
+                const wrong2 = Math.round(180 * pct / 100);
+
+                return {
+                    question: `在繪製班級點心圓形圖時，若鬆餅在抽樣調查中所佔的百分率為 ${pct}%。請問在畫圖時，此項目所對應的「圓心角」應該是多少度？`,
+                    options: [
+                        { text: `${angle}度 (計算公式：360° × (${pct}% ÷ 100))`, correct: true },
+                        { text: `${wrong1}度`, correct: false },
+                        { text: `${wrong2}度`, correct: false }
+                    ]
+                };
+            },
+            // 第六題
+            () => {
+                const totals = [120, 160, 200, 240, 300, 400];
+                const percentages = [10, 20, 25, 30, 50];
+                const total = totals[Math.floor(Math.random() * totals.length)];
+                const pct = percentages[Math.floor(Math.random() * percentages.length)];
+                const correctAns = Math.round(total * pct / 100);
+                const wrong1 = Math.round(total * (pct + 10) / 100);
+                const wrong2 = total - correctAns;
+
+                return {
+                    question: `小小數據分析班級進行園遊會點心意願普查，全班共有 ${total} 人投票。若結果統計發現最喜歡吃巧克力餅乾的比例為 ${pct}%，請問喜愛巧克力餅乾的共有多少人？`,
+                    options: [
+                        { text: `${correctAns} 人 (計算：總人數 ${total} × 百分率 ${pct}%)`, correct: true },
+                        { text: `${wrong1} 人`, correct: false },
+                        { text: `${wrong2} 人`, correct: false }
+                    ]
+                };
+            },
+            // 第七題
+            () => {
+                return {
+                    question: "如果要統計並呈現「五年一班全部同學的身高分佈人數（130~140cm、140~150cm、150~160cm 等分組）」下述哪種圖表最合適且規範正確？",
+                    options: [
+                        { text: "直方圖，因為橫軸身高是連續性的數值區間，且柱子之間必須相連不能留空隙。", correct: true },
+                        { text: "長條圖，因為項目是獨立的，可以將人數最高的那一組身高自由排在最左邊看起來比較好看。", correct: false },
+                        { text: "圓形圖，因為圓形圖最能展現班上每位同學身高連續生長的消長線索。", correct: false }
+                    ]
+                };
+            },
+            // 第八題
+            () => {
+                return {
+                    question: "若要清晰在氣象新聞中展示「自一月到十二月，台北市每月平均氣溫隨時間消長演變的起伏走勢」，選用哪種圖效果最好？",
+                    options: [
+                        { text: "折線圖，因為點與點之間連成線，最能清晰看出數值隨時間「前後連續變化的起伏與趨勢」。", correct: true },
+                        { text: "圓形圖，因為圓形圖能一目了然看出一月份氣溫佔一整年十二個月氣溫總和的百分之幾。", correct: false },
+                        { text: "長條圖，可以隨意對調月份順序（例如將十二月排在最前面），不影響趨勢的解讀。", correct: false }
+                    ]
+                };
+            },
+            // 第九題
+            () => {
+                const pairs = [
+                    { votes: 20, total: 100, pct: 20 },
+                    { votes: 40, total: 200, pct: 20 },
+                    { votes: 60, total: 300, pct: 20 },
+                    { votes: 25, total: 100, pct: 25 },
+                    { votes: 75, total: 300, pct: 25 },
+                    { votes: 60, total: 200, pct: 30 },
+                    { votes: 90, total: 300, pct: 30 },
+                    { votes: 80, total: 200, pct: 40 },
+                    { votes: 50, total: 200, pct: 25 }
+                ];
+                const pair = pairs[Math.floor(Math.random() * pairs.length)];
+                const wrong1 = pair.pct + 10;
+                const wrong2 = pair.pct - 5;
+
+                return {
+                    question: `在園遊會預購統計中，總共收集到 ${pair.total} 票。其中手工餅乾項目獲得了 ${pair.votes} 票。請問手工餅乾佔總票數的百分率（百分比）是多少？`,
+                    options: [
+                        { text: `${pair.pct}% (計算：(手工餅乾 ${pair.votes} ÷ 總票數 ${pair.total}) × 100%)`, correct: true },
+                        { text: `${wrong1}%`, correct: false },
+                        { text: `${wrong2}%`, correct: false }
+                    ]
+                };
+            },
+            // 第十題
+            () => {
+                const monVal = 5000;
+                const tueVal = 5400;
+                return {
+                    question: `在某個使用了「波浪線 (省略符號)」的營業額折線圖中，週一為 ${monVal} 元（落在波浪線上方第一格），週二為 ${tueVal} 元（畫在週一格子的上方兩格位置），小華看圖說：「週二的高度是週一好幾倍，所以週二賺的錢是週一的好幾倍！」你認為這個說法對嗎？`,
+                    options: [
+                        { text: "不對！因為 Y 軸使用了省略符號，下方被裁切了，看折線圖必須細看「左方刻度實際數值」，不能憑直覺高度判斷倍數關係。", correct: true },
+                        { text: "對！因為星期二在折線圖描點的位置確實高出很多，高度和代表的實際數值在折線圖上保證成正比。", correct: false },
+                        { text: "對！凡是折線圖點連得越高，就一定代表對應的實際錢數必定翻倍成長。", correct: false }
+                    ]
+                };
+            }
+        ];
+
+        // 載入事件設定
+        window.onload = function () {
+            // 初始化隨機實作三的數值
+            randomizeTask1Read();
+            randomizeTask2Read();
+            randomizeTask3Read();
+
+            // 初始化各任務的隨機手繪目標
+            randomizeTask1Drawing();
+            randomizeTask2Drawing();
+            randomizeTask3Drawing();
+
+            renderTask1DataInputs();
+            renderTask1Chart();
+
+            renderTask2TableAndPie();
+
+            updateLineCharts();
+
+            // 載入任務四挑戰題
+            loadAssessmentQuiz();
+
+            setupMobileCalculator();
+        };
+
+        // 觀念配對遊戲判定
+        function matchT0Game(scenarioNum, chartType) {
+            const feedback = document.getElementById(`t0-g${scenarioNum}-feedback`);
+            const buttons = document.querySelectorAll(`.t0-g${scenarioNum}`);
+
+            // 答對邏輯
+            let correct = false;
+            if (scenarioNum === 1 && chartType === 'line') correct = true;
+            if (scenarioNum === 2 && chartType === 'pie') correct = true;
+            if (scenarioNum === 3 && chartType === 'bar') correct = true;
+            if (scenarioNum === 4 && chartType === 'hist') correct = true;
+
+            if (correct) {
+                feedback.className = "text-xs font-bold mt-2 text-emerald-600";
+                feedback.innerText = "🎉 答對了！你的選擇完全正確！";
+                showToast("🏆 太厲害了！你對這個生活情境的圖表應用完全理解！");
+            } else {
+                feedback.className = "text-xs font-bold mt-2 text-red-500";
+                feedback.innerText = "❌ 答錯了，再想想這類資料的特性喔！";
+            }
+        }
+
+        // 桌上型計算紙收合切換
+        function toggleDesktopCalculator() {
+            const leftPanel = document.getElementById('left-learning-container');
+            const rightPanel = document.getElementById('sticky-calculator-panel');
+            const toggleText = document.getElementById('desktop-toggle-text');
+
+            AppState.isDesktopCalcCollapsed = !AppState.isDesktopCalcCollapsed;
+
+            if (AppState.isDesktopCalcCollapsed) {
+                rightPanel.classList.add('hidden');
+                leftPanel.classList.remove('lg:w-2/3', 'xl:w-3/4');
+                leftPanel.classList.add('lg:w-full', 'xl:w-full');
+                toggleText.innerText = "展開計算紙";
+                showToast("🧮 計算紙已收合，主版面已最大化，方便你寬敞自學！");
+            } else {
+                rightPanel.classList.remove('hidden');
+                leftPanel.classList.add('lg:w-2/3', 'xl:w-3/4');
+                leftPanel.classList.remove('lg:w-full', 'xl:w-full');
+                toggleText.innerText = "收合計算紙";
+                showToast("🧮 計算紙已還原到右方！計算歷史資料安全保存。");
+            }
+        }
+
+        // 行動端計算紙面板設定
+        function setupMobileCalculator() {
+            const toggleBtn = document.getElementById('toggle-mobile-calc-btn');
+            const closeBtn = document.getElementById('close-mobile-calc-btn');
+            const calcPanel = document.getElementById('sticky-calculator-panel');
+
+            if (window.innerWidth < 1024) {
+                calcPanel.classList.add('hidden', 'fixed', 'bottom-4', 'right-4', 'w-[320px]', 'max-h-[500px]', 'shadow-2xl');
+                calcPanel.classList.remove('w-full', 'h-[calc(100vh-120px)]', 'sticky', 'top-[80px]');
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                if (calcPanel.classList.contains('hidden')) {
+                    calcPanel.classList.remove('hidden');
+                    calcPanel.style.transform = "scale(0.95)";
+                    setTimeout(() => calcPanel.style.transform = "scale(1)", 50);
+                } else {
+                    calcPanel.classList.add('hidden');
+                }
+            });
+
+            closeBtn.addEventListener('click', () => calcPanel.classList.add('hidden'));
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 1024) {
+                    if (!AppState.isDesktopCalcCollapsed) {
+                        calcPanel.classList.remove('hidden', 'fixed', 'bottom-4', 'right-4', 'w-[320px]', 'max-h-[500px]');
+                        calcPanel.classList.add('sticky', 'top-[100px]', 'h-[calc(100vh-140px)]');
+                    }
+                    calcPanel.style.transform = "none";
+                } else {
+                    calcPanel.classList.add('hidden', 'fixed', 'bottom-4', 'right-4', 'w-[320px]', 'max-h-[500px]');
+                    calcPanel.classList.remove('sticky', 'top-[100px]', 'h-[calc(100vh-140px)]');
+                }
+            });
+        }
+
+        // 自訂提示氣泡框 (Toast)
+        function showToast(message) {
+            const toast = document.getElementById('custom-toast');
+            toast.innerText = message;
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3500);
+        }
+
+        // 分頁切換
+        function switchTab(tabId) {
+            AppState.currentTab = tabId;
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`panel-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('bg-blue-50', 'text-blue-700', 'ring-2', 'ring-blue-600/10');
+                btn.classList.add('text-slate-600', 'hover:bg-slate-50');
+            });
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-50');
+            activeBtn.classList.add('bg-blue-50', 'text-blue-700', 'ring-2', 'ring-blue-600/10');
+
+            if (tabId === 'task1') {
+                renderTask1DataInputs();
+                renderTask1Chart();
+                renderTask1DrawingChart();
+                renderTask1ReadChart();
+            }
+            if (tabId === 'task2') {
+                renderTask2TableAndPie();
+                renderTask2DrawingPie();
+                renderTask2ReadPie();
+            }
+            if (tabId === 'task3') {
+                updateLineCharts();
+                renderTask3DrawingLine();
+                renderTask3ReadLine();
+            }
+        }
+
+        // ========================================== 高精細放大鏡邏輯 ==========================================
+        function openZoomModal(taskType) {
+            const modal = document.getElementById('zoom-modal');
+            const content = modal.querySelector('div');
+            const svgContainer = document.getElementById('zoom-modal-svg-container');
+            const modalTitle = document.getElementById('zoom-modal-title');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            let zoomedSvg = '';
+            if (taskType === 'task1') {
+                modalTitle.innerHTML = '🍉 實作三：高精細長條刻度放大鏡';
+                zoomedSvg = drawTask1EnlargedSvg();
+            } else if (taskType === 'task2') {
+                modalTitle.innerHTML = '🍰 實作三：高精密圓形 Protractor 量角器';
+                zoomedSvg = drawTask2EnlargedSvg();
+            } else if (taskType === 'task3') {
+                modalTitle.innerHTML = '📈 實作三：微觀100元刻度折線對齊鏡';
+                zoomedSvg = drawTask3EnlargedSvg();
+            }
+
+            svgContainer.innerHTML = zoomedSvg;
+
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 20);
+        }
+
+        function closeZoomModal() {
+            const modal = document.getElementById('zoom-modal');
+            const content = modal.querySelector('div');
+
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        // 放大鏡專用：高精密投影對齊虛線 SVG 繪製
+        function drawTask1EnlargedSvg() {
+            const width = 600;
+            const height = 400;
+            const padL = 70;
+            const padR = 30;
+            const padT = 40;
+            const padB = 60;
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+            const maxVal = 30;
+
+            let gridLines = '';
+            for (let tick = 0; tick <= maxVal; tick += 2) {
+                const y = padT + graphH - (tick / maxVal) * graphH;
+                const isMajor = tick % 10 === 0;
+                gridLines += `
+                    <line x1="${padL - 6}" y1="${y}" x2="${padL}" y2="${y}" stroke="${isMajor ? '#475569' : '#cbd5e1'}" stroke-width="${isMajor ? '1.5' : '1'}" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="${isMajor ? '#e2e8f0' : '#f1f5f9'}" stroke-dasharray="${isMajor ? '0' : '2 2'}" />
+                    <text x="${padL - 12}" y="${y + 4}" font-size="${isMajor ? '12' : '10'}" font-weight="${isMajor ? 'bold' : 'normal'}" font-family="monospace" text-anchor="end" fill="${isMajor ? '#1e293b' : '#64748b'}">${tick}</text>
+                `;
+            }
+
+            const items = ['🍉 西瓜', '🍑 蜜桃', '🍍 鳳梨'];
+            const values = AppState.task1.readTarget;
+            const colCount = 3;
+            const barW = (graphW / colCount) - 40;
+            const totalColW = graphW / colCount;
+
+            let colSvgs = '';
+            let projections = '';
+
+            values.forEach((count, idx) => {
+                const h = (count / maxVal) * graphH;
+                const x = padL + idx * totalColW + 20;
+                const y = padT + graphH - h;
+
+                projections += `
+                    <line x1="${padL}" y1="${y}" x2="${x}" y2="${y}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3 3" />
+                    <circle cx="${padL}" cy="${y}" r="3.5" fill="#ef4444" />
+                    <rect x="${padL - 32}" y="${y - 9}" width="20" height="16" rx="4" fill="#fef2f2" stroke="#fca5a5" stroke-width="1"/>
+                    <text x="${padL - 22}" y="${y + 3}" font-size="10" font-weight="extrabold" fill="#b91c1c" text-anchor="middle">${count}</text>
+                `;
+
+                colSvgs += `
+                    <g>
+                        <rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="#10b981" stroke="#047857" stroke-width="2" rx="6" />
+                        <text x="${x + barW / 2}" y="${y - 8}" font-size="13" font-weight="bold" fill="#047857" text-anchor="middle">${count} 人</text>
+                        <text x="${padL + idx * totalColW + totalColW / 2}" y="${height - padB + 24}" font-size="13" font-weight="bold" fill="#334155" text-anchor="middle">${items[idx]}</text>
+                    </g>
+                `;
+            });
+
+            return `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto select-none">
+                    <rect width="${width}" height="${height}" fill="#ffffff" rx="16" />
+                    ${gridLines}
+                    ${projections}
+                    ${colSvgs}
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height - padB}" stroke="#475569" stroke-width="2" />
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#475569" stroke-width="2" />
+                    <text x="${padL - 10}" y="${padT - 15}" font-size="12" font-weight="bold" fill="#475569" text-anchor="middle">(人)</text>
+                </svg>
+            `;
+        }
+
+        function drawTask2EnlargedSvg() {
+            const width = 450;
+            const height = 450;
+            const cx = 225;
+            const cy = 225;
+            const r = 160;
+
+            const data = AppState.task2.readPercentages || [50, 30, 15, 5];
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+            const names = ['🥞 鬆餅', '🍪 餅乾', '🍮 果凍', '🍵 茶凍'];
+
+            let startAngle = -90;
+            let pathsHtml = '';
+
+            data.forEach((val, idx) => {
+                const angleSpan = (val / 100) * 360;
+                const endAngle = startAngle + angleSpan;
+                const labelAngle = startAngle + angleSpan / 2;
+                const rad = Math.PI / 180;
+                const labelR = 100;
+                const lx = cx + labelR * Math.cos(labelAngle * rad);
+                const ly = cy + labelR * Math.sin(labelAngle * rad);
+
+                pathsHtml += `
+                    <g>
+                        <path d="${getPieSectorPath(cx, cy, r, startAngle, endAngle)}" fill="${colors[idx]}" stroke="#ffffff" stroke-width="3" />
+                        <rect x="${lx - 32}" y="${ly - 14}" width="64" height="28" rx="8" fill="#ffffff" stroke="${colors[idx]}" stroke-width="1.5" class="shadow-sm" />
+                        <text x="${lx}" y="${ly + 4}" fill="${colors[idx]}" font-size="11" font-weight="black" text-anchor="middle">
+                            ${names[idx]} ${val}%
+                        </text>
+                    </g>
+                `;
+                startAngle = endAngle;
+            });
+
+            let ticksHtml = '';
+            for (let deg = 0; deg < 360; deg += 5) {
+                const rad = Math.PI / 180;
+                const isMajor = deg % 30 === 0;
+                const rStart = r;
+                const rEnd = isMajor ? r + 15 : r + 8;
+
+                const x1 = cx + rStart * Math.cos(deg * rad);
+                const y1 = cy + rStart * Math.sin(deg * rad);
+                const x2 = cx + rEnd * Math.cos(deg * rad);
+                const y2 = cy + rEnd * Math.sin(deg * rad);
+
+                ticksHtml += `
+                    <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${isMajor ? '#4338ca' : '#94a3b8'}" stroke-width="${isMajor ? '2' : '1'}" />
+                `;
+
+                if (deg % 36 === 0) {
+                    const pctVal = Math.round((deg / 360) * 100);
+                    const lx = cx + (r + 28) * Math.cos((deg - 90) * rad);
+                    const ly = cy + (r + 28) * Math.sin((deg - 90) * rad);
+                    ticksHtml += `
+                        <text x="${lx}" y="${ly}" font-size="10" font-weight="black" fill="#4338ca" text-anchor="middle">${pctVal}%</text>
+                    `;
+                }
+            }
+
+            return `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto select-none">
+                    <rect width="${width}" height="${height}" fill="#ffffff" rx="16" />
+                    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="2" />
+                    <circle cx="${cx}" cy="${cy}" r="${r + 15}" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="1 3" />
+                    
+                    ${pathsHtml}
+                    ${ticksHtml}
+                    
+                    <circle cx="${cx}" cy="${cy}" r="6" fill="#ffffff" stroke="#475569" stroke-width="2" />
+                </svg>
+            `;
+        }
+
+        function drawTask3EnlargedSvg() {
+            const width = 600;
+            const height = 400;
+            const padL = 70;
+            const padR = 30;
+            const padT = 40;
+            const padB = 60;
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+
+            const minScaleVal = 5000;
+            const maxScaleVal = 6000;
+            const scaleRange = maxScaleVal - minScaleVal;
+
+            let gridLines = '';
+            const waveY = height - padB - 25;
+
+            for (let tick = minScaleVal; tick <= maxScaleVal; tick += 100) {
+                const topAreaH = graphH - 30;
+                const ratio = (tick - minScaleVal) / scaleRange;
+                const y = padT + topAreaH - ratio * topAreaH;
+                const isMajor = tick % 500 === 0;
+
+                gridLines += `
+                    <line x1="${padL - 6}" y1="${y}" x2="${padL}" y2="${y}" stroke="${isMajor ? '#475569' : '#cbd5e1'}" stroke-width="${isMajor ? '1.5' : '1'}" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="${isMajor ? '#cbd5e1' : '#f1f5f9'}" stroke-dasharray="${isMajor ? '0' : '2 2'}" />
+                    <text x="${padL - 12}" y="${y + 4}" font-size="${isMajor ? '11' : '9'}" font-weight="${isMajor ? 'bold' : 'normal'}" font-family="monospace" text-anchor="end" fill="${isMajor ? '#1e293b' : '#64748b'}">${tick}</text>
+                `;
+            }
+
+            const values = AppState.task3.readTarget;
+            const days = ['週一', '週二', '週三'];
+            let pointsHtml = '';
+            let pathD = '';
+            let projections = '';
+
+            values.forEach((val, idx) => {
+                const x = padL + (idx / 2) * graphW;
+                const topAreaH = graphH - 30;
+                const ratio = (val - minScaleVal) / scaleRange;
+                const y = padT + topAreaH - ratio * topAreaH;
+
+                if (idx === 0) pathD = `M ${x} ${y}`;
+                else pathD += ` L ${x} ${y}`;
+
+                projections += `
+                    <line x1="${padL}" y1="${y}" x2="${x}" y2="${y}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3 3" />
+                    <line x1="${x}" y1="${y}" x2="${x}" y2="${height - padB}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 2" />
+                    <circle cx="${padL}" cy="${y}" r="3.5" fill="#ef4444" />
+                    <rect x="${padL - 40}" y="${y - 9}" width="28" height="16" rx="4" fill="#fef2f2" stroke="#fca5a5" stroke-width="1"/>
+                    <text x="${padL - 26}" y="${y + 3}" font-size="9" font-weight="black" fill="#b91c1c" text-anchor="middle">${val}</text>
+                `;
+
+                pointsHtml += `
+                    <g>
+                        <circle cx="${x}" cy="${y}" r="6.5" fill="#10b981" stroke="#ffffff" stroke-width="2" class="shadow-sm" />
+                        <rect x="${x - 30}" y="${y - 28}" width="60" height="20" rx="6" fill="#111827" />
+                        <text x="${x}" y="${y - 15}" font-size="10" font-weight="bold" fill="#ffffff" text-anchor="middle">${val} 元</text>
+                        <text x="${x}" y="${height - padB + 24}" font-size="13" font-weight="bold" fill="#334155" text-anchor="middle">${days[idx]}</text>
+                    </g>
+                `;
+            });
+
+            const waveLineSvg = `
+                <g stroke="#475569" stroke-width="2" fill="none">
+                    <path d="M ${padL - 6} ${waveY} L ${padL + 6} ${waveY - 4} L ${padL - 6} ${waveY - 8} L ${padL + 6} ${waveY - 12} L ${padL} ${waveY - 16}" />
+                </g>
+                <text x="${padL - 12}" y="${waveY + 12}" font-size="11" font-weight="bold" font-family="monospace" text-anchor="end" fill="#475569">0</text>
+            `;
+
+            return `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto select-none">
+                    <rect width="${width}" height="${height}" fill="#ffffff" rx="16" />
+                    ${gridLines}
+                    ${projections}
+                    <path d="${pathD}" fill="none" stroke="#10b981" stroke-width="3" />
+                    ${pointsHtml}
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${waveY - 10}" stroke="#475569" stroke-width="2" />
+                    <line x1="${padL}" y1="${waveY}" x2="${padL}" y2="${height - padB}" stroke="#475569" stroke-width="2" />
+                    ${waveLineSvg}
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#475569" stroke-width="2" />
+                    <text x="${padL - 10}" y="${padT - 15}" font-size="12" font-weight="bold" fill="#475569" text-anchor="middle">(元)</text>
+                </svg>
+            `;
+        }
+
+        // ========================================== 任務一動作與渲染 ==========================================
+        function updateT1ItemName(idx, name) {
+            if (AppState.task1.mode === 'bar') {
+                AppState.task1.barData[idx].name = name;
+            } else {
+                AppState.task1.histData[idx].range = name;
+            }
+            renderTask1Chart();
+        }
+
+        function updateT1ItemCount(idx, val) {
+            let num = parseInt(val) || 0;
+            if (num < 0) num = 0;
+            if (num > 30) num = 30;
+            if (AppState.task1.mode === 'bar') {
+                AppState.task1.barData[idx].count = num;
+            } else {
+                AppState.task1.histData[idx].count = num;
+            }
+            renderTask1Chart();
+        }
+
+        function renderTask1DataInputs() {
+            const area = document.getElementById('t1-data-inputs');
+            const isBar = AppState.task1.mode === 'bar';
+            const dataset = isBar ? AppState.task1.barData : AppState.task1.histData;
+
+            let html = '';
+            dataset.forEach((item, idx) => {
+                html += `
+                    <div class="space-y-1">
+                        <label class="block text-sm font-bold text-slate-600">${isBar ? '🍉 水果名稱' : '📏 身高組距'}</label>
+                        <div class="flex gap-2">
+                            <input type="text" value="${isBar ? item.name : item.range}" onchange="updateT1ItemName(${idx}, this.value)" class="flex-grow p-2 text-sm border border-slate-200 rounded-lg font-semibold bg-slate-50 focus:bg-white">
+                            <input type="number" min="0" max="30" value="${item.count}" oninput="updateT1ItemCount(${idx}, this.value)" class="w-16 p-2 text-sm text-center border border-slate-200 rounded-lg font-bold bg-slate-50 focus:bg-white focus:ring-1 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                `;
+            });
+            area.innerHTML = html;
+        }
+
+        function swapBarItems(indexA, indexB) {
+            if (indexA < 0 || indexA >= AppState.task1.barData.length || indexB < 0 || indexB >= AppState.task1.barData.length) return;
+            const temp = AppState.task1.barData[indexA];
+            AppState.task1.barData[indexA] = AppState.task1.barData[indexB];
+            AppState.task1.barData[indexB] = temp;
+            renderTask1DataInputs();
+            renderTask1Chart();
+            showToast("已動態將位置調換！長條圖的排列可以隨意更改項目位置！");
+        }
+
+        function renderTask1Chart() {
+            const container = document.getElementById('task1-chart-container');
+            const controls = document.getElementById('task1-interact-controls');
+            const isBar = AppState.task1.mode === 'bar';
+
+            const width = 500;
+            const height = 300;
+            const padL = 60;
+            const padR = 30;
+            const padT = 30;
+            const padB = 40;
+
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+
+            const dataset = isBar ? AppState.task1.barData : AppState.task1.histData;
+            const maxVal = 30;
+
+            let yTicks = [0, 10, 20, 30];
+            let yTickSvgs = '';
+            yTicks.forEach(tick => {
+                const y = padT + graphH - (tick / maxVal) * graphH;
+                yTickSvgs += `
+                    <line x1="${padL - 6}" y1="${y}" x2="${padL}" y2="${y}" stroke="#94a3b8" stroke-width="1.5" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="#f1f5f9" stroke-dasharray="2" />
+                    <text x="${padL - 12}" y="${y + 4}" font-size="12" font-family="monospace" text-anchor="end" fill="#64748b">${tick}</text>
+                `;
+            });
+
+            const colCount = dataset.length;
+            const barW = isBar ? (graphW / colCount) - 24 : (graphW / colCount);
+            const totalColW = graphW / colCount;
+
+            let colSvgs = '';
+            dataset.forEach((item, idx) => {
+                const count = item.count;
+                const h = (count / maxVal) * graphH;
+                let x = padL + idx * totalColW;
+                if (isBar) x += 12;
+                const y = padT + graphH - h;
+
+                const color = isBar ? 'fill-blue-500 hover:fill-blue-600' : 'fill-emerald-500 hover:fill-emerald-600';
+                const strokeColor = isBar ? '#2563eb' : '#059669';
+
+                colSvgs += `
+                    <g class="group cursor-pointer">
+                        <rect x="${x}" y="${y}" width="${barW}" height="${h}" class="${color} transition-all duration-200" rx="${isBar ? 4 : 0}" ry="${isBar ? 4 : 0}" stroke="${strokeColor}" stroke-width="1.5" />
+                        <text x="${x + barW / 2}" y="${y - 8}" font-size="12" font-weight="bold" fill="#1e293b" text-anchor="middle" class="opacity-0 group-hover:opacity-100 transition-opacity duration-150">${count} 人</text>
+                        <text x="${padL + idx * totalColW + totalColW / 2}" y="${height - padB + 20}" font-size="11" font-weight="bold" fill="#475569" text-anchor="middle">${isBar ? item.name : item.range}</text>
+                    </g>
+                `;
+            });
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto select-none">
+                    <rect width="${width}" height="${height}" fill="#f8fafc" rx="16" />
+                    ${yTickSvgs}
+                    ${colSvgs}
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height - padB}" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#64748b" stroke-width="1.5" />
+                    <text x="${padL - 10}" y="${padT - 10}" font-size="11" font-weight="bold" fill="#64748b" text-anchor="middle">(人)</text>
+                </svg>
+            `;
+
+            if (isBar) {
+                let listHtml = `<div class="font-bold text-slate-700 mb-2">🔄 手動調換項目順序 (點選看變化)：</div><div class="flex flex-wrap gap-2">`;
+                AppState.task1.barData.forEach((item, idx) => {
+                    listHtml += `
+                        <div class="bg-blue-50 text-blue-800 font-bold px-3 py-1.5 rounded-lg flex items-center space-x-1.5 text-xs">
+                            <span>${item.name}</span>
+                            <div class="flex space-x-1">
+                                <button onclick="swapBarItems(${idx}, ${idx - 1})" class="hover:bg-blue-200 px-1.5 rounded font-mono">◀</button>
+                                <button onclick="swapBarItems(${idx}, ${idx + 1})" class="hover:bg-blue-200 px-1.5 rounded font-mono">▶</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                listHtml += `</div>`;
+                controls.innerHTML = listHtml;
+            } else {
+                controls.innerHTML = `
+                    <div class="flex items-center gap-2 text-emerald-800">
+                        <span class="text-base">🛡️</span>
+                        <p class="leading-relaxed">
+                            <strong>直方圖限制：</strong>因為橫軸是連續性的「組距」（如 130cm → 140cm），代表數據的數值大小，<strong>因此嚴格禁止學生調換柱子順序</strong>，柱子也必須緊貼！
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        // --- 任務一：手動繪圖與換一題隨機化 ---
+        function randomizeTask1Drawing() {
+            const pool = [5, 10, 15, 20, 25, 30];
+            const target0 = pool[Math.floor(Math.random() * pool.length)];
+            const target1 = pool[Math.floor(Math.random() * pool.length)];
+            const target2 = pool[Math.floor(Math.random() * pool.length)];
+
+            AppState.task1.drawTarget = [target0, target1, target2];
+
+            // 重設拉桿與學生手繪值為 0
+            AppState.task1.drawData = [0, 0, 0];
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`t1-draw-slider-${i}`).value = 0;
+                document.getElementById(`t1-draw-val-lbl-${i}`).innerText = 0;
+            }
+
+            document.getElementById('t1-draw-target-txt').innerHTML =
+                `🎯 任務目標：[🍓草莓] 需為 <span class="text-red-600 font-bold">${target0}</span> 人、[🍇葡萄] 需為 <span class="text-purple-600 font-bold">${target1}</span> 人、[🥭芒果] 需為 <span class="text-amber-600 font-bold">${target2}</span> 人`;
+
+            renderTask1DrawingChart();
+            showToast("🎲 任務一：手動長條目標已隨機換新！");
+        }
+
+        function onTask1DrawingChange(idx, val) {
+            AppState.task1.drawData[idx] = parseInt(val) || 0;
+            document.getElementById(`t1-draw-val-lbl-${idx}`).innerText = val;
+            renderTask1DrawingChart();
+        }
+
+        function renderTask1DrawingChart() {
+            const container = document.getElementById('t1-drawing-svg-area');
+            const width = 300;
+            const height = 220;
+            const padL = 40;
+            const padR = 20;
+            const padT = 20;
+            const padB = 35;
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+            const maxVal = 30;
+
+            let gridLines = '';
+            [0, 10, 20, 30].forEach(tick => {
+                const y = padT + graphH - (tick / maxVal) * graphH;
+                gridLines += `
+                    <line x1="${padL - 4}" y1="${y}" x2="${padL}" y2="${y}" stroke="#94a3b8" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="#f1f5f9" stroke-dasharray="2" />
+                    <text x="${padL - 8}" y="${y + 4}" font-size="10" font-family="monospace" text-anchor="end" fill="#64748b">${tick}</text>
+                `;
+            });
+
+            const items = ['🍓 草莓', '🍇 葡萄', '🥭 芒果'];
+            const colCount = 3;
+            const barW = (graphW / colCount) - 16;
+            const totalColW = graphW / colCount;
+
+            let colSvgs = '';
+            AppState.task1.drawData.forEach((count, idx) => {
+                const h = (count / maxVal) * graphH;
+                const x = padL + idx * totalColW + 8;
+                const y = padT + graphH - h;
+
+                colSvgs += `
+                    <rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="#3b82f6" stroke="#1d4ed8" rx="3" />
+                    <text x="${x + barW / 2}" y="${y - 4}" font-size="9" font-weight="bold" text-anchor="middle" fill="#1e293b">${count}</text>
+                    <text x="${padL + idx * totalColW + totalColW / 2}" y="${height - padB + 16}" font-size="10" font-weight="bold" fill="#475569" text-anchor="middle">${items[idx]}</text>
+                `;
+            });
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+                    <rect width="${width}" height="${height}" fill="#f8fafc" rx="8" />
+                    ${gridLines}
+                    ${colSvgs}
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height - padB}" stroke="#64748b" />
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#64748b" />
+                </svg>
+            `;
+        }
+
+        function checkTask1DrawingAnswer() {
+            const draw = AppState.task1.drawData;
+            const target = AppState.task1.drawTarget;
+            const isMatch = draw[0] === target[0] && draw[1] === target[1] && draw[2] === target[2];
+
+            if (isMatch) {
+                showToast("🎉 恭喜！手動長條圖繪製完全正確！你完美的對齊了每一根柱子高度！");
+            } else {
+                showToast("❌ 哎呀，高度還不符合任務要求喔！請對照上方提示的目標數值再試試。");
+            }
+        }
+
+        // --- 任務一：實作三 隨機數據讀取 ---
+        function randomizeTask1Read() {
+            const pool = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28];
+            const selected = [];
+            while (selected.length < 3) {
+                const val = pool[Math.floor(Math.random() * pool.length)];
+                if (!selected.includes(val)) {
+                    selected.push(val);
+                }
+            }
+            AppState.task1.readTarget = selected;
+
+            document.getElementById('t1-ans-0').value = '';
+            document.getElementById('t1-ans-1').value = '';
+            document.getElementById('t1-ans-2').value = '';
+            document.getElementById('t1-read-feedback').innerText = '';
+
+            renderTask1ReadChart();
+            showToast("🎲 任務一實作三：水果喜好人數已成功產生隨機新資料！");
+        }
+
+        function renderTask1ReadChart() {
+            const container = document.getElementById('t1-read-svg-area');
+            const width = 280;
+            const height = 200;
+            const padL = 40;
+            const padR = 20;
+            const padT = 20;
+            const padB = 30;
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+            const maxVal = 30;
+
+            let gridLines = '';
+            [0, 10, 20, 30].forEach(tick => {
+                const y = padT + graphH - (tick / maxVal) * graphH;
+                gridLines += `
+                    <line x1="${padL - 4}" y1="${y}" x2="${padL}" y2="${y}" stroke="#94a3b8" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="#f1f5f9" stroke-dasharray="2" />
+                    <text x="${padL - 8}" y="${y + 4}" font-size="10" font-family="monospace" text-anchor="end" fill="#64748b">${tick}</text>
+                `;
+            });
+
+            const items = ['🍉 西瓜', '🍑 蜜桃', '🍍 鳳梨'];
+            const values = AppState.task1.readTarget;
+            const colCount = 3;
+            const barW = (graphW / colCount) - 16;
+            const totalColW = graphW / colCount;
+
+            let colSvgs = '';
+            values.forEach((count, idx) => {
+                const h = (count / maxVal) * graphH;
+                const x = padL + idx * totalColW + 8;
+                const y = padT + graphH - h;
+
+                colSvgs += `
+                    <rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="#10b981" stroke="#047857" rx="3" />
+                    <text x="${padL + idx * totalColW + totalColW / 2}" y="${height - padB + 16}" font-size="10" font-weight="bold" fill="#475569" text-anchor="middle">${items[idx]}</text>
+                `;
+            });
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+                    <rect width="${width}" height="${height}" fill="#f8fafc" rx="8" />
+                    ${gridLines}
+                    ${colSvgs}
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height - padB}" stroke="#64748b" />
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#64748b" />
+                </svg>
+            `;
+        }
+
+        function checkTask1ReadAnswer() {
+            const ans0 = parseInt(document.getElementById('t1-ans-0').value);
+            const ans1 = parseInt(document.getElementById('t1-ans-1').value);
+            const ans2 = parseInt(document.getElementById('t1-ans-2').value);
+            const feedback = document.getElementById('t1-read-feedback');
+
+            if (isNaN(ans0) || isNaN(ans1) || isNaN(ans2)) {
+                feedback.className = "text-sm font-bold text-red-600";
+                feedback.innerText = "⚠️ 請填寫完所有空格！";
+                return;
+            }
+
+            const targets = AppState.task1.readTarget;
+            const isMatch = ans0 === targets[0] && ans1 === targets[1] && ans2 === targets[2];
+
+            if (isMatch) {
+                feedback.className = "text-sm font-bold text-emerald-600";
+                feedback.innerText = "🎉 答對了！你對長條圖的讀取與表格整理非常熟練！";
+            } else {
+                feedback.className = "text-sm font-bold text-red-600";
+                feedback.innerText = "❌ 數值不太對喔，請點擊圖表開啟「放大鏡」觀察紅色高亮對齊線！";
+            }
+        }
+
+
+        // ========================================== 任務二動作與渲染 ==========================================
+        function computeTask2Data() {
+            const items = JSON.parse(JSON.stringify(AppState.task2.items));
+            const totalVotes = items.reduce((sum, item) => sum + item.votes, 0);
+
+            if (totalVotes === 0) {
+                return {
+                    totalVotes,
+                    computedItems: items.map(it => ({ ...it, percentage: 0, angle: 0, isAdjusted: false, adjustmentAmount: 0 })),
+                    hasAdjustment: false
+                };
+            }
+
+            let computedItems = items.map(item => {
+                const ratio = item.votes / totalVotes;
+                const rawPct = ratio * 100;
+                return {
+                    name: item.name,
+                    votes: item.votes,
+                    rawPercentage: rawPct,
+                    percentage: Math.round(rawPct),
+                    isAdjusted: false,
+                    adjustmentAmount: 0
+                };
+            });
+
+            const sumPercentages = computedItems.reduce((sum, item) => sum + item.percentage, 0);
+            let hasAdjustment = false;
+            let adjustedItemName = '';
+            let adjustmentDiff = 0;
+
+            if (sumPercentages !== 100 && sumPercentages > 0) {
+                hasAdjustment = true;
+                adjustmentDiff = 100 - sumPercentages;
+
+                let maxIdx = 0;
+                let maxVotes = -1;
+                for (let i = 0; i < computedItems.length; i++) {
+                    if (computedItems[i].votes > maxVotes) {
+                        maxVotes = computedItems[i].votes;
+                        maxIdx = i;
+                    }
+                }
+
+                computedItems[maxIdx].percentage += adjustmentDiff;
+                computedItems[maxIdx].isAdjusted = true;
+                computedItems[maxIdx].adjustmentAmount = adjustmentDiff;
+                adjustedItemName = computedItems[maxIdx].name;
+            }
+
+            computedItems = computedItems.map(item => {
+                return {
+                    ...item,
+                    angle: Math.round((item.percentage / 100) * 360 * 10) / 10
+                };
+            });
+
+            return {
+                totalVotes,
+                computedItems,
+                hasAdjustment,
+                adjustedItemName,
+                adjustmentDiff
+            };
+        }
+
+        function renderTask2TableAndPie() {
+            const tableBody = document.getElementById('pie-table-body');
+            const { totalVotes, computedItems, hasAdjustment, adjustedItemName, adjustmentDiff } = computeTask2Data();
+
+            document.getElementById('pie-total-votes').innerText = totalVotes;
+
+            let rowsHtml = '';
+            computedItems.forEach((item, idx) => {
+                const pctFormula = `(${item.votes} / ${totalVotes}) * 100`;
+                const angleFormula = `360 * (${item.percentage} / 100)`;
+
+                rowsHtml += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <td class="px-5 py-4 font-bold text-slate-800">${item.name}</td>
+                        <td class="px-5 py-4 text-center">
+                            <input type="number" value="${item.votes}" oninput="updatePieVote(${idx}, this.value)" class="w-20 p-2 text-center font-bold border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-1 focus:ring-indigo-500">
+                        </td>
+                        <td class="px-5 py-4 text-center font-bold text-blue-600">
+                            <span class="block">${item.percentage}%</span>
+                            ${item.isAdjusted ? `<span class="text-[11px] block text-amber-600 font-bold" title="此項目經微調 ${item.adjustmentAmount}% 補齊 100% 誤差">⚠️已校正 (${item.adjustmentAmount}%)</span>` : ''}
+                        </td>
+                        <td class="px-5 py-4 text-center font-bold text-indigo-600">${item.angle}°</td>
+                        <td class="px-5 py-4 text-center space-y-1 sm:space-y-0 sm:space-x-2 flex flex-col sm:flex-row justify-center items-center select-none">
+                            <button onclick="assistFormula('${pctFormula}')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-2 py-1.5 rounded-lg transition-all" title="將百分率算式代入計算紙">
+                                📊 % 算式
+                            </button>
+                            <button onclick="assistFormula('${angleFormula}')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs font-bold px-2 py-1.5 rounded-lg transition-all" title="將圓心角算式代入計算紙">
+                                📐 ° 算式
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tableBody.innerHTML = rowsHtml;
+
+            const adjustAlert = document.getElementById('pie-adjustment-alert');
+            if (hasAdjustment) {
+                adjustAlert.classList.remove('hidden');
+                adjustAlert.innerHTML = `
+                    <span class="font-bold flex items-center gap-1">🛠️ 誤差自動微調警報：</span>
+                    <p class="mt-1 leading-relaxed">
+                        各項點心四捨五入後的百分率總和不為 100%（原加總為 ${100 - adjustmentDiff}%）。自學平台已自動將微小的誤差 <strong>${adjustmentDiff > 0 ? '+' : ''}${adjustmentDiff}%</strong> 微調至佔比例最大之項目【<strong>${adjustedItemName}</strong>】內，以維持整張圓形圖數學理論完整！
+                    </p>
+                `;
+            } else {
+                adjustAlert.classList.add('hidden');
+            }
+
+            drawPieSVG(computedItems);
+        }
+
+        function updatePieVote(idx, val) {
+            let parsed = parseInt(val);
+            if (isNaN(parsed) || parsed < 0) parsed = 0;
+            AppState.task2.items[idx].votes = parsed;
+            renderTask2TableAndPie();
+        }
+
+        function drawPieSVG(items) {
+            const container = document.getElementById('pie-chart-container');
+            const legend = document.getElementById('pie-legend');
+            const totalVotes = items.reduce((sum, item) => sum + item.votes, 0);
+
+            if (totalVotes === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-400 font-mono text-center py-10">請先在左表填入票數</div>`;
+                legend.innerHTML = '';
+                return;
+            }
+
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+            let startAngle = -90;
+            let pathsHtml = '';
+            let legendHtml = '';
+
+            items.forEach((item, idx) => {
+                if (item.percentage === 0) return;
+                const angleSpan = (item.percentage / 100) * 360;
+                const endAngle = startAngle + angleSpan;
+                const labelAngle = startAngle + angleSpan / 2;
+                const rad = Math.PI / 180;
+                const labelR = 60;
+                const lx = 120 + labelR * Math.cos(labelAngle * rad);
+                const ly = 120 + labelR * Math.sin(labelAngle * rad);
+
+                pathsHtml += `
+                    <g class="group cursor-pointer">
+                        <path d="${getPieSectorPath(120, 120, 100, startAngle, endAngle)}" fill="${colors[idx]}" stroke="#ffffff" stroke-width="2" class="transition-all duration-300 hover:scale-[1.03]" />
+                        <text x="${lx}" y="${ly}" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" class="pointer-events-none drop-shadow-md">
+                            ${item.percentage}%
+                        </text>
+                    </g>
+                `;
+
+                legendHtml += `
+                    <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm text-xs font-bold">
+                        <span class="w-3 h-3 rounded-full" style="background-color: ${colors[idx]}"></span>
+                        <span class="text-slate-700">${item.name} (${item.percentage}%)</span>
+                    </div>
+                `;
+                startAngle = endAngle;
+            });
+
+            container.innerHTML = `
+                <svg viewBox="0 0 240 240" class="w-full h-auto">
+                    ${pathsHtml}
+                    <circle cx="120" cy="120" r="4" fill="#ffffff" />
+                </svg>
+            `;
+            legend.innerHTML = legendHtml;
+        }
+
+        // ========================================== 任務二手繪切圓餅圖與隨機化 ==========================================
+        function randomizeTask2Drawing() {
+            const presets = [
+                [40, 30, 20, 10],
+                [35, 35, 20, 10],
+                [50, 20, 20, 10],
+                [45, 25, 20, 10],
+                [30, 30, 20, 20]
+            ];
+
+            let selected = presets[Math.floor(Math.random() * presets.length)];
+            // 隨機打亂分配順序
+            selected = selected.sort(() => Math.random() - 0.5);
+            AppState.task2.drawTarget = selected;
+
+            // 歸零，不提供任何正確答案提示，讓學生親手操作
+            AppState.task2.drawPct = [0, 0, 0, 0];
+
+            document.getElementById('t2-draw-target-txt').innerHTML =
+                `🎯 任務目標比例：🥞鬆餅 <span class="text-blue-600 font-bold">${selected[0]}%</span>、🍪餅乾 <span class="text-emerald-600 font-bold">${selected[1]}%</span>、🍮果凍 <span class="text-amber-500 font-bold">${selected[2]}%</span>、🍵茶凍 <span class="text-purple-600 font-bold">${selected[3]}%</span>`;
+
+            renderTask2DrawingPie();
+            showToast("🎲 任務二手繪目標已更新！所有點心佔比均已隨機重組！");
+        }
+
+        function adjustT2DrawPct(idx, diff) {
+            const nextVal = AppState.task2.drawPct[idx] + diff;
+            if (nextVal < 0 || nextVal > 100) return;
+            AppState.task2.drawPct[idx] = nextVal;
+            renderTask2DrawingPie();
+        }
+
+        function renderTask2DrawingPie() {
+            const container = document.getElementById('t2-drawing-svg-area');
+            const data = AppState.task2.drawPct;
+            const sum = data.reduce((s, v) => s + v, 0);
+
+            const sumLabel = document.getElementById('t2-draw-sum');
+            sumLabel.innerText = sum;
+            if (sum === 100) {
+                sumLabel.className = "text-emerald-600 font-extrabold text-base";
+            } else {
+                sumLabel.className = "text-red-600 font-extrabold text-base";
+            }
+
+            data.forEach((val, idx) => {
+                document.getElementById(`t2-draw-lbl-${idx}`).innerText = `${val}%`;
+            });
+
+            if (sum === 0) {
+                container.innerHTML = `
+                    <svg viewBox="0 0 240 240" class="w-full h-auto">
+                        <circle cx="120" cy="120" r="100" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4" />
+                        <text x="120" y="125" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">請使用右側按鈕調整點心佔比</text>
+                    </svg>
+                `;
+                return;
+            }
+
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+            let startAngle = -90;
+            let pathsHtml = '';
+
+            data.forEach((val, idx) => {
+                if (val === 0) return;
+                const angleSpan = (val / sum) * 360;
+                const endAngle = startAngle + angleSpan;
+                const labelAngle = startAngle + angleSpan / 2;
+                const rad = Math.PI / 180;
+                const labelR = 60;
+                const lx = 120 + labelR * Math.cos(labelAngle * rad);
+                const ly = 120 + labelR * Math.sin(labelAngle * rad);
+
+                pathsHtml += `
+                    <g>
+                        <path d="${getPieSectorPath(120, 120, 100, startAngle, endAngle)}" fill="${colors[idx]}" stroke="#ffffff" stroke-width="2" />
+                        <text x="${lx}" y="${ly}" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle" class="pointer-events-none">
+                            ${Math.round(val / sum * 100)}%
+                        </text>
+                    </g>
+                `;
+                startAngle = endAngle;
+            });
+
+            container.innerHTML = `
+                <svg viewBox="0 0 240 240" class="w-full h-auto">
+                    ${pathsHtml}
+                    <circle cx="120" cy="120" r="4" fill="#ffffff" />
+                </svg>
+            `;
+        }
+
+        function checkTask2DrawingAnswer() {
+            const current = AppState.task2.drawPct;
+            const target = AppState.task2.drawTarget;
+            const isMatch = current[0] === target[0] && current[1] === target[1] && current[2] === target[2] && current[3] === target[3];
+
+            if (isMatch) {
+                showToast("🎉 太棒了！你的扇形劃分百分比與任務目標完全一致！圓餅圖挑戰成功！");
+            } else {
+                showToast("❌ 哎呀，比例還不對喔！請重新確認各點心佔比是否吻合上方任務目標！");
+            }
+        }
+
+        // --- 任務二：實作三 隨機數據讀取 ---
+        function randomizeTask2Read() {
+            const percentageSets = [
+                [40, 30, 20, 10],
+                [50, 25, 15, 10],
+                [45, 30, 20, 5],
+                [55, 20, 15, 10],
+                [35, 35, 20, 10]
+            ];
+            let pctSet = percentageSets[Math.floor(Math.random() * percentageSets.length)];
+            pctSet = pctSet.sort(() => Math.random() - 0.5);
+
+            const totals = [100, 200, 300, 400, 180, 240];
+            const total = totals[Math.floor(Math.random() * totals.length)];
+
+            AppState.task2.readPercentages = pctSet;
+            AppState.task2.readTotal = total;
+            AppState.task2.readTarget = pctSet.map(p => Math.round(total * p / 100));
+
+            document.getElementById('t2-read-total-lbl').innerText = `樣本總人數：${total}人`;
+
+            const items = ['鬆餅', '餅乾', '果凍', '茶凍'];
+            items.forEach((name, idx) => {
+                document.getElementById(`t2-read-lbl-${idx}`).innerText = `${name}人數 (${pctSet[idx]}%)`;
+            });
+
+            document.getElementById('t2-ans-0').value = '';
+            document.getElementById('t2-ans-1').value = '';
+            document.getElementById('t2-ans-2').value = '';
+            document.getElementById('t2-ans-3').value = '';
+            document.getElementById('t2-read-feedback').innerText = '';
+
+            renderTask2ReadPie();
+            showToast("🎲 任務二實作三：圓形圖比例及總人數已隨機重組！");
+        }
+
+        function renderTask2ReadPie() {
+            const container = document.getElementById('t2-read-svg-area');
+            const data = AppState.task2.readPercentages || [50, 30, 15, 5];
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+
+            let startAngle = -90;
+            let pathsHtml = '';
+
+            data.forEach((val, idx) => {
+                const angleSpan = (val / 100) * 360;
+                const endAngle = startAngle + angleSpan;
+                const labelAngle = startAngle + angleSpan / 2;
+                const rad = Math.PI / 180;
+                const labelR = 50;
+                const lx = 100 + labelR * Math.cos(labelAngle * rad);
+                const ly = 100 + labelR * Math.sin(labelAngle * rad);
+
+                pathsHtml += `
+                    <g>
+                        <path d="${getPieSectorPath(100, 100, 80, startAngle, endAngle)}" fill="${colors[idx]}" stroke="#ffffff" stroke-width="2" />
+                        <text x="${lx}" y="${ly}" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">${val}%</text>
+                    </g>
+                `;
+                startAngle = endAngle;
+            });
+
+            container.innerHTML = `
+                <svg viewBox="0 0 200 200" class="w-full h-auto">
+                    ${pathsHtml}
+                    <circle cx="100" cy="100" r="3" fill="#ffffff" />
+                </svg>
+            `;
+        }
+
+        function checkTask2ReadAnswer() {
+            const ans0 = parseInt(document.getElementById('t2-ans-0').value);
+            const ans1 = parseInt(document.getElementById('t2-ans-1').value);
+            const ans2 = parseInt(document.getElementById('t2-ans-2').value);
+            const ans3 = parseInt(document.getElementById('t2-ans-3').value);
+            const feedback = document.getElementById('t2-read-feedback');
+
+            if (isNaN(ans0) || isNaN(ans1) || isNaN(ans2) || isNaN(ans3)) {
+                feedback.className = "text-sm font-bold text-red-600";
+                feedback.innerText = "⚠️ 請填寫完所有空格！";
+                return;
+            }
+
+            const targets = AppState.task2.readTarget;
+            const isMatch = ans0 === targets[0] && ans1 === targets[1] && ans2 === targets[2] && ans3 === targets[3];
+
+            if (isMatch) {
+                feedback.className = "text-sm font-bold text-emerald-600";
+                feedback.innerText = "🎉 答對了！你對百分率轉實際票數的計算非常精確！";
+            } else {
+                feedback.className = "text-sm font-bold text-red-600";
+                feedback.innerText = "❌ 數值不太對喔！請點擊圖片開啟「高精度量角刻度盤」重新對照百分比！";
+            }
+        }
+
+
+        // ========================================== 任務三動作與渲染 ==========================================
+        function updateLineCharts() {
+            const val1 = Math.max(5000, parseInt(document.getElementById('line-val-1').value) || 5000);
+            const val2 = Math.max(5000, parseInt(document.getElementById('line-val-2').value) || 5000);
+            const val3 = Math.max(5000, parseInt(document.getElementById('line-val-3').value) || 5000);
+            const val4 = Math.max(5000, parseInt(document.getElementById('line-val-4').value) || 5000);
+            const val5 = Math.max(5000, parseInt(document.getElementById('line-val-5').value) || 5000);
+
+            const values = [val1, val2, val3, val4, val5];
+            const days = ['週一', '週二', '週三', '週四', '週五'];
+
+            drawLineChartNoWave(values, days);
+            drawLineChartWithWave(values, days);
+        }
+
+        function drawLineChartNoWave(values, days) {
+            const container = document.getElementById('line-chart-no-wave');
+            const width = 360;
+            const height = 240;
+            const padL = 50;
+            const padR = 20;
+            const padT = 30;
+            const padB = 40;
+
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+            const maxVal = 7500;
+
+            let gridLines = '';
+            [0, 2500, 5000, 7500].forEach(tick => {
+                const y = padT + graphH - (tick / maxVal) * graphH;
+                gridLines += `
+                    <line x1="${padL - 4}" y1="${y}" x2="${padL}" y2="${y}" stroke="#94a3b8" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="#f1f5f9" stroke-dasharray="1.5" />
+                    <text x="${padL - 8}" y="${y + 4}" font-size="10" font-family="monospace" text-anchor="end" fill="#64748b">${tick}</text>
+                `;
+            });
+
+            let pointsHtml = '';
+            let pathD = '';
+
+            values.forEach((val, idx) => {
+                const x = padL + (idx / (values.length - 1)) * graphW;
+                const y = padT + graphH - (val / maxVal) * graphH;
+
+                if (idx === 0) pathD = `M ${x} ${y}`;
+                else pathD += ` L ${x} ${y}`;
+
+                pointsHtml += `
+                    <g class="group cursor-pointer">
+                        <circle cx="${x}" cy="${y}" r="4" fill="#3b82f6" stroke="#ffffff" stroke-width="1.5" />
+                        <text x="${x}" y="${y - 10}" font-size="10" font-weight="bold" fill="#1e293b" text-anchor="middle" class="opacity-0 group-hover:opacity-100 transition-opacity duration-150">${val}元</text>
+                        <text x="${x}" y="${height - padB + 18}" font-size="10" font-weight="bold" fill="#64748b" text-anchor="middle">${days[idx]}</text>
+                    </g>
+                `;
+            });
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+                    <rect width="${width}" height="${height}" fill="#f8fafc" rx="12" />
+                    ${gridLines}
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height - padB}" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#64748b" stroke-width="1.5" />
+                    <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="2.5" />
+                    ${pointsHtml}
+                </svg>
+            `;
+        }
+
+        function drawLineChartWithWave(values, days) {
+            const container = document.getElementById('line-chart-wave');
+            const width = 360;
+            const height = 240;
+            const padL = 50;
+            const padR = 20;
+            const padT = 30;
+            const padB = 40;
+
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+
+            const minScaleVal = 5000;
+            const maxScaleVal = 7000;
+            const scaleRange = maxScaleVal - minScaleVal;
+
+            let gridLines = '';
+            let yTicks = [5000, 5500, 6000, 6500, 7000];
+            const waveY = height - padB - 20;
+
+            yTicks.forEach(tick => {
+                const topAreaH = graphH - 30;
+                const ratio = (tick - minScaleVal) / scaleRange;
+                const y = padT + topAreaH - ratio * topAreaH;
+
+                gridLines += `
+                    <line x1="${padL - 4}" y1="${y}" x2="${padL}" y2="${y}" stroke="#94a3b8" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="#f1f5f9" stroke-dasharray="1.5" />
+                    <text x="${padL - 8}" y="${y + 4}" font-size="10" font-family="monospace" text-anchor="end" fill="#64748b">${tick}</text>
+                `;
+            });
+
+            let pointsHtml = '';
+            let pathD = '';
+
+            values.forEach((val, idx) => {
+                const x = padL + (idx / (values.length - 1)) * graphW;
+                const topAreaH = graphH - 30;
+                const ratio = (val - minScaleVal) / scaleRange;
+                const y = padT + topAreaH - ratio * topAreaH;
+
+                if (idx === 0) pathD = `M ${x} ${y}`;
+                else pathD += ` L ${x} ${y}`;
+
+                pointsHtml += `
+                    <g class="group cursor-pointer">
+                        <circle cx="${x}" cy="${y}" r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="1.5" />
+                        <text x="${x}" y="${y - 10}" font-size="10" font-weight="bold" fill="#111827" text-anchor="middle" class="opacity-0 group-hover:opacity-100 transition-opacity duration-150">${val}元</text>
+                        <text x="${x}" y="${height - padB + 18}" font-size="10" font-weight="bold" fill="#64748b" text-anchor="middle">${days[idx]}</text>
+                    </g>
+                `;
+            });
+
+            const waveLineSvg = `
+                <g stroke="#64748b" stroke-width="1.5" fill="none">
+                    <path d="M ${padL - 6} ${waveY} L ${padL + 6} ${waveY - 4} L ${padL - 6} ${waveY - 8} L ${padL + 6} ${waveY - 12} L ${padL} ${waveY - 16}" />
+                </g>
+                <text x="${padL - 8}" y="${waveY + 12}" font-size="10" font-family="monospace" text-anchor="end" fill="#64748b">0</text>
+            `;
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+                    <rect width="${width}" height="${height}" fill="#f8fafc" rx="12" />
+                    ${gridLines}
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#64748b" />
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${waveY - 10}" stroke="#64748b" />
+                    <line x1="${padL}" y1="${waveY}" x2="${padL}" y2="${height - padB}" stroke="#64748b" />
+                    ${waveLineSvg}
+                    <path d="${pathD}" fill="none" stroke="#10b981" stroke-width="2.5" />
+                    ${pointsHtml}
+                </svg>
+            `;
+        }
+
+        // --- 任務三：手繪折線點連點與隨機化 ---
+        function randomizeTask3Drawing() {
+            const pool = [5000, 5200, 5400, 5500, 5800, 6000, 6200, 6500, 6800, 7000];
+            const targets = [];
+            for (let i = 0; i < 5; i++) {
+                targets.push(pool[Math.floor(Math.random() * pool.length)]);
+            }
+            AppState.task3.drawTarget = targets;
+
+            // 重設手繪狀態（歸回最低刻度5000）
+            AppState.task3.drawData = [5000, 5000, 5000, 5000, 5000];
+            for (let i = 0; i < 5; i++) {
+                document.getElementById(`t3-draw-slider-${i}`).value = 5000;
+                document.getElementById(`t3-draw-lbl-${i}`).innerText = 5000;
+            }
+
+            const days = ['週一', '週二', '週三', '週四', '週五'];
+            let txt = "🎯 目標：";
+            targets.forEach((val, idx) => {
+                txt += `<span class="text-slate-800 font-bold">[${days[idx]}]</span><span class="text-indigo-600 font-bold">${val}</span>元`;
+                if (idx < 4) txt += "、";
+            });
+            document.getElementById('t3-draw-target-txt').innerHTML = txt;
+
+            renderTask3DrawingLine();
+            showToast("🎲 任務三：折線圖手繪目標已更新！請拖曳拉桿開始描點！");
+        }
+
+        function onTask3DrawingChange(idx, val) {
+            AppState.task3.drawData[idx] = parseInt(val) || 5000;
+            document.getElementById(`t3-draw-lbl-${idx}`).innerText = val;
+            renderTask3DrawingLine();
+        }
+
+        function renderTask3DrawingLine() {
+            const container = document.getElementById('t3-drawing-svg-area');
+            const width = 300;
+            const height = 200;
+            const padL = 45;
+            const padR = 15;
+            const padT = 20;
+            const padB = 30;
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+
+            const minScaleVal = 5000;
+            const maxScaleVal = 7000;
+            const scaleRange = maxScaleVal - minScaleVal;
+
+            let gridLines = '';
+            let yTicks = [5000, 6000, 7000];
+            const waveY = height - padB - 15;
+
+            yTicks.forEach(tick => {
+                const topAreaH = graphH - 20;
+                const ratio = (tick - minScaleVal) / scaleRange;
+                const y = padT + topAreaH - ratio * topAreaH;
+
+                gridLines += `
+                    <line x1="${padL - 4}" y1="${y}" x2="${padL}" y2="${y}" stroke="#94a3b8" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="#f1f5f9" stroke-dasharray="1.5" />
+                    <text x="${padL - 8}" y="${y + 4}" font-size="9" font-family="monospace" text-anchor="end" fill="#64748b">${tick}</text>
+                `;
+            });
+
+            let pointsHtml = '';
+            let pathD = '';
+            const days = ['一', '二', '三', '四', '五'];
+
+            AppState.task3.drawData.forEach((val, idx) => {
+                const x = padL + (idx / 4) * graphW;
+                const topAreaH = graphH - 20;
+                const ratio = (val - minScaleVal) / scaleRange;
+                const y = padT + topAreaH - ratio * topAreaH;
+
+                if (idx === 0) pathD = `M ${x} ${y}`;
+                else pathD += ` L ${x} ${y}`;
+
+                pointsHtml += `
+                    <circle cx="${x}" cy="${y}" r="4" fill="#6366f1" stroke="#ffffff" stroke-width="1" />
+                    <text x="${x}" y="${y - 8}" font-size="8" font-weight="bold" fill="#1e293b" text-anchor="middle">${val}</text>
+                    <text x="${x}" y="${height - padB + 14}" font-size="9" font-weight="bold" fill="#64748b" text-anchor="middle">${days[idx]}</text>
+                `;
+            });
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+                    <rect width="${width}" height="${height}" fill="#f8fafc" rx="8" />
+                    ${gridLines}
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#64748b" />
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${waveY - 10}" stroke="#64748b" />
+                    <line x1="${padL}" y1="${waveY}" x2="${padL}" y2="${height - padB}" stroke="#64748b" />
+                    <path d="${pathD}" fill="none" stroke="#4f46e5" stroke-width="2" />
+                    ${pointsHtml}
+                </svg>
+            `;
+        }
+
+        function checkTask3DrawingAnswer() {
+            const draw = AppState.task3.drawData;
+            const target = AppState.task3.drawTarget;
+            const isMatch = draw[0] === target[0] && draw[1] === target[1] && draw[2] === target[2] && draw[3] === target[3] && draw[4] === target[4];
+
+            if (isMatch) {
+                showToast("🎉 恭喜！你完美的完成了手拉折線圖，對省略波浪線的相對起伏位置掌握得非常好！");
+            } else {
+                showToast("❌ 描點的高度還沒有完全符合題目指定的任務目標喔！再對照上方數字拉動一下吧！");
+            }
+        }
+
+        // --- 任務三：實作三 隨機數據讀取 ---
+        function randomizeTask3Read() {
+            const pool = [5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000];
+            const selected = [];
+            for (let i = 0; i < 3; i++) {
+                selected.push(pool[Math.floor(Math.random() * pool.length)]);
+            }
+            AppState.task3.readTarget = selected;
+
+            document.getElementById('t3-ans-0').value = '';
+            document.getElementById('t3-ans-1').value = '';
+            document.getElementById('t3-ans-2').value = '';
+            document.getElementById('t3-read-feedback').innerText = '';
+
+            renderTask3ReadLine();
+            showToast("🎲 任務三實作三：折線圖每日金額已成功隨機變更！");
+        }
+
+        function renderTask3ReadLine() {
+            const container = document.getElementById('t3-read-svg-area');
+            const width = 280;
+            const height = 180;
+            const padL = 40;
+            const padR = 15;
+            const padT = 20;
+            const padB = 30;
+            const graphW = width - padL - padR;
+            const graphH = height - padT - padB;
+
+            const minScaleVal = 5000;
+            const maxScaleVal = 6000;
+            const scaleRange = maxScaleVal - minScaleVal;
+
+            let gridLines = '';
+            let yTicks = [5000, 5200, 5400, 5600, 5800, 6000];
+            const waveY = height - padB - 15;
+
+            yTicks.forEach(tick => {
+                const topAreaH = graphH - 20;
+                const ratio = (tick - minScaleVal) / scaleRange;
+                const y = padT + topAreaH - ratio * topAreaH;
+
+                gridLines += `
+                    <line x1="${padL - 4}" y1="${y}" x2="${padL}" y2="${y}" stroke="#94a3b8" />
+                    <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="#f1f5f9" stroke-dasharray="1.5" />
+                    <text x="${padL - 8}" y="${y + 4}" font-size="8" font-family="monospace" text-anchor="end" fill="#64748b">${tick}</text>
+                `;
+            });
+
+            const values = AppState.task3.readTarget;
+            const days = ['一', '二', '三'];
+            let pointsHtml = '';
+            let pathD = '';
+
+            values.forEach((val, idx) => {
+                const x = padL + (idx / 2) * graphW;
+                const topAreaH = graphH - 20;
+                const ratio = (val - minScaleVal) / scaleRange;
+                const y = padT + topAreaH - ratio * topAreaH;
+
+                if (idx === 0) pathD = `M ${x} ${y}`;
+                else pathD += ` L ${x} ${y}`;
+
+                pointsHtml += `
+                    <circle cx="${x}" cy="${y}" r="4" fill="#10b981" stroke="#ffffff" />
+                    <text x="${x}" y="${height - padB + 14}" font-size="9" font-weight="bold" fill="#64748b" text-anchor="middle">週${days[idx]}</text>
+                `;
+            });
+
+            const waveLineSvg = `
+                <g stroke="#64748b" stroke-width="1.5" fill="none">
+                    <path d="M ${padL - 6} ${waveY} L ${padL + 6} ${waveY - 4} L ${padL - 6} ${waveY - 8} L ${padL + 6} ${waveY - 12} L ${padL} ${waveY - 16}" />
+                </g>
+                <text x="${padL - 8}" y="${waveY + 12}" font-size="9" font-family="monospace" text-anchor="end" fill="#64748b">0</text>
+            `;
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+                    <rect width="${width}" height="${height}" fill="#f8fafc" rx="8" />
+                    ${gridLines}
+                    <line x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}" stroke="#64748b" />
+                    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${waveY - 10}" stroke="#64748b" />
+                    <line x1="${padL}" y1="${waveY}" x2="${padL}" y2="${height - padB}" stroke="#64748b" />
+                    ${waveLineSvg}
+                    <path d="${pathD}" fill="none" stroke="#10b981" stroke-width="2" />
+                    ${pointsHtml}
+                </svg>
+            `;
+        }
+
+        function checkTask3ReadAnswer() {
+            const ans0 = parseInt(document.getElementById('t3-ans-0').value);
+            const ans1 = parseInt(document.getElementById('t3-ans-1').value);
+            const ans2 = parseInt(document.getElementById('t3-ans-2').value);
+            const feedback = document.getElementById('t3-read-feedback');
+
+            if (isNaN(ans0) || isNaN(ans1) || isNaN(ans2)) {
+                feedback.className = "text-sm font-bold text-red-600";
+                feedback.innerText = "⚠️ 請填寫完所有空格！";
+                return;
+            }
+
+            const targets = AppState.task3.readTarget;
+            const isMatch = ans0 === targets[0] && ans1 === targets[1] && ans2 === targets[2];
+
+            if (isMatch) {
+                feedback.className = "text-sm font-bold text-emerald-600";
+                feedback.innerText = "🎉 恭喜！你已能精準讀取帶有省略波浪號的折線圖細部數值！";
+            } else {
+                feedback.className = "text-sm font-bold text-red-600";
+                feedback.innerText = "❌ 部分答案不太對喔，請點擊左側折線圖開啟「100元細緻對齊刻度放大鏡」！";
+            }
+        }
+
+
+        // ========================================== 通用工具 ==========================================
+        function getPieSectorPath(cx, cy, r, startAngle, endAngle) {
+            if (endAngle - startAngle >= 360) {
+                endAngle = startAngle + 359.99;
+            }
+            const rad = Math.PI / 180;
+            const x1 = cx + r * Math.cos(startAngle * rad);
+            const y1 = cy + r * Math.sin(startAngle * rad);
+            const x2 = cx + r * Math.cos(endAngle * rad);
+            const y2 = cy + r * Math.sin(endAngle * rad);
+            const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+            return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+        }
+
+        function toggleAnswer(ansId) {
+            const ans = document.getElementById(ansId);
+            ans.classList.toggle('hidden');
+        }
+
+        function loadAdjustmentPreset() {
+            AppState.task2.items = [
+                { name: '鬆餅', votes: 19 },
+                { name: '手工餅乾', votes: 19 },
+                { name: '果凍', votes: 19 },
+                { name: '茶凍', votes: 21 }
+            ];
+            renderTask2TableAndPie();
+            showToast("🧪 已載入誤差測試數據，請在比例最大之茶凍中看見 [⚠️已校正] 標記！");
+        }
+
+
+        // ========================================== 任務四：大挑戰與題庫大師 ==========================================
+        function loadAssessmentQuiz() {
+            const shuffledGenerators = [...QuestionBank].sort(() => Math.random() - 0.5);
+            const selectedGenerators = shuffledGenerators.slice(0, 5);
+
+            const currentQuestions = selectedGenerators.map(gen => {
+                const rawObj = gen();
+                const originalOptions = rawObj.options;
+                const shuffledOptions = [...originalOptions].sort(() => Math.random() - 0.5);
+                return {
+                    question: rawObj.question,
+                    options: shuffledOptions,
+                    correctValue: originalOptions.find(o => o.correct).text
+                };
+            });
+
+            AppState.assessment.currentQuestions = currentQuestions;
+            renderAssessmentQuiz();
+        }
+
+        function renderAssessmentQuiz() {
+            const container = document.getElementById('assessment-container');
+            let html = '';
+
+            AppState.assessment.currentQuestions.forEach((q, idx) => {
+                html += `
+                    <div class="p-5 border border-slate-200 rounded-2xl space-y-3 bg-slate-50/50">
+                        <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded">第 ${idx + 1} 題</span>
+                        <p class="text-base font-bold text-slate-800 leading-relaxed">${q.question}</p>
+                        <div class="grid grid-cols-1 gap-3 mt-3">
+                `;
+
+                q.options.forEach((opt, optIdx) => {
+                    const letter = String.fromCharCode(65 + optIdx);
+                    html += `
+                        <label class="flex items-start p-4 bg-white border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 text-sm font-medium space-x-3 transition-colors">
+                            <input type="radio" name="aq_${idx}" value="${optIdx}"
+                                class="text-indigo-600 focus:ring-indigo-500 w-4 h-4 mt-0.5">
+                            <span><strong>${letter}：</strong> ${opt.text}</span>
+                        </label>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            document.getElementById('assessment-result-box').classList.add('hidden');
+        }
+
+        function submitAssessment() {
+            const questions = AppState.assessment.currentQuestions;
+            if (!questions || questions.length === 0) return;
+
+            let allAnswered = true;
+            let correctCount = 0;
+
+            for (let i = 0; i < questions.length; i++) {
+                const checked = document.querySelector(`input[name="aq_${i}"]:checked`);
+                if (!checked) {
+                    allAnswered = false;
+                    break;
+                }
+                const selectedOptIdx = parseInt(checked.value);
+                const selectedText = questions[i].options[selectedOptIdx].text;
+
+                if (selectedText === questions[i].correctValue) {
+                    correctCount++;
+                }
+            }
+
+            if (!allAnswered) {
+                showToast("⚠️ 請回答完所有挑戰題後，再送出成績！");
+                return;
+            }
+
+            const score = correctCount * 20;
+            const comment = getScoreComment(score);
+
+            const resultBox = document.getElementById('assessment-result-box');
+            const scoreTxt = document.getElementById('assessment-score-txt');
+            const commentTxt = document.getElementById('assessment-comment');
+
+            scoreTxt.innerText = `得分：${score} / 100 分`;
+            commentTxt.innerHTML = comment;
+
+            resultBox.classList.remove('hidden');
+            resultBox.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function getScoreComment(score) {
+            if (score === 100) {
+                return `🥇 <strong>完美超群！你獲得了「小小數據統計大師」稱號！</strong><br>你完美的解答了直方圖、長條圖外觀與順序區別、百分比誤差微調、波浪省略線放大折線等最核心、最高考點的知識。現在，點擊下方可以刷新隨機題庫，再次精進練習！`;
+            } else if (score >= 80) {
+                return `🥈 <strong>極佳的表現！統計觀念相當完整！</strong><br>你已經具備數據分析師的絕佳底子，唯獨在部分隨機考點上有著微小偏差。快點擊「再挑戰一次」刷新題庫，拿到完美的 100 分！`;
+            } else {
+                return `🥉 <strong>還差一點點，加油！</strong><br>別氣餒，統計學是需要細心觀察的學問。你可以利用旁邊的【數位計算紙】與互動繪圖儀，回到前面章節，重溫柱子高度和圓心角計算，加油！`;
+            }
+        }
+
+        function resetAssessment() {
+            loadAssessmentQuiz();
+            showToast("🔄 隨機挑戰題庫已成功刷新！已為你重新挑選 5 題新題目，開始挑戰吧！");
+        }
+
+
+        // ========================================== 數位計算紙核心 ==========================================
+        function insertCalcText(text) {
+            const input = document.getElementById('calc-cli-input');
+            input.value += text;
+            input.focus();
+        }
+
+        function handleCalcKeydown(event) {
+            if (event.key === 'Enter') submitCalculation();
+        }
+
+        function assistFormula(expr) {
+            const input = document.getElementById('calc-cli-input');
+            input.value = expr;
+            input.focus();
+            showToast(`已將學習單上的提示公式 "${expr}" 代入到右側計算紙中！`);
+        }
+
+        function submitCalculation() {
+            const input = document.getElementById('calc-cli-input');
+            const raw = input.value.trim();
+            if (!raw) return;
+
+            // 轉換為 JS 可計算格式
+            let processed = raw
+                .replace(/×/g, '*')
+                .replace(/÷/g, '/')
+                .replace(/x/g, '*')
+                .replace(/X/g, '*')
+                .replace(/([0-9.]+)\%/g, "($1/100)")
+                .replace(/\^/g, "**")
+                .replace(/(pi|π)/gi, "3.1415926535")
+                .replace(/sqrt\(([^)]+)\)/g, "Math.sqrt($1)");
+
+            let result;
+            try {
+                // 安全消毒，防範惡意 XSS 注入
+                const sanitized = processed.replace(/[^0-9+\-*/().\s|&!<>=%Math.sqrt]/g, '');
+                const evalFn = new Function(`return (${sanitized});`);
+                const val = evalFn();
+
+                if (typeof val === 'number') {
+                    // 防止 JavaScript 原廠浮點精度誤差
+                    result = Math.round(val * 100000) / 100000;
+                } else {
+                    result = val;
+                }
+            } catch (err) {
+                result = "計算錯誤";
+            }
+
+            const item = {
+                id: 'calc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                rawInput: raw,
+                result: result
+            };
+            AppState.calculatorHistory.unshift(item);
+
+            if (AppState.calculatorHistory.length > 20) {
+                AppState.calculatorHistory.pop();
+            }
+
+            renderCalcHistory();
+            input.value = '';
+        }
+
+        function renderCalcHistory() {
+            const container = document.getElementById('history-rows');
+            if (!container) return;
+
+            let html = '';
+            AppState.calculatorHistory.forEach(item => {
+                const isError = item.result === "計算錯誤";
+                html += `
+                    <div id="${item.id}" class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-start gap-2 hover:border-slate-700 transition-all">
+                        <div class="space-y-1 flex-grow">
+                            <div class="text-slate-400 select-all font-semibold font-mono break-all">${item.rawInput}</div>
+                            <div class="font-bold ${isError ? 'text-red-400' : 'text-emerald-400'} select-all font-mono text-sm">= ${item.result}</div>
+                        </div>
+                        <button onclick="deleteHistoryRow('${item.id}')" class="text-slate-600 hover:text-red-400 font-bold p-1">
+                            ✕
+                        </button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function deleteHistoryRow(id) {
+            AppState.calculatorHistory = AppState.calculatorHistory.filter(item => item.id !== id);
+            renderCalcHistory();
+        }
+
+        function clearCalcHistory() {
+            AppState.calculatorHistory = [];
+            renderCalcHistory();
+            showToast("🧹 計算歷史紀錄已全部清除！");
+        }
+
+        function setTask1Mode(mode) {
+            AppState.task1.mode = mode;
+            const btnBar = document.getElementById('btn-t1-bar');
+            const btnHist = document.getElementById('btn-t1-hist');
+
+            if (mode === 'bar') {
+                btnBar.className = "flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm bg-white text-slate-800";
+                btnHist.className = "flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-800";
+            } else {
+                btnBar.className = "flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-800";
+                btnHist.className = "flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm bg-white text-slate-800";
+            }
+            renderTask1DataInputs();
+            renderTask1Chart();
+        }
+
+        function answerT1Quiz(isYes) {
+            const feedback = document.getElementById('t1-quiz-feedback');
+            feedback.classList.remove('hidden');
+            if (isYes === false) {
+                feedback.className = "mt-4 text-sm bg-emerald-50 text-emerald-800 p-4 rounded-xl font-bold border border-emerald-100";
+                feedback.innerHTML = "🎉 答對了！你對直方圖的本質非常清楚。直方圖的橫軸是連續的區間，所以順序絕不能任意調換。";
+            } else {
+                feedback.className = "mt-4 text-sm bg-red-50 text-red-800 p-4 rounded-xl font-bold border border-red-100";
+                feedback.innerHTML = "❌ 答錯囉！直方圖的柱子是不可以任意調換順序的，因為橫軸是連續的數值範圍。";
+            }
+        }
+    </script>
+</body>
+
+</html>
