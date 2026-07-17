@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>質因數分解與公因倍數探險家</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- React & UMD CDN -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.15.0/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* 晃動動畫 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .shake-animation {
+            animation: shake 0.4s ease-in-out;
+        }
+        /* 脈衝綠光暈 */
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+        }
+        .pulse-green-glow {
+            animation: pulse-green 2s infinite;
+        }
+        /* 煙火粒子動畫 */
+        @keyframes particle-fade {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--x), var(--y)) scale(0.5); opacity: 0; }
+        }
+        .success-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: particle-fade 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        .node-enter {
+            transform-origin: center;
+            transform-box: fill-box;
+            animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+        const { createRoot } = ReactDOM;
+
+        // --- 容錯型 Lucide 圖示元件 ---
+        const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
+            if (!window.lucide || !window.lucide.icons) {
+                return <span className="inline-block bg-slate-200 rounded text-xs text-slate-500 flex items-center justify-center" style={{ width: size, height: size }}>?</span>;
+            }
+            const getIconData = (iconName) => {
+                const icons = window.lucide.icons;
+                if (!iconName) return icons['CircleHelp'];
+                if (icons[iconName]) return icons[iconName];
+                const camel = iconName.charAt(0).toLowerCase() + iconName.slice(1);
+                if (icons[camel]) return icons[camel];
+                const kebab = iconName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+                if (icons[kebab]) return icons[kebab];
+                return icons['CircleHelp'] || icons['circle-help'];
+            };
+            const iconData = getIconData(name);
+            if (!iconData) return null;
+            const [tag, attrs, children] = Array.isArray(iconData) ? iconData : [iconData.tag || 'svg', iconData.attrs || {}, iconData.children || []];
+            const convertAttrs = (tAttrs) => {
+                const map = { 'stroke-width': 'strokeWidth', 'stroke-linecap': 'strokeLinecap', 'stroke-linejoin': 'strokeLinejoin' };
+                return Object.entries(tAttrs).reduce((acc, [k, v]) => { acc[map[k] || k] = v; return acc; }, {});
+            };
+            const renderChild = (c, i) => React.createElement(c[0] || c.tag, { ...convertAttrs(c[1] || c.attrs), key: i });
+            return React.createElement(tag, { ...convertAttrs(attrs), width: size, height: size, className, strokeWidth: 2, ...props }, children.map(renderChild));
+        };
+
+        const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19];
+
+        const isPrime = (num) => {
+            if (num <= 1) return false;
+            if (num <= 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            for (let i = 5; i * i <= num; i += 6) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+            }
+            return true;
+        };
+
+        const getPrimeFactors = (num) => {
+            let n = num;
+            const factors = [];
+            let d = 2;
+            while (n > 1) {
+                while (n % d === 0) {
+                    factors.push(d);
+                    n /= d;
+                }
+                d++;
+                if (d * d > n && n > 1) {
+                    factors.push(n);
+                    break;
+                }
+            }
+            return factors;
+        };
+
+        const getGCD = (a, b) => {
+            let x = a, y = b;
+            while (y !== 0) {
+                const temp = x % y;
+                x = y;
+                y = temp;
+            }
+            return x;
+        };
+
+        const getLCM = (a, b) => {
+            return (a * b) / getGCD(a, b);
+        };
+
+        const areCoprime = (a, b) => {
+            return getGCD(a, b) === 1;
+        };
+
+        const shuffleArray = (arr) => {
+            const shuffled = [...arr];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        };
+
+        // --- Enter 鍵焦點跳轉 Helper (包含自動點擊確認按鈕) ---
+        const handleEnterFocusNext = (e, submitBtnId = null) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const form = e.target.form || document;
+                const focusable = Array.from(form.querySelectorAll('input:not([disabled]), select:not([disabled]), button:not([disabled])'));
+                const index = focusable.indexOf(e.target);
+                if (index > -1 && index + 1 < focusable.length) {
+                    const nextEl = focusable[index + 1];
+                    nextEl.focus();
+                } else if (submitBtnId) {
+                    // 若已是最後一欄，且有傳入 submitBtnId，則主動點選確認
+                    const btn = document.getElementById(submitBtnId);
+                    btn?.click();
+                }
+            }
+        };
+
+        // --- 數位計算紙 (CLI Scratchpad) 元件 ---
+        function Scratchpad() {
+            const [input, setInput] = useState('');
+            const [history, setHistory] = useState([]);
+            const historyEndRef = useRef(null);
+
+            const parseExpression = (expr) => {
+                try {
+                    let cleaned = expr
+                        .replace(/[Xx×]/g, '*')
+                        .replace(/÷/g, '/')
+                        .replace(/([\d.]+)\s*%/g, '($1/100)')
+                        .replace(/\^/g, '**')
+                        .replace(/(pi|π)/gi, '3.14159265')
+                        .replace(/sqrt\(([^)]+)\)/g, 'Math.sqrt($1)');
+                    
+                    const result = new Function(`return ${cleaned}`)();
+                    if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
+                        return 'Error';
+                    }
+                    return Math.round(result * 10000) / 10000;
+                } catch (e) {
+                    return 'Error';
+                }
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!input.trim()) return;
+                const res = parseExpression(input);
+                setHistory([...history, { expr: input, result: res }]);
+                setInput('');
+            };
+
+            useEffect(() => {
+                historyEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [history]);
+
+            return (
+                <div className="bg-slate-900 text-slate-100 rounded-3xl p-4 shadow-xl border border-slate-800 flex flex-col h-[380px] w-full lg:w-[260px] shrink-0 sticky top-24">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                            <LucideIcon name="Calculator" size={14} className="text-blue-400" />
+                            <span>數位計算紙</span>
+                        </div>
+                        <button onClick={() => setHistory([])} className="text-[10px] text-slate-500 hover:text-red-400 transition-colors font-bold">全清除</button>
+                    </div>
+                    
+                    <div className="flex-grow overflow-y-auto space-y-1.5 text-sm hide-scrollbar pr-1">
+                        {history.length === 0 && (
+                            <div className="text-slate-600 text-xs text-center py-12 leading-relaxed">
+                                輸入如: 120 / 3<br />
+                                支援: +, -, *, /, sqrt(x)<br />
+                                按 Enter 即可送出計算
+                            </div>
+                        )}
+                        {history.map((h, i) => (
+                            <div key={i} className="flex flex-col border-b border-slate-800/40 pb-1">
+                                <div className="text-slate-500 text-xs font-mono">{h.expr}</div>
+                                <div className="text-emerald-400 font-mono text-right">= {h.result}</div>
+                            </div>
+                        ))}
+                        <div ref={historyEndRef} />
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="mt-2 pt-2 border-t border-slate-800">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="輸入算式..."
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-emerald-400 font-mono focus:outline-none focus:border-emerald-500"
+                        />
+                    </form>
+                </div>
+            );
+        }
+
+        // --- 模組一：認識質因數與互質 (Concept) ---
+        function ConceptModule() {
+            const [number, setNumber] = useState(6);
+            const [blocksMode, setBlocksMode] = useState('row'); 
+            const [message, setMessage] = useState('');
+
+            const [numA, setNumA] = useState(8);
+            const [numB, setNumB] = useState(9);
+
+            const numPrimes = useMemo(() => {
+                const factors = [];
+                for (let i = 1; i <= number; i++) {
+                    if (number % i === 0) factors.push(i);
+                }
+                const primeFactors = factors.filter(f => isPrime(f));
+                return { factors, primeFactors };
+            }, [number]);
+
+            const factorGrids = useMemo(() => {
+                const pairs = [];
+                for (let i = 1; i <= number; i++) {
+                    if (number % i === 0) {
+                        pairs.push({ rows: i, cols: number / i });
+                    }
+                }
+                return pairs;
+            }, [number]);
+
+            const [gridPair, setGridPair] = useState({ rows: 1, cols: 6 });
+
+            useEffect(() => {
+                if (factorGrids.length > 0) {
+                    setGridPair(factorGrids[0]);
+                    setBlocksMode('row');
+                }
+                setMessage('');
+            }, [number, factorGrids]);
+
+            const isCurrentNumPrime = isPrime(number);
+
+            const handleToggleGrid = (pair) => {
+                if (isCurrentNumPrime && pair.rows > 1) {
+                    setMessage(`⚠️ ${number} 是質數，只能被 1 和自己整除，所以無法排成寬度大於 1 的矩形積木牆喔！`);
+                    return;
+                }
+                setGridPair(pair);
+                setBlocksMode(pair.rows === 1 ? 'row' : 'grid');
+                setMessage('');
+            };
+
+            const coprimeData = useMemo(() => {
+                const factorsA = [];
+                const factorsB = [];
+                for (let i = 1; i <= numA; i++) if (numA % i === 0) factorsA.push(i);
+                for (let i = 1; i <= numB; i++) if (numB % i === 0) factorsB.push(i);
+                
+                const common = factorsA.filter(f => factorsB.includes(f));
+                const coprime = common.length === 1 && common[0] === 1;
+                return { factorsA, factorsB, common, coprime };
+            }, [numA, numB]);
+
+            return (
+                <div className="space-y-8 animate-fade-in">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div className="lg:col-span-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-3xl p-6 shadow-md">
+                            <h2 className="text-xl font-black mb-1">【觀念一】認識質數、合數與質因數</h2>
+                            <p className="text-blue-100 text-xs font-medium">使用下方的積木與列排探索數字的底層因數結構。</p>
+                        </div>
+
+                        <div className="lg:col-span-6 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col items-center">
+                            <h3 className="text-sm font-bold text-slate-700 mb-4 w-full text-left flex items-center gap-2">
+                                <LucideIcon name="ToyBrick" className="text-blue-500" />
+                                <span>數值積木操作箱 (自訂 2-50)</span>
+                            </h3>
+
+                            <div className="flex gap-2 mb-4 w-full justify-between items-center">
+                                <div className="flex gap-1 flex-wrap">
+                                    {[4, 6, 7, 12, 13, 15].map(n => (
+                                        <button 
+                                            key={n}
+                                            onClick={() => setNumber(n)}
+                                            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${
+                                                number === n ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                                <input 
+                                    type="number" min="2" max="50" value={number}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value);
+                                        if (val >= 2 && val <= 50) setNumber(val);
+                                    }}
+                                    className="w-16 px-2 py-1 border border-slate-200 rounded-xl text-center font-bold"
+                                />
+                            </div>
+                            
+                            <div className="min-h-[200px] flex items-center justify-center w-full border border-dashed border-slate-100 rounded-2xl p-4 bg-slate-50">
+                                <div className="grid gap-1.5" style={{ gridTemplateRows: `repeat(${gridPair.rows}, minmax(0, 1fr))`, gridTemplateColumns: `repeat(${gridPair.cols}, minmax(0, 1fr))` }}>
+                                    {Array.from({ length: number }).map((_, i) => (
+                                        <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs text-white shadow-sm ${
+                                            isCurrentNumPrime ? 'bg-rose-500 border border-rose-600' : 'bg-indigo-500 border border-indigo-600'
+                                        }`}>{i + 1}</div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {message && <div className="mt-4 text-xs font-bold text-rose-500 bg-rose-50 px-3 py-2 rounded-xl w-full text-center">{message}</div>}
+
+                            <div className="mt-4 w-full space-y-2">
+                                <span className="text-xs font-bold text-slate-500 block">嘗試排列矩形積木：</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {factorGrids.map((pair, idx) => (
+                                        <button
+                                            key={idx} onClick={() => handleToggleGrid(pair)}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                                                gridPair.rows === pair.rows ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white text-slate-600 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            {pair.rows} × {pair.cols}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-6 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-5">
+                            <div className={`p-4 rounded-2xl border ${isCurrentNumPrime ? 'bg-rose-50/50 border-rose-100 text-rose-800' : 'bg-indigo-50/50 border-indigo-100 text-indigo-800'}`}>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full text-white ${isCurrentNumPrime ? 'bg-rose-500' : 'bg-indigo-500'}`}>{isCurrentNumPrime ? '質數' : '合數'}</span>
+                                <span className="font-bold ml-2">{number} 是{isCurrentNumPrime ? '質數' : '合數'}</span>
+                                <p className="text-xs mt-2 leading-relaxed">
+                                    {isCurrentNumPrime 
+                                        ? `因為 ${number} 只有 1 和自己（共 2 個）因數。它無法被除了自己和 1 以外的質數整除。` 
+                                        : `因為除了 1 和自己，它還有別的因數！如上面的積木展示，它能排成 ${gridPair.rows} 行的矩形。`}
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <span className="text-xs font-bold text-slate-500">所有的因數 (共有 {numPrimes.factors.length} 個)：</span>
+                                <div className="flex flex-wrap gap-1">
+                                    {numPrimes.factors.map(f => (
+                                        <span key={f} className={`text-xs font-black px-2 py-0.5 rounded-md border ${
+                                            isPrime(f) ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'
+                                        }`}>{f} {isPrime(f) ? '🌱' : ''}</span>
+                                    ))}
+                                </div>
+                                <span className="text-[10px] text-slate-400 block">🌱 標示為綠色代表這個因數是「質數」</span>
+                            </div>
+
+                            <div className="space-y-2 border-t border-slate-100 pt-4">
+                                <span className="text-xs font-bold text-slate-700 block">🌱 {number} 的「質因數」有：</span>
+                                {numPrimes.primeFactors.length > 0 ? (
+                                    <div className="flex gap-2">
+                                        {numPrimes.primeFactors.map(pf => (
+                                            <span key={pf} className="text-xs font-black text-emerald-600 bg-white border border-emerald-200 px-2.5 py-1 rounded-lg">{pf}</span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-rose-500">無（1 沒有質因數，大於 1 的質數質因數只有它自己）</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 互質探索 */}
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <h2 className="text-base font-bold text-slate-800 mb-1">【觀念二】認識「互質」的概念</h2>
+                            <p className="text-slate-500 text-xs">當兩個大於 0 的整數，它們的**最大公因數是 1**時，我們就說這兩個數「互質」。</p>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                            <div className="flex gap-3 items-center shrink-0 w-full md:w-auto">
+                                <div className="flex flex-col gap-1.5">
+                                    <span className="text-xs font-bold text-slate-400">輸入數字 A</span>
+                                    <input 
+                                        type="number" min="1" max="100" value={numA}
+                                        onChange={(e) => setNumA(parseInt(e.target.value) || 1)}
+                                        className="w-24 px-3 py-2 border border-slate-200 rounded-xl font-bold text-center"
+                                    />
+                                </div>
+                                <span className="text-slate-400 font-bold self-end mb-2">與</span>
+                                <div className="flex flex-col gap-1.5">
+                                    <span className="text-xs font-bold text-slate-400">輸入數字 B</span>
+                                    <input 
+                                        type="number" min="1" max="100" value={numB}
+                                        onChange={(e) => setNumB(parseInt(e.target.value) || 1)}
+                                        className="w-24 px-3 py-2 border border-slate-200 rounded-xl font-bold text-center"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex-grow space-y-4 w-full">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-xs font-mono">
+                                        <span className="font-bold text-slate-600 block mb-1">{numA} 的因數有：</span>
+                                        <span className="font-semibold text-slate-700">{coprimeData.factorsA.join(', ')}</span>
+                                    </div>
+                                    <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-xs font-mono">
+                                        <span className="font-bold text-slate-600 block mb-1">{numB} 的因數有：</span>
+                                        <span className="font-semibold text-slate-700">{coprimeData.factorsB.join(', ')}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 rounded-2xl border bg-white">
+                                    <div className="text-xs space-y-1">
+                                        <span className="text-slate-400 font-bold block">共同的公因數：</span>
+                                        <span className="text-base font-black text-indigo-600">{coprimeData.common.join(', ')}</span>
+                                    </div>
+                                    <div className={`px-4 py-2 rounded-xl text-sm font-black flex items-center gap-1.5 ${
+                                        coprimeData.coprime 
+                                            ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 animate-pulse' 
+                                            : 'bg-rose-50 border border-rose-200 text-rose-700'
+                                    }`}>
+                                        <LucideIcon name={coprimeData.coprime ? "ShieldCheck" : "ShieldAlert"} size={16} />
+                                        <span>兩數 {coprimeData.coprime ? '互質🌱' : '不互質'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 模組二：樹狀圖質因數分解 (Factor Tree) ---
+        function FactorTreeModule() {
+            const [targetNumber, setTargetNumber] = useState(24);
+            const [nodes, setNodes] = useState([]); 
+            const [selectedNodeId, setSelectedNodeId] = useState(null);
+            
+            const [inputA, setInputA] = useState('');
+            const [inputB, setInputB] = useState('');
+            const [feedback, setFeedback] = useState('');
+
+            const correctFactors = useMemo(() => getPrimeFactors(targetNumber), [targetNumber]);
+
+            const handleInitTree = (num) => {
+                setTargetNumber(num);
+                setNodes([{
+                    id: 0,
+                    value: num,
+                    parentId: null,
+                    leftChildId: null,
+                    rightChildId: null,
+                    x: 300,
+                    y: 40,
+                    isPrime: isPrime(num)
+                }]);
+                setSelectedNodeId(null);
+                setInputA('');
+                setInputB('');
+                setFeedback('');
+            };
+
+            useEffect(() => {
+                handleInitTree(24);
+            }, []);
+
+            const isCompleted = useMemo(() => {
+                if (nodes.length === 0) return false;
+                const leaves = nodes.filter(n => n.leftChildId === null);
+                return leaves.every(n => n.isPrime);
+            }, [nodes]);
+
+            const leafValues = useMemo(() => {
+                if (!isCompleted) return [];
+                const leaves = nodes.filter(n => n.leftChildId === null);
+                return leaves.map(n => n.value).sort((a,b)=>a-b);
+            }, [nodes, isCompleted]);
+
+            const handleNodeClick = (node) => {
+                if (node.isPrime || isCompleted) return; 
+                setSelectedNodeId(node.id);
+                setInputA('');
+                setInputB('');
+                setFeedback('');
+            };
+
+            const handleSplitNode = (e) => {
+                e.preventDefault();
+                const node = nodes.find(n => n.id === selectedNodeId);
+                if (!node) return;
+
+                const valA = parseInt(inputA);
+                const valB = parseInt(inputB);
+
+                if (isNaN(valA) || isNaN(valB) || valA <= 1 || valB <= 1) {
+                    setFeedback('⚠️ 請輸入大於 1 的正整數！');
+                    return;
+                }
+
+                if (valA * valB !== node.value) {
+                    setFeedback(`❌ 兩數相乘不等於 ${node.value}！請重新計算因數。`);
+                    return;
+                }
+
+                const leftId = nodes.length;
+                const rightId = nodes.length + 1;
+                const depth = Math.round((node.y - 40) / 75); 
+                const xOffset = Math.max(25, 80 - depth * 20);
+
+                const newLeft = {
+                    id: leftId,
+                    value: valA,
+                    parentId: node.id,
+                    leftChildId: null,
+                    rightChildId: null,
+                    x: node.x - xOffset,
+                    y: node.y + 75,
+                    isPrime: isPrime(valA)
+                };
+
+                const newRight = {
+                    id: rightId,
+                    value: valB,
+                    parentId: node.id,
+                    leftChildId: null,
+                    rightChildId: null,
+                    x: node.x + xOffset,
+                    y: node.y + 75,
+                    isPrime: isPrime(valB)
+                };
+
+                const updatedNodes = nodes.map(n => {
+                    if (n.id === node.id) {
+                        return { ...n, leftChildId: leftId, rightChildId: rightId };
+                    }
+                    return n;
+                });
+
+                setNodes([...updatedNodes, newLeft, newRight]);
+                setSelectedNodeId(null);
+                setFeedback('');
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex flex-wrap gap-4 items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
+                            <span>選擇分解數字:</span>
+                            <div className="flex gap-1">
+                                {[18, 24, 30, 36, 48].map(n => (
+                                    <button 
+                                        key={n} onClick={() => handleInitTree(n)}
+                                        className={`px-3 py-1.5 rounded-xl font-bold text-xs ${
+                                            targetNumber === n ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        {n}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <span className="text-xs text-slate-400 font-bold">🎯 點選樹上的「橘色合數」節點即可進行分裂。</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        {/* 樹狀圖畫布 */}
+                        <div className="lg:col-span-8 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col items-center overflow-x-auto">
+                            <h4 className="text-xs font-bold text-slate-400 mb-4 w-full text-center">樹狀圖質因數分解 (Factor Tree)</h4>
+                            
+                            <div className="w-[600px] h-[360px] bg-slate-50 border border-slate-100 rounded-2xl relative">
+                                <svg width="600" height="360" viewBox="0 0 600 360" className="absolute top-0 left-0">
+                                    {nodes.map(node => {
+                                        if (node.leftChildId !== null) {
+                                            const leftChild = nodes.find(n => n.id === node.leftChildId);
+                                            const rightChild = nodes.find(n => n.id === node.rightChildId);
+                                            return (
+                                                <g key={node.id}>
+                                                    {leftChild && (
+                                                        <line 
+                                                            x1={node.x} y1={node.y + 15} 
+                                                            x2={leftChild.x} y2={leftChild.y - 15} 
+                                                            stroke="#94a3b8" strokeWidth="2.5"
+                                                        />
+                                                    )}
+                                                    {rightChild && (
+                                                        <line 
+                                                            x1={node.x} y1={node.y + 15} 
+                                                            x2={rightChild.x} y2={rightChild.y - 15} 
+                                                            stroke="#94a3b8" strokeWidth="2.5"
+                                                        />
+                                                    )}
+                                                </g>
+                                            );
+                                        }
+                                        return null;
+                                    })}
+
+                                    {nodes.map(node => {
+                                        const isSelected = selectedNodeId === node.id;
+                                        const isLeaf = node.leftChildId === null;
+                                        
+                                        let fillColor = "fill-amber-400 stroke-amber-500"; 
+                                        let textColor = "fill-amber-950";
+                                        
+                                        if (node.isPrime) {
+                                            fillColor = "fill-emerald-500 stroke-emerald-600"; 
+                                            textColor = "fill-white";
+                                        } else if (!isLeaf) {
+                                            fillColor = "fill-slate-200 stroke-slate-300"; 
+                                            textColor = "fill-slate-600";
+                                        }
+
+                                        return (
+                                            <g 
+                                                key={node.id} 
+                                                className="cursor-pointer" 
+                                                transform={`translate(${node.x}, ${node.y})`}
+                                                onClick={() => handleNodeClick(node)}
+                                            >
+                                                <circle 
+                                                    r="20" 
+                                                    className={`${fillColor} transition-all duration-200 stroke-2 ${isSelected ? 'stroke-blue-500 stroke-[4px] fill-blue-50' : ''}`}
+                                                />
+                                                <text 
+                                                    textAnchor="middle" 
+                                                    dy="6" 
+                                                    className={`${isSelected ? 'fill-blue-700' : textColor} font-black text-sm font-mono`}
+                                                >
+                                                    {node.value}
+                                                </text>
+                                            </g>
+                                        );
+                                    })}
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* 分裂操作面板 */}
+                        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6 min-h-[300px] flex flex-col justify-between">
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                    <LucideIcon name="Settings" className="text-indigo-500" />
+                                    <span>分枝控制箱</span>
+                                </h3>
+
+                                {selectedNodeId !== null ? (
+                                    <form onSubmit={handleSplitNode} className="space-y-4" id="split-form">
+                                        <div className="bg-blue-50 border border-blue-100 p-3 rounded-2xl text-xs font-bold text-blue-700">
+                                            正在拆解數字：{nodes.find(n => n.id === selectedNodeId)?.value}
+                                        </div>
+                                        
+                                        <div className="flex gap-2 items-center">
+                                            <input 
+                                                type="number" placeholder="因數 A"
+                                                value={inputA} onChange={(e) => setInputA(e.target.value)}
+                                                onKeyDown={(ev) => handleEnterFocusNext(ev)}
+                                                className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-center text-sm"
+                                            />
+                                            <span className="text-slate-400 font-bold">×</span>
+                                            <input 
+                                                type="number" placeholder="因數 B"
+                                                value={inputB} onChange={(e) => setInputB(e.target.value)}
+                                                onKeyDown={(ev) => handleEnterFocusNext(ev, 'submit-split-btn')}
+                                                className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-center text-sm"
+                                            />
+                                        </div>
+
+                                        {feedback && <div className="text-xs font-bold text-rose-500 text-center">{feedback}</div>}
+
+                                        <button 
+                                            id="submit-split-btn"
+                                            type="submit"
+                                            className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow active:scale-95 transition-all"
+                                        >
+                                            分裂節點
+                                        </button>
+                                    </form>
+                                ) : isCompleted ? (
+                                    <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl text-center space-y-3">
+                                        <span className="text-emerald-800 font-black text-sm block">🎉 樹狀圖質因數分解成功！</span>
+                                        <div className="text-xl font-black text-emerald-600 bg-white py-2 rounded-xl border border-emerald-200 font-mono">
+                                            {targetNumber} = {leafValues.join(' × ')}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-slate-400 text-center py-12">
+                                        請點擊左側樹狀圖中的「橘色合數節點」，開始進行分裂。
+                                    </div>
+                                )}
+                            </div>
+
+                            <button 
+                                onClick={() => handleInitTree(targetNumber)}
+                                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs"
+                            >
+                                重新挑戰樹狀圖
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 模組三：單數短除法實驗室 (Short Division) ---
+        function ShortDivisionModule() {
+            const [targetNumber, setTargetNumber] = useState(36);
+            const [customInput, setCustomInput] = useState('');
+            const [steps, setSteps] = useState([]); 
+            
+            const [currentDivisor, setCurrentDivisor] = useState(null); 
+            const [inputQuotient, setInputQuotient] = useState('');
+            const [isShaking, setIsShaking] = useState(false);
+            const [feedback, setFeedback] = useState({ type: '', text: '' });
+            const [particles, setParticles] = useState([]);
+            
+            const [quizFormula, setQuizFormula] = useState([]);
+            const [quizVerified, setQuizVerified] = useState(false);
+
+            const inputRef = useRef(null);
+
+            const currentBottom = useMemo(() => {
+                if (steps.length === 0) return targetNumber;
+                return steps[steps.length - 1].quotient;
+            }, [targetNumber, steps]);
+
+            const correctFactors = useMemo(() => getPrimeFactors(targetNumber), [targetNumber]);
+            const isBottomPrime = useMemo(() => isPrime(currentBottom), [currentBottom]);
+
+            const handleResetLab = (num) => {
+                setTargetNumber(num);
+                setSteps([]);
+                setCurrentDivisor(null);
+                setInputQuotient('');
+                setFeedback({ type: '', text: '' });
+                setQuizFormula([]);
+                setQuizVerified(false);
+            };
+
+            const handleCustomSubmit = (e) => {
+                e.preventDefault();
+                const val = parseInt(customInput);
+                if (val >= 10 && val <= 500) {
+                    handleResetLab(val);
+                    setCustomInput('');
+                } else {
+                    alert("請輸入 10-500 之間的數！");
+                }
+            };
+
+            const triggerShake = () => {
+                setIsShaking(true);
+                setTimeout(() => setIsShaking(false), 400);
+            };
+
+            const handleSelectPrime = (prime) => {
+                if (isBottomPrime) return;
+                
+                if (currentBottom % prime !== 0) {
+                    let hint = `❌ ${currentBottom} 不能被 ${prime} 整除喔！`;
+                    if (prime === 2 && currentBottom % 2 !== 0) hint += '（提示：用 3、5 試試奇數質數）';
+                    else if (prime === 3) {
+                        const sum = String(currentBottom).split('').reduce((a,b)=>parseInt(a)+parseInt(b), 0);
+                        hint += `（提示：數字加總是 ${sum}，不是 3 的倍數）`;
+                    }
+                    else if (prime === 5 && !String(currentBottom).endsWith('0') && !String(currentBottom).endsWith('5')) hint += '（提示：尾數必須是 0 或 5）';
+                    
+                    setFeedback({ type: 'error', text: hint });
+                    triggerShake();
+                    return;
+                }
+
+                setCurrentDivisor(prime);
+                setInputQuotient('');
+                setFeedback({ type: 'success', text: `選對了！請輸入 ${currentBottom} ÷ ${prime} 的商數：` });
+                setTimeout(() => inputRef.current?.focus(), 100);
+            };
+
+            const handleVerifyQuotient = (e) => {
+                e.preventDefault();
+                if (!currentDivisor) return;
+
+                const expected = currentBottom / currentDivisor;
+                const userVal = parseInt(inputQuotient);
+
+                if (userVal !== expected) {
+                    setFeedback({ type: 'error', text: `❌ 計算錯誤囉！${currentBottom} ÷ ${currentDivisor} 應該是多少呢？再算算看！` });
+                    triggerShake();
+                    return;
+                }
+
+                const newStep = { dividend: currentBottom, divisor: currentDivisor, quotient: expected };
+                setSteps([...steps, newStep]);
+                setCurrentDivisor(null);
+                setInputQuotient('');
+
+                if (isPrime(expected)) {
+                    setFeedback({ type: 'success', text: `🎉 商 ${expected} 已經是質數，短除法成功！請在下方寫出質因數分解式。` });
+                    setQuizFormula(Array(correctFactors.length).fill(''));
+                } else {
+                    setFeedback({ type: 'success', text: `✅ 答對了！商是 ${expected}。請繼續選擇能整除 ${expected} 的質數！` });
+                }
+            };
+
+            const handleVerifyQuizFormula = () => {
+                const userVals = quizFormula.map(v => parseInt(v)).sort((a,b)=>a-b);
+                const isCorrect = userVals.length === correctFactors.length && userVals.every((v, i) => v === correctFactors[i]);
+                
+                if (isCorrect) {
+                    setQuizVerified(true);
+                    setFeedback({ type: 'success', text: `🌟 太棒了！您成功寫出了質因數分解式：${targetNumber} = ${correctFactors.join(' × ')}！` });
+                } else {
+                    setFeedback({ type: 'error', text: '⚠️ 算式因數不正確或未填滿！' });
+                    triggerShake();
+                }
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
+                    <div className="lg:col-span-8 space-y-6">
+                        <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex flex-wrap gap-3 items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-500 text-xs">選擇練習數字:</span>
+                                <div className="flex gap-1 flex-wrap">
+                                    {[24, 36, 60, 72, 90].map(n => (
+                                        <button 
+                                            key={n} onClick={() => handleResetLab(n)}
+                                            className={`px-3 py-1.5 rounded-xl font-bold text-xs ${
+                                                targetNumber === n ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <form onSubmit={handleCustomSubmit} className="flex items-center gap-2">
+                                <input 
+                                    type="number" min="10" max="500" placeholder="自訂 10-500"
+                                    value={customInput} onChange={(e) => setCustomInput(e.target.value)}
+                                    className="w-28 px-3 py-1.5 border border-slate-200 rounded-xl text-center text-xs font-bold"
+                                />
+                                <button type="submit" className="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-xs font-bold">確認</button>
+                            </form>
+                        </div>
+
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            {/* 短除法直式 - 精準對齊優化 */}
+                            <div className="flex flex-col items-center border-r border-slate-100 pr-0 md:pr-6 justify-center min-h-[300px]">
+                                <h4 className="text-xs font-bold text-slate-400 mb-6 text-center w-full">短除法直式</h4>
+                                <div className="font-mono text-2xl flex flex-col items-start w-fit">
+                                    <table className="border-collapse">
+                                        <tbody>
+                                            {steps.map((s, idx) => (
+                                                <tr key={idx}>
+                                                    {/* 除數列 - 靠右對齊 */}
+                                                    <td className="text-right pr-3 text-blue-600 font-mono font-black border-r-4 border-slate-400 w-16 h-12 leading-[48px]">
+                                                        {s.divisor}
+                                                    </td>
+                                                    {/* 被除數列 - 精確右對齊與固定寬度 */}
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-slate-800 border-b-4 border-slate-400 min-w-[120px] h-12 leading-[48px]">
+                                                        {s.dividend}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {!isBottomPrime && (
+                                                <tr>
+                                                    <td className="text-right pr-3 text-blue-600 font-mono font-black border-r-4 border-slate-400 w-16 h-12 leading-[48px]">
+                                                        {currentDivisor ? currentDivisor : <span className="text-slate-300 text-xs font-sans font-normal animate-pulse">選質數</span>}
+                                                    </td>
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-slate-800 border-b-4 border-slate-400 min-w-[120px] h-12 leading-[48px]">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <span>{currentBottom}</span>
+                                                            {currentDivisor && (
+                                                                <form onSubmit={handleVerifyQuotient} className="inline-flex items-center gap-1 shrink-0">
+                                                                    <input
+                                                                        ref={inputRef} type="text" value={inputQuotient}
+                                                                        onChange={(e) => setInputQuotient(e.target.value)}
+                                                                        placeholder="輸入商"
+                                                                        className={`w-16 text-center py-0.5 border-2 border-amber-400 rounded-md text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-200 ${isShaking ? 'shake-animation' : ''}`}
+                                                                    />
+                                                                    <button type="submit" className="bg-amber-400 text-amber-950 font-black text-xs px-2 py-1 rounded hover:bg-amber-500">✓</button>
+                                                                </form>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {isBottomPrime && (
+                                                <tr>
+                                                    <td className="w-16 border-r-4 border-slate-400 h-12"></td>
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-emerald-600 bg-emerald-50 rounded-xl min-w-[120px] h-12 leading-[48px] border border-emerald-100 shadow-inner">
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            <span>{currentBottom}</span>
+                                                            <span className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded-full leading-none font-sans">質數</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* 除數選擇區 */}
+                            <div className="flex flex-col justify-between space-y-6">
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold text-slate-600">選擇公質數除數：</h4>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {PRIMES.map(p => {
+                                            const isDivisible = currentBottom % p === 0 && !isBottomPrime;
+                                            return (
+                                                <button
+                                                    key={p} disabled={isBottomPrime || currentDivisor !== null}
+                                                    onClick={() => handleSelectPrime(p)}
+                                                    className={`py-3 rounded-2xl font-black text-lg border-2 transition-all active:scale-95 flex flex-col items-center justify-center ${
+                                                        isBottomPrime || currentDivisor !== null
+                                                            ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed'
+                                                            : isDivisible
+                                                                ? 'bg-blue-50 border-blue-200 text-blue-700 hover:border-blue-500 shadow-sm pulse-green-glow'
+                                                                : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className={`p-4 rounded-2xl border min-h-[90px] flex items-center justify-center transition-all ${
+                                    feedback.text 
+                                        ? feedback.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-800 animate-shake' : 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                                        : 'bg-slate-50 border-slate-100 text-slate-400 text-xs text-center'
+                                }`}>
+                                    <p className="text-xs leading-relaxed font-bold text-center">
+                                        {feedback.text || '🌱 請點選上方閃爍的「質數」按鈕，對數字進行短除法分解。'}
+                                    </p>
+                                </div>
+
+                                <button onClick={() => handleResetLab(targetNumber)} className="w-full py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl font-bold text-xs">
+                                    重新挑戰此數
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 等式填空 - Enter 自動聚焦 */}
+                        {isBottomPrime && (
+                            <form onSubmit={(e) => { e.preventDefault(); handleVerifyQuizFormula(); }} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4" id="formula-form">
+                                <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                    <LucideIcon name="Crown" className="text-amber-500" />
+                                    <span>寫出 {targetNumber} 的質因數分解式</span>
+                                </h4>
+                                <div className="flex flex-wrap items-center gap-3 text-2xl font-black text-slate-800">
+                                    <span className="font-mono">{targetNumber}</span>
+                                    <span>=</span>
+                                    {quizFormula.map((val, idx) => (
+                                        <React.Fragment key={idx}>
+                                            <input
+                                                type="text" disabled={quizVerified} value={val}
+                                                onChange={(e) => {
+                                                    const updated = [...quizFormula];
+                                                    updated[idx] = e.target.value;
+                                                    setQuizFormula(updated);
+                                                }}
+                                                onKeyDown={(ev) => handleEnterFocusNext(ev, 'verify-formula-btn')}
+                                                placeholder="?"
+                                                className={`w-12 text-center py-1 border-2 border-slate-200 rounded-xl text-xl font-bold font-mono focus:outline-none focus:border-blue-500 ${
+                                                    quizVerified ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50'
+                                                }`}
+                                            />
+                                            {idx < quizFormula.length - 1 && <span className="text-slate-400">×</span>}
+                                        </React.Fragment>
+                                    ))}
+                                    {!quizVerified && (
+                                        <button 
+                                            id="verify-formula-btn"
+                                            type="submit"
+                                            className="ml-4 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-bold shadow active:scale-95 transition-all"
+                                        >
+                                            檢查算式
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                    
+                    <div className="lg:col-span-4 flex flex-col items-center">
+                        <Scratchpad />
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 模組四：雙數短除法 (GCD & LCM Lab) ---
+        function GcdLcmModule() {
+            const [numA, setNumA] = useState(12);
+            const [numB, setNumB] = useState(18);
+            const [customA, setCustomA] = useState('');
+            const [customB, setCustomB] = useState('');
+
+            const [steps, setSteps] = useState([]); 
+            
+            const [currentDivisor, setCurrentDivisor] = useState(null);
+            const [inputQuotientA, setInputQuotientA] = useState('');
+            const [inputQuotientB, setInputQuotientB] = useState('');
+            const [isShaking, setIsShaking] = useState(false);
+            const [feedback, setFeedback] = useState({ type: '', text: '' });
+
+            const [gcdInputs, setGcdInputs] = useState([]); 
+            const [gcdAns, setGcdAns] = useState('');
+            const [lcmInputs, setLcmInputs] = useState([]);
+            const [lcmAns, setLcmAns] = useState('');
+            const [verified, setVerified] = useState(false);
+
+            const inputARef = useRef(null);
+
+            const currentBottomA = useMemo(() => {
+                if (steps.length === 0) return numA;
+                return steps[steps.length - 1].quotientA;
+            }, [numA, steps]);
+
+            const currentBottomB = useMemo(() => {
+                if (steps.length === 0) return numB;
+                return steps[steps.length - 1].quotientB;
+            }, [numB, steps]);
+
+            const isBottomCoprime = useMemo(() => {
+                return areCoprime(currentBottomA, currentBottomB);
+            }, [currentBottomA, currentBottomB]);
+
+            const handleResetLab = (a, b) => {
+                setNumA(a);
+                setNumB(b);
+                setSteps([]);
+                setCurrentDivisor(null);
+                setInputQuotientA('');
+                setInputQuotientB('');
+                setFeedback({ type: '', text: '' });
+                setGcdInputs([]);
+                setGcdAns('');
+                setLcmInputs([]);
+                setLcmAns('');
+                setVerified(false);
+            };
+
+            const handleCustomSubmit = (e) => {
+                e.preventDefault();
+                const a = parseInt(customA);
+                const b = parseInt(customB);
+                if (a >= 6 && a <= 150 && b >= 6 && b <= 150) {
+                    handleResetLab(a, b);
+                    setCustomA('');
+                    setCustomB('');
+                } else {
+                    alert("請輸入 6 到 150 之間的數字！");
+                }
+            };
+
+            const triggerShake = () => {
+                setIsShaking(true);
+                setTimeout(() => setIsShaking(false), 400);
+            };
+
+            const handleSelectPrime = (prime) => {
+                if (isBottomCoprime) return;
+
+                if (currentBottomA % prime !== 0 || currentBottomB % prime !== 0) {
+                    setFeedback({ type: 'error', text: `❌ 質數 ${prime} 不能同時整除 ${currentBottomA} 和 ${currentBottomB} 喔！請選兩者共同的質因數。` });
+                    triggerShake();
+                    return;
+                }
+
+                setCurrentDivisor(prime);
+                setInputQuotientA('');
+                setInputQuotientB('');
+                setFeedback({ type: 'success', text: `選擇正確！請在下方分別輸入 ${currentBottomA}÷${prime} 與 ${currentBottomB}÷${prime} 的商：` });
+                setTimeout(() => inputARef.current?.focus(), 100);
+            };
+
+            const handleVerifyQuotients = (e) => {
+                e.preventDefault();
+                if (!currentDivisor) return;
+
+                const expectedA = currentBottomA / currentDivisor;
+                const expectedB = currentBottomB / currentDivisor;
+
+                const userValA = parseInt(inputQuotientA);
+                const userValB = parseInt(inputQuotientB);
+
+                if (userValA !== expectedA || userValB !== expectedB) {
+                    setFeedback({ type: 'error', text: '❌ 商數計算錯誤！請重新計算兩數除以除數的結果。' });
+                    triggerShake();
+                    return;
+                }
+
+                const newStep = {
+                    valA: currentBottomA,
+                    valB: currentBottomB,
+                    divisor: currentDivisor,
+                    quotientA: expectedA,
+                    quotientB: expectedB
+                };
+
+                const updated = [...steps, newStep];
+                setSteps(updated);
+                setCurrentDivisor(null);
+                setInputQuotientA('');
+                setInputQuotientB('');
+
+                const nextBottomA = expectedA;
+                const nextBottomB = expectedB;
+
+                if (areCoprime(nextBottomA, nextBottomB)) {
+                    setFeedback({ type: 'success', text: `🎉 底部數字 ${nextBottomA} 與 ${nextBottomB} 互質（最大公因數是 1）！短除法結束，請在下方寫出最大公因數 (GCD) 和最小公倍數 (LCM)。` });
+                    setGcdInputs(Array(updated.length).fill(''));
+                    setLcmInputs(Array(updated.length + 2).fill('')); 
+                } else {
+                    setFeedback({ type: 'success', text: `✅ 答對了！商分別為 ${nextBottomA} 和 ${nextBottomB}。請繼續選擇能同時整除它們的公質數。` });
+                }
+            };
+
+            const handleVerifyGcdLcm = () => {
+                const correctGcd = getGCD(numA, numB);
+                const correctLcm = getLCM(numA, numB);
+
+                const userGcdAns = parseInt(gcdAns);
+                const userLcmAns = parseInt(lcmAns);
+
+                const gcdDivisors = steps.map(s => s.divisor).sort((a,b)=>a-b);
+                const userGcdVals = gcdInputs.map(v => parseInt(v)).sort((a,b)=>a-b);
+
+                const lcmAllFactors = [...steps.map(s => s.divisor), currentBottomA, currentBottomB].sort((a,b)=>a-b);
+                const userLcmVals = lcmInputs.map(v => parseInt(v)).sort((a,b)=>a-b);
+
+                const isGcdFormulaCorrect = gcdDivisors.every((v, i) => v === userGcdVals[i]);
+                const isLcmFormulaCorrect = lcmAllFactors.every((v, i) => v === userLcmVals[i]);
+
+                if (isGcdFormulaCorrect && isLcmFormulaCorrect && userGcdAns === correctGcd && userLcmAns === correctLcm) {
+                    setVerified(true);
+                    setFeedback({ type: 'success', text: `🌟 答對了！最大公因數 (GCD) 是 ${correctGcd}，最小公倍數 (LCM) 是 ${correctLcm}！您非常棒！` });
+                } else {
+                    setFeedback({ type: 'error', text: '❌ 算式或最終結果有錯誤喔！提示：最大公因數是「左側除數相乘」，最小公倍數是「左側除數與最下方商 L 型相乘」。' });
+                    triggerShake();
+                }
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-8 space-y-6">
+                        <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex flex-wrap gap-3 items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-500 text-xs">選擇練習數字:</span>
+                                <div className="flex gap-1 flex-wrap">
+                                    {[[12, 18], [24, 36], [30, 45], [16, 24]].map(([a, b]) => (
+                                        <button 
+                                            key={`${a}-${b}`} onClick={() => handleResetLab(a, b)}
+                                            className={`px-3 py-1.5 rounded-xl font-bold text-xs ${
+                                                numA === a && numB === b ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {a} , {b}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <form onSubmit={handleCustomSubmit} className="flex items-center gap-2">
+                                <input 
+                                    type="number" min="6" max="150" placeholder="A (6-150)"
+                                    value={customA} onChange={(e) => setCustomA(e.target.value)}
+                                    className="w-20 px-2 py-1.5 border border-slate-200 rounded-xl text-center text-xs font-bold"
+                                />
+                                <input 
+                                    type="number" min="6" max="150" placeholder="B (6-150)"
+                                    value={customB} onChange={(e) => setCustomB(e.target.value)}
+                                    className="w-20 px-2 py-1.5 border border-slate-200 rounded-xl text-center text-xs font-bold"
+                                />
+                                <button type="submit" className="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-xs font-bold">確認</button>
+                            </form>
+                        </div>
+
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            {/* 雙數直式 - 精準位數對齊優化 */}
+                            <div className="flex flex-col items-center border-r border-slate-100 pr-0 md:pr-6 justify-center min-h-[300px]">
+                                <h4 className="text-xs font-bold text-slate-400 mb-6 text-center w-full">最大公因/公倍數短除法直式</h4>
+                                <div className="font-mono text-2xl flex flex-col items-start w-fit">
+                                    <table className="border-collapse">
+                                        <tbody>
+                                            {steps.map((s, idx) => (
+                                                <tr key={idx}>
+                                                    {/* 除數 */}
+                                                    <td className="text-right pr-3 text-blue-600 font-mono font-black border-r-4 border-slate-400 w-16 h-12 leading-[48px]">
+                                                        {s.divisor}
+                                                    </td>
+                                                    {/* 被除數 A - 獨立單元格右對齊 */}
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-slate-800 border-b-4 border-slate-400 min-w-[90px] h-12 leading-[48px]">
+                                                        {s.valA}
+                                                    </td>
+                                                    {/* 被除數 B - 獨立單元格右對齊 */}
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-slate-800 border-b-4 border-slate-400 min-w-[90px] h-12 leading-[48px]">
+                                                        {s.valB}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {!isBottomCoprime && (
+                                                <tr>
+                                                    <td className="text-right pr-3 text-blue-600 font-mono font-black border-r-4 border-slate-400 w-16 h-12 leading-[48px]">
+                                                        {currentDivisor ? currentDivisor : <span className="text-slate-300 text-xs font-sans font-normal animate-pulse">選公質數</span>}
+                                                    </td>
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-slate-800 border-b-4 border-slate-400 min-w-[90px] h-12 leading-[48px]">
+                                                        {currentBottomA}
+                                                    </td>
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-slate-800 border-b-4 border-slate-400 min-w-[90px] h-12 leading-[48px] flex items-center justify-between">
+                                                        <span>{currentBottomB}</span>
+                                                        {currentDivisor && (
+                                                            <form onSubmit={handleVerifyQuotients} className="inline-flex items-center gap-1 shrink-0 ml-2" id="gcdlcm-step-form">
+                                                                <input
+                                                                    ref={inputARef} type="text" value={inputQuotientA}
+                                                                    onChange={(e) => setInputQuotientA(e.target.value)}
+                                                                    onKeyDown={(ev) => handleEnterFocusNext(ev)}
+                                                                    placeholder="商A"
+                                                                    className={`w-12 text-center py-0.5 border border-slate-200 rounded text-xs font-bold font-mono focus:outline-none ${isShaking ? 'shake-animation' : ''}`}
+                                                                />
+                                                                <input
+                                                                    type="text" value={inputQuotientB}
+                                                                    onChange={(e) => setInputQuotientB(e.target.value)}
+                                                                    onKeyDown={(ev) => handleEnterFocusNext(ev, 'submit-gcdlcm-step')}
+                                                                    placeholder="商B"
+                                                                    className="w-12 text-center py-0.5 border border-slate-200 rounded text-xs font-bold font-mono focus:outline-none"
+                                                                />
+                                                                <button id="submit-gcdlcm-step" type="submit" className="bg-amber-400 text-amber-950 font-black text-xs px-2 py-1 rounded hover:bg-amber-500">✓</button>
+                                                            </form>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {isBottomCoprime && (
+                                                <tr>
+                                                    <td className="w-16 border-r-4 border-slate-400 h-12"></td>
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-emerald-600 bg-emerald-50/50 min-w-[90px] h-12 leading-[48px] rounded-l-xl border-y border-l border-emerald-100 shadow-inner">
+                                                        {currentBottomA}
+                                                    </td>
+                                                    <td className="text-right pl-4 pr-6 font-mono font-black text-emerald-600 bg-emerald-50/50 min-w-[90px] h-12 leading-[48px] rounded-r-xl border-y border-r border-emerald-100 shadow-inner flex items-center justify-between">
+                                                        <span>{currentBottomB}</span>
+                                                        <span className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded-full leading-none font-sans">互質</span>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* 除數與反饋 */}
+                            <div className="flex flex-col justify-between space-y-6">
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold text-slate-600">選擇兩數共有的「質數除數」：</h4>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {PRIMES.map(p => {
+                                            const isDivisible = currentBottomA % p === 0 && currentBottomB % p === 0 && !isBottomCoprime;
+                                            return (
+                                                <button
+                                                    key={p} disabled={isBottomCoprime || currentDivisor !== null}
+                                                    onClick={() => handleSelectPrime(p)}
+                                                    className={`py-3 rounded-2xl font-black text-lg border-2 transition-all active:scale-95 flex flex-col items-center justify-center ${
+                                                        isBottomCoprime || currentDivisor !== null
+                                                            ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed'
+                                                            : isDivisible
+                                                                ? 'bg-blue-50 border-blue-200 text-blue-700 hover:border-blue-500 shadow-sm pulse-green-glow'
+                                                                : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className={`p-4 rounded-2xl border min-h-[90px] flex items-center justify-center transition-all ${
+                                    feedback.text 
+                                        ? feedback.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-800' : 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                                        : 'bg-slate-50 border-slate-100 text-slate-400 text-xs text-center'
+                                }`}>
+                                    <p className="text-xs leading-relaxed font-bold text-center">
+                                        {feedback.text || '🌱 請點選上方公因數「質數」按鈕開始。'}
+                                    </p>
+                                </div>
+
+                                <button onClick={() => handleResetLab(numA, numB)} className="w-full py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs">
+                                    重新挑戰此組數
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 最大公因/公倍數算式挑戰 - Enter 鍵自動聚焦 */}
+                        {isBottomCoprime && (
+                            <form onSubmit={(e) => { e.preventDefault(); handleVerifyGcdLcm(); }} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6" id="gcdlcm-form">
+                                <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                    <LucideIcon name="Crown" className="text-amber-500 animate-bounce" />
+                                    <span>寫出兩數的公因數與公倍數分解式</span>
+                                </h4>
+
+                                <div className="space-y-4">
+                                    {/* GCD */}
+                                    <div className="flex flex-wrap items-center gap-2 text-base font-bold text-slate-800">
+                                        <span className="text-blue-600 text-sm font-black">最大公因數 (GCD) :</span>
+                                        <span className="font-mono">( {numA} , {numB} ) =</span>
+                                        {gcdInputs.map((val, idx) => (
+                                            <React.Fragment key={idx}>
+                                                <input
+                                                    type="text" disabled={verified} value={val}
+                                                    onChange={(e) => {
+                                                        const updated = [...gcdInputs];
+                                                        updated[idx] = e.target.value;
+                                                        setGcdInputs(updated);
+                                                    }}
+                                                    onKeyDown={(ev) => handleEnterFocusNext(ev)}
+                                                    placeholder="?"
+                                                    className="w-10 text-center py-1 border border-slate-200 rounded-lg text-sm bg-slate-50 font-mono focus:outline-none focus:border-blue-500"
+                                                />
+                                                {idx < gcdInputs.length - 1 && <span className="text-slate-400">×</span>}
+                                            </React.Fragment>
+                                        ))}
+                                        <span>=</span>
+                                        <input 
+                                            type="text" disabled={verified} value={gcdAns}
+                                            onChange={(e) => setGcdAns(e.target.value)}
+                                            onKeyDown={(ev) => handleEnterFocusNext(ev)}
+                                            placeholder="最後值"
+                                            className="w-16 text-center py-1 border border-slate-200 rounded-lg text-sm bg-slate-50 text-indigo-600 font-bold font-mono focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+
+                                    {/* LCM */}
+                                    <div className="flex flex-wrap items-center gap-2 text-base font-bold text-slate-800">
+                                        <span className="text-emerald-600 text-sm font-black">最小公倍數 (LCM) :</span>
+                                        <span className="font-mono">[ {numA} , {numB} ] =</span>
+                                        {lcmInputs.map((val, idx) => (
+                                            <React.Fragment key={idx}>
+                                                <input
+                                                    type="text" disabled={verified} value={val}
+                                                    onChange={(e) => {
+                                                        const updated = [...lcmInputs];
+                                                        updated[idx] = e.target.value;
+                                                        setLcmInputs(updated);
+                                                    }}
+                                                    onKeyDown={(ev) => handleEnterFocusNext(ev)}
+                                                    placeholder="?"
+                                                    className="w-10 text-center py-1 border border-slate-200 rounded-lg text-sm bg-slate-50 font-mono focus:outline-none focus:border-blue-500"
+                                                />
+                                                {idx < lcmInputs.length - 1 && <span className="text-slate-400">×</span>}
+                                            </React.Fragment>
+                                        ))}
+                                        <span>=</span>
+                                        <input 
+                                            type="text" disabled={verified} value={lcmAns}
+                                            onChange={(e) => setLcmAns(e.target.value)}
+                                            onKeyDown={(ev) => handleEnterFocusNext(ev, 'verify-gcdlcm-btn')}
+                                            placeholder="最後值"
+                                            className="w-16 text-center py-1 border border-slate-200 rounded-lg text-sm bg-slate-50 text-indigo-600 font-bold font-mono focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                {!verified && (
+                                    <button 
+                                        id="verify-gcdlcm-btn"
+                                        type="submit"
+                                        className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl text-xs active:scale-95 shadow transition-all"
+                                    >
+                                        驗證 GCD & LCM 結果
+                                    </button>
+                                )}
+                            </form>
+                        )}
+                    </div>
+                    
+                    <div className="lg:col-span-4 flex flex-col items-center">
+                        <Scratchpad />
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 模組五：素養大挑戰 (Quiz) - 真正隨機 PCG 引擎 ---
+        function QuizModule() {
+            const [questions, setQuestions] = useState([]);
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [showExplanation, setShowExplanation] = useState(false);
+            const [score, setScore] = useState(0);
+            const [quizState, setQuizState] = useState('start'); 
+            const [answersRecord, setAnswersRecord] = useState([]);
+
+            const generateQuestions = () => {
+                const subjects = ["小智", "農夫老王", "烘焙師莉莉", "小美", "小明", "巧克阿姨", "園丁大叔"];
+                const containers = ["籃子", "禮盒", "袋子", "盒子", "紙箱"];
+                
+                const qList = [
+                    // 1. 質因數觀念題
+                    (() => {
+                        const items = ["蘋果", "草莓", "鉛筆", "水蜜桃"];
+                        const sub = subjects[Math.floor(Math.random() * subjects.length)];
+                        const item = items[Math.floor(Math.random() * items.length)];
+                        
+                        // 隨機一個合數
+                        const nums = [30, 42, 60, 70, 84];
+                        const num = nums[Math.floor(Math.random() * nums.length)];
+                        const correctFactors = getPrimeFactors(num);
+                        const uniquePrimes = Array.from(new Set(correctFactors));
+                        const correct = uniquePrimes[Math.floor(Math.random() * uniquePrimes.length)];
+                        
+                        // 誘答
+                        const wrongPool = [4, 6, 8, 9, 10, 12].filter(n => num % n === 0 && !isPrime(n));
+                        const wrong = wrongPool.length >= 3 ? wrongPool.slice(0, 3) : [4, 6, 8];
+                        const options = Array.from(new Set([correct, ...wrong])).slice(0, 4);
+                        
+                        return {
+                            title: `${sub} 收集了 ${num} 顆${item}。他想找出這堆${item}的「質數因數（質因數）」來分組，請問下列哪一個數字是 ${num} 的「質因數」？`,
+                            options: shuffleArray(options),
+                            correct,
+                            exp: `${num} 的因數包含：${correctFactors.join(', ')} 等，其中只有質數才叫做質因數。雖然 ${options.filter(o => o !== correct).join(', ')} 是因數，但它們是合數，所以不是質因數。正確答案為 ${correct}。`
+                        };
+                    })(),
+                    
+                    // 2. 兩數互質判斷題
+                    (() => {
+                        const sub = subjects[Math.floor(Math.random() * subjects.length)];
+                        
+                        // 生成四個選項，一組互質，三組不互質
+                        // 互質組
+                        const coprimePairs = [[8, 9], [9, 14], [15, 16], [12, 25], [14, 15]];
+                        const coprimeSet = coprimePairs[Math.floor(Math.random() * coprimePairs.length)];
+                        const correct = `${coprimeSet[0]} 和 ${coprimeSet[1]}`;
+
+                        // 不互質組
+                        const nonCoprimePairs = [[6, 8], [15, 20], [12, 18], [14, 21], [10, 25]];
+                        const wrongSets = shuffleArray(nonCoprimePairs).slice(0, 3).map(p => `${p[0]} 和 ${p[1]}`);
+
+                        const options = [correct, ...wrongSets];
+                        return {
+                            title: `${sub} 正在整理圖書館的書籍，需要將書籍分類成兩堆，且這兩堆書籍數量的關係必須是「兩數互質」，請問下列哪一組數量符合這個要求？`,
+                            options: shuffleArray(options),
+                            correct,
+                            exp: `兩數互質代表最大公因數為 1。在 ${correct} 中，這兩個數唯一的公因數是 1，因此互質。其餘的組別都有除了 1 以外的公因數。`
+                        };
+                    })(),
+
+                    // 3. 最大公因數應用題 (GCD)
+                    (() => {
+                        const sub = subjects[Math.floor(Math.random() * subjects.length)];
+                        const container = containers[Math.floor(Math.random() * containers.length)];
+                        const itemsList = [
+                            { aName: "水蜜桃", bName: "甜柿", unit: "顆" },
+                            { aName: "巧克力", bName: "草莓糖", unit: "包" },
+                            { aName: "藍色鉛筆", bName: "紅色鉛筆", unit: "支" }
+                        ];
+                        const itemObj = itemsList[Math.floor(Math.random() * itemsList.length)];
+                        
+                        const factor = [6, 8, 12, 16][Math.floor(Math.random() * 4)];
+                        const multA = [2, 3, 5][Math.floor(Math.random() * 3)];
+                        let multB = [3, 5, 7][Math.floor(Math.random() * 3)];
+                        while (multA === multB) {
+                            multB = [3, 5, 7][Math.floor(Math.random() * 3)];
+                        }
+                        
+                        const numA = factor * multA;
+                        const numB = factor * multB;
+                        const correct = factor;
+                        
+                        const wrong1 = numA + numB; // 直接加
+                        const wrong2 = getLCM(numA, numB); // 最小公倍數
+                        const wrong3 = Math.max(2, factor - 2); // 錯誤小因子
+                        
+                        const options = Array.from(new Set([correct, wrong1, wrong2, wrong3])).filter(n => n > 0 && n !== numA);
+                        
+                        return {
+                            title: `${sub} 把收成的 ${numA} ${itemObj.unit}${itemObj.aName}和 ${numB} ${itemObj.unit}${itemObj.bName}裝進${container}，想讓每個${container}裡的兩種物品數量相同且剛好分完。請問最多可以裝成幾個${container}？`,
+                            options: shuffleArray(options),
+                            correct,
+                            exp: `這是最大公因數的經典應用。我們要求 (${numA}, ${numB}) 的最大公因數。短除法分解得到最大公因數為 ${correct}，因此最多可以分裝成 ${correct} 個${container}。`
+                        };
+                    })(),
+
+                    // 4. 最小公倍數應用題 (LCM)
+                    (() => {
+                        const sub = subjects[Math.floor(Math.random() * subjects.length)];
+                        
+                        // 交通班次情境
+                        const busTypes = [["甲線公車", "乙線公車"], ["火車區間車", "火車對號車"], ["交通船A", "交通船B"]];
+                        const bus = busTypes[Math.floor(Math.random() * busTypes.length)];
+                        
+                        const intervalA = [8, 12, 15][Math.floor(Math.random() * 3)];
+                        let intervalB = [12, 18, 20][Math.floor(Math.random() * 3)];
+                        while (intervalA === intervalB) {
+                            intervalB = [12, 18, 20][Math.floor(Math.random() * 3)];
+                        }
+                        
+                        const correct = getLCM(intervalA, intervalB);
+                        const options = [correct, intervalA + intervalB, intervalA * intervalB, getGCD(intervalA, intervalB)];
+
+                        return {
+                            title: `在轉運站中，${sub} 注意到${bus[0]}每 ${intervalA} 分鐘發一班，${bus[1]}每 ${intervalB} 分鐘發一班。若早上 8 點兩班車同時出發，請問最快幾分鐘之後，這兩班車會再次同時發出？`,
+                            options: shuffleArray(Array.from(new Set(options))),
+                            correct,
+                            exp: `下一次同時發車的時間必須是兩班車間隔時間的最小公倍數。求 [${intervalA}, ${intervalB}] 的最小公倍數，算出來是 ${correct} 分鐘。`
+                        };
+                    })(),
+
+                    // 5. 壞掉的短除法 (Ink Blot)
+                    (() => {
+                        const div1 = [2, 3][Math.floor(Math.random() * 2)];
+                        const div2 = [3, 5][Math.floor(Math.random() * 2)];
+                        const lastQuot = [5, 7][Math.floor(Math.random() * 2)];
+                        
+                        const correct = div1 * div2 * lastQuot;
+                        const wrong = [correct + 10, correct - 4, correct * 2, div1 + div2 + lastQuot];
+
+                        return {
+                            title: `小華在筆記本上算質因數分解，短除法的最左上角被除數不小心沾上污漬了。只看得出左側兩個除數分別是 ${div1} 和 ${div2}，且最下方的商是 ${lastQuot}。請問原來的被除數是多少？`,
+                            options: shuffleArray(Array.from(new Set([correct, ...wrong]))),
+                            correct,
+                            exp: `短除法連續相除，將最下方的質數商數逆推回去，即為所有連續除數與最底端商的乘積。所以原始數字是：${div1} × ${div2} × ${lastQuot} = ${correct}。`
+                        }
+                    })()
+                ];
+                
+                setQuestions(qList);
+            };
+
+            const handleStartQuiz = () => {
+                generateQuestions();
+                setCurrentQIndex(0);
+                setSelectedOption(null);
+                setShowExplanation(false);
+                setScore(0);
+                setAnswersRecord([]);
+                setQuizState('playing');
+            };
+
+            const handleOptionClick = (opt) => {
+                if (showExplanation) return;
+                setSelectedOption(opt);
+            };
+
+            const handleVerifyAnswer = () => {
+                if (selectedOption === null) return;
+                const isCorrect = selectedOption === questions[currentQIndex].correct;
+                if (isCorrect) setScore(prev => prev + 20);
+                setAnswersRecord([...answersRecord, isCorrect]);
+                setShowExplanation(true);
+            };
+
+            const handleNextQuestion = () => {
+                if (currentQIndex + 1 < questions.length) {
+                    setCurrentQIndex(prev => prev + 1);
+                    setSelectedOption(null);
+                    setShowExplanation(false);
+                } else {
+                    setQuizState('end');
+                }
+            };
+
+            return (
+                <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+                    {quizState === 'start' && (
+                        <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm text-center space-y-6">
+                            <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-blue-500">
+                                <LucideIcon name="Crown" size={40} className="animate-bounce" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-slate-800">公因倍數素養挑戰</h3>
+                                <p className="text-slate-500 text-sm">挑戰 5 題生活中的最大公因數、最小公倍數與互質素養應用題！每一次都會隨機生成不同的主角、物品與數字喔！</p>
+                            </div>
+                            <button
+                                onClick={handleStartQuiz}
+                                className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold shadow active:scale-95 transition-all"
+                            >
+                                開始挑戰
+                            </button>
+                        </div>
+                    )}
+
+                    {quizState === 'playing' && questions.length > 0 && (
+                        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+                                <span>問題 {currentQIndex + 1} / {questions.length}</span>
+                                <span>目前得分: <span className="text-blue-600 text-sm font-black">{score}</span> 分</span>
+                            </div>
+                            <div className="text-base font-bold text-slate-800 leading-loose">{questions[currentQIndex].title}</div>
+                            
+                            <div className="grid grid-cols-1 gap-3">
+                                {questions[currentQIndex].options.map((opt, idx) => {
+                                    const isSelected = selectedOption === opt;
+                                    const isCorrectOpt = opt === questions[currentQIndex].correct;
+                                    let btnStyle = "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100";
+                                    if (showExplanation) {
+                                        if (isCorrectOpt) btnStyle = "bg-emerald-50 border-emerald-300 text-emerald-700 font-bold";
+                                        else if (isSelected) btnStyle = "bg-rose-50 border-rose-300 text-rose-700 font-bold";
+                                        else btnStyle = "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed";
+                                    } else if (isSelected) {
+                                        btnStyle = "bg-blue-50 border-blue-400 text-blue-700 font-bold";
+                                    }
+                                    return (
+                                        <button
+                                            key={idx} disabled={showExplanation} onClick={() => handleOptionClick(opt)}
+                                            className={`p-4 rounded-2xl border-2 text-left text-sm transition-all flex items-center justify-between ${btnStyle}`}
+                                        >
+                                            <span className="font-medium">{opt}</span>
+                                            {showExplanation && isCorrectOpt && <span className="text-emerald-500 font-black text-xs">✓ 正確</span>}
+                                            {showExplanation && isSelected && !isCorrectOpt && <span className="text-rose-500 font-black text-xs">✗ 答錯</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {!showExplanation ? (
+                                <button
+                                    onClick={handleVerifyAnswer} disabled={selectedOption === null}
+                                    className={`w-full py-3.5 rounded-2xl font-bold transition-all active:scale-95 ${
+                                        selectedOption === null ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white'
+                                    }`}
+                                >
+                                    送出回答
+                                </button>
+                            ) : (
+                                <div className="space-y-4 pt-4 border-t border-slate-100">
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <span className="text-xs font-bold text-slate-400 block mb-1">🌱 教學詳解</span>
+                                        <p className="text-xs text-slate-600 leading-relaxed font-semibold">{questions[currentQIndex].exp}</p>
+                                    </div>
+                                    <button onClick={handleNextQuestion} className="w-full py-3.5 bg-slate-800 text-white rounded-2xl font-bold active:scale-95">
+                                        {currentQIndex + 1 === questions.length ? '觀看總結' : '下一題 ➜'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {quizState === 'end' && (
+                        <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm text-center space-y-6">
+                            <div className="bg-emerald-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-emerald-500">
+                                <LucideIcon name="Crown" size={40} />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-slate-800">挑戰大成功！</h3>
+                                <p className="text-slate-500 text-sm">您的最終得分為：</p>
+                                <div className="text-5xl font-black text-blue-600 animate-pulse">{score} <span className="text-lg text-slate-400">分</span></div>
+                            </div>
+                            <div className="flex justify-center gap-2 max-w-xs mx-auto">
+                                {answersRecord.map((res, i) => (
+                                    <span key={i} className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                                        res ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                                    }`}>{i + 1}</span>
+                                ))}
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                                <button onClick={handleStartQuiz} className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow">再應戰一次</button>
+                                <button onClick={() => setQuizState('start')} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl font-bold text-sm">返回主頁</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // --- 全域 App 元件 ---
+        function App() {
+            const [activeTab, setActiveTab] = useState('concept'); 
+
+            return (
+                <div className="min-h-screen flex flex-col text-slate-800">
+                    <header className="bg-white shadow-sm sticky top-0 z-50">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-2xl text-white shadow-md">
+                                    <LucideIcon name="Layers" size={22} />
+                                </div>
+                                <h1 className="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-500">
+                                    質因數分解與公因倍數探險家
+                                </h1>
+                            </div>
+                            <a href="index.html" className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors flex items-center gap-1.5">
+                                <LucideIcon name="ArrowLeft" size={14} />
+                                <span>返回大廳</span>
+                            </a>
+                        </div>
+                    </header>
+
+                    <div className="bg-white border-b border-slate-100 sticky top-16 z-40">
+                        <div className="max-w-7xl mx-auto px-4 flex justify-center gap-4 sm:gap-6 overflow-x-auto hide-scrollbar">
+                            {[
+                                { id: 'concept', label: '認識質因與互質', icon: 'BookOpen' },
+                                { id: 'tree', label: '樹狀圖分解', icon: 'Network' },
+                                { id: 'lab', label: '短除法實驗室', icon: 'HelpCircle' },
+                                { id: 'gcdlcm', label: 'GCD & LCM', icon: 'Percent' },
+                                { id: 'quiz', label: '素養大挑戰', icon: 'Crown' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id} onClick={() => setActiveTab(tab.id)}
+                                    className={`py-4 px-2 font-bold text-sm flex items-center gap-1.5 border-b-4 transition-all shrink-0 ${
+                                        activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                                    }`}
+                                >
+                                    <LucideIcon name={tab.icon} size={16} />
+                                    <span>{tab.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <main className="flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+                        {activeTab === 'concept' && <ConceptModule />}
+                        {activeTab === 'tree' && <FactorTreeModule />}
+                        {activeTab === 'lab' && <ShortDivisionModule />}
+                        {activeTab === 'gcdlcm' && <GcdLcmModule />}
+                        {activeTab === 'quiz' && <QuizModule />}
+                    </main>
+
+                    <footer className="text-center py-6 text-slate-400 text-xs border-t border-slate-200 mt-auto bg-white select-none">
+                        <span>© 2026 國小數學互動教學實驗室</span>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
