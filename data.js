@@ -289,6 +289,14 @@ window.MATH_TOOLS_DATA = [
     "description": "專為國小高年級數學科「統計圖表」單元設計的素養導向自學平台。本平台透過「即時狀態驅動（State-Driven）」與「資料動態隨機化（Dynamic Randomization）」技術，將長條圖、直方圖、圓形圖與折線圖的「觀念導覽、手繪實作、讀圖反推、成效評估」完全整合至單一數位空間中，打造出防死記、高樂趣的遊戲化自學環境。\n",
     "link": "statistics.html",
     "icon": "ChartColumnStacked",
-    "color": "indigo"
+  },
+  {
+    "id": "tool_1782281938562",
+    "title": "質因數分解與短除法探險家",
+    "grade": "五年級",
+    "description": "透過互動式的 L 型短除法階梯與質數積木，循序漸進將合數分解為質因數的乘積。系統內建整除防呆、商數質數提示與指數填空挑戰，讓孩子在無壓力試錯中掌握短除法邏輯。",
+    "link": "prime_factorization.html",
+    "icon": "Layers",
+    "color": "blue"
   }
 ];
